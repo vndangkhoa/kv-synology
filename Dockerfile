@@ -16,6 +16,8 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Ensure public exists (Next.js standalone expects it, but project has no public dir)
+RUN mkdir -p ./public
 # Next.js standalone output — enabled via next.config.ts
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
@@ -33,7 +35,8 @@ RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
 
 # Copy standalone + static assets (requires output: "standalone" in next.config)
-COPY --from=builder --chown=nextjs:nodejs /app/.next/server/app ./
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Include full GPL-3.0 license text as required when distributing binaries
