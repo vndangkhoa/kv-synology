@@ -48,6 +48,86 @@ npm run start
 
 ---
 
+## 🐳 Triển khai trên NAS Synology (Container Manager / Docker Compose)
+
+> **Image chính thức:** `docker.io/vndangkhoa/kv-synology:latest` — build multi-arch (`linux/amd64`, `linux/arm64`) tự động từ GitHub Actions. Cũng có tại `ghcr.io/vndangkhoa/kv-synology:latest` và `git.khoavo.myds.me/vndangkhoa/kv-synology:latest`. Xem tags tại <https://hub.docker.com/r/vndangkhoa/kv-synology>.
+
+### Yêu cầu
+
+- DSM 7.2+ với **Container Manager** (Package Center) hoặc DSM 7.0+ với **Docker** cũ
+- NAS đã bật SSH (nếu dùng CLI): Control Panel > Terminal & SNMP > Enable SSH service
+- Port `8088` rảnh (mặc định của image, đổi được qua `PORT`)
+
+### Cách 1: Container Manager UI (khuyên dùng)
+
+1. **Tạo thư mục project:** File Station > tạo `docker/kv-synology` (trên volume bạn chọn, ví dụ `volume1`).
+2. **Container Manager > Project > Tạo > Tạo dự án:**
+   - **Tên dự án:** `kv-synology`
+   - **Đường dẫn:** chọn `/volume1/docker/kv-synology`
+   - **Nguồn:** `Tạo docker-compose.yml` → dán nguyên nội dung [`docker-compose.yml`](docker-compose.yml) dưới đây:
+
+```yaml
+services:
+  kv-synology:
+    image: docker.io/vndangkhoa/kv-synology:latest
+    container_name: kv-synology
+    ports:
+      - "8088:8088"
+    restart: unless-stopped
+    pull_policy: always
+    environment:
+      PORT: 8088
+      HOSTNAME: 0.0.0.0
+      NODE_ENV: production
+```
+
+   > Muốn build từ source thay vì pull: thêm `build: {context: ., dockerfile: Dockerfile}` (cần upload cả source lên NAS).
+
+3. Nhấn **Tiếp > Hoàn thành**. Container Manager sẽ `pull` image từ Docker Hub và chạy.
+4. Mở `http://<IP-NAS>:8088` (ví dụ `http://192.168.1.10:8088`) — đăng nhập DSM bằng QuickConnect ID / DDNS / IP LAN như bình thường.
+
+**Đổi registry nếu Docker Hub chậm:** thay `image:` thành `ghcr.io/vndangkhoa/kv-synology:latest` hoặc `git.khoavo.myds.me/vndangkhoa/kv-synology:latest`.
+
+### Cách 2: SSH + `docker compose` (cho Synology CLI / VPS)
+
+```bash
+# SSH vào NAS
+ssh admin@<IP-NAS>
+
+# Tạo thư mục project
+sudo mkdir -p /volume1/docker/kv-synology
+cd /volume1/docker/kv-synology
+
+# Tải compose chính thức (hoặc tự tạo file)
+curl -fsSL https://raw.githubusercontent.com/vndangkhoa/kv-synology/master/docker-compose.yml -o docker-compose.yml
+# Hoặc cho Forgejo: curl -fsSL https://git.khoavo.myds.me/vndangkhoa/kv-synology/raw/branch/master/docker-compose.yml -o docker-compose.yml
+cat docker-compose.yml  # kiểm tra image: docker.io/vndangkhoa/kv-synology:latest
+
+# Kéo và chạy (tự tạo container kv-synology, restart unless-stopped)
+sudo docker compose up -d
+sudo docker compose logs -f   # xem log
+# Mở http://<IP-NAS>:8088
+
+# Cập nhật lên bản mới nhất
+sudo docker compose pull
+sudo docker compose up -d
+```
+
+### Cấu hình nâng cao
+
+- **Đổi port:** sửa `ports: ["8088:8088"]` thành `["3000:8088"]` (ngoài:trong) và giữ `PORT=8088` hoặc đồng bộ `PORT` + `ports`.
+- **Biến môi trường:** tạo `.env` cạnh `docker-compose.yml` và bỏ comment `env_file: .env`.
+- **Tự động cập nhật (Watchtower):** chạy Watchtower với label `com.centurylinklabs.watchtower.enable=true` nếu muốn auto-pull.
+
+### Xử lý sự cố
+
+- **Port 8088 đã dùng:** đổi `8088:8088` và truy cập port mới.
+- **Không pull được từ Docker Hub (VN):** đổi `image:` sang `ghcr.io/...` hoặc `git.khoavo.myds.me/...` rồi `docker compose up -d`.
+- **Firewall DSM:** Control Panel > Security > Firewall > cho phép port 8088.
+- **Container unhealthy:** `docker inspect kv-synology` và `docker logs kv-synology`.
+
+---
+
 ## 🛠️ Cấu trúc
 
 ```
