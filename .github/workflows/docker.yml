@@ -1,0 +1,89 @@
+name: build-and-push
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*.*.*"]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_IMAGE }} # e.g. docker.io/<user>/kv-synology
+  GHCR_IMAGE: ghcr.io/${{ github.repository }}     # auto: ghcr.io/<owner>/<repo>
+  FORGEJO_IMAGE: ${{ secrets.FORGEJO_IMAGE }}      # e.g. git.khoavo.myds.me/<user>/kv-synology
+  PLATFORMS: linux/amd64,linux/arm64
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # --- Log in to registries (only when NOT a PR) ---
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request' && env.DOCKERHUB_IMAGE != ''
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to Forgejo
+        if: github.event_name != 'pull_request' && env.FORGEJO_IMAGE != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.FORGEJO_REGISTRY }} # e.g. git.khoavo.myds.me
+          username: ${{ secrets.FORGEJO_USERNAME }}
+          password: ${{ secrets.FORGEJO_TOKEN }}
+
+      - name: Docker meta (tags & labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # Generate sane tags for all registries; extra registries are added as additional tags
+          images: |
+            ${{ env.GHCR_IMAGE }}
+            ${{ env.DOCKERHUB_IMAGE }}
+            ${{ env.FORGEJO_IMAGE }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+            type=ref,event=branch
+            type=sha
+          labels: |
+            org.opencontainers.image.title=kv-synology
+            org.opencontainers.image.description=Synology DSM Web Manager (Next.js) — GPL-3.0
+            org.opencontainers.image.licenses=GPL-3.0-only
+
+      - name: Build and push (multi-arch)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ env.PLATFORMS }}
+          # push only on non-PR; PRs just build to verify
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true

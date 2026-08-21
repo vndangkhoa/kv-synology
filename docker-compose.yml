@@ -1,0 +1,16 @@
+services:
+  kv-synology:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: kv-synology:latest
+    container_name: kv-synology
+    ports:
+      - "8088:8088"
+    # env_file: .env   # uncomment if you need runtime env vars
+    restart: unless-stopped
+    # Next.js standalone listens on 0.0.0.0:$PORT (default 8088)
+    environment:
+      PORT: 8088
+      HOSTNAME: 0.0.0.0
+      NODE_ENV: production

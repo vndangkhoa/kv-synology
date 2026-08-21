@@ -1,0 +1,32 @@
+{
+  "name": "dsm-helper-webapp",
+  "version": "1.0.0",
+  "description": "DSM Helper Web Application - Synology NAS Manager (Tiếng Việt & English)",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "scripts": {
+    "dev": "next dev -p 8088",
+    "start": "next start -p 8088",
+    "build": "next build",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.16.0",
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^3.0.0",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.7.2"
+  }
+}
