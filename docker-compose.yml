@@ -1,14 +1,17 @@
 services:
   kv-synology:
+    # Production image from Docker Hub (also available as ghcr.io/vndangkhoa/kv-synology:latest and git.khoavo.myds.me/vndangkhoa/kv-synology:latest)
+    image: docker.io/vndangkhoa/kv-synology:latest
+    # To build locally from Dockerfile instead of pulling, uncomment build section:
     build:
       context: .
       dockerfile: Dockerfile
-    image: kv-synology:latest
     container_name: kv-synology
     ports:
       - "8088:8088"
     # env_file: .env   # uncomment if you need runtime env vars
     restart: unless-stopped
+    pull_policy: always
     # Next.js standalone listens on 0.0.0.0:$PORT (default 8088)
     environment:
       PORT: 8088
