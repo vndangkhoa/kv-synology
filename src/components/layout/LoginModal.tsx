@@ -126,7 +126,13 @@ export const LoginModal: React.FC = () => {
       try {
         const u = new URL(cleanHost);
         cleanHost = u.hostname;
-        if (u.port) cleanPort = parseInt(u.port, 10);
+        if (u.port) {
+          cleanPort = parseInt(u.port, 10);
+        } else {
+          cleanPort = u.protocol === "https:" ? 443 : 80;
+        }
+        setHttps(u.protocol === "https:");
+        setPort(String(cleanPort));
       } catch (_) {}
     } else if (cleanHost.includes(":") && !cleanHost.includes(".quickconnect.to")) {
       const [h, p] = cleanHost.split(":");
@@ -332,10 +338,10 @@ export const LoginModal: React.FC = () => {
             <span className="text-[11px] text-slate-400 font-medium mr-1">Cổng nhanh:</span>
             {[
               { p: "5001", https: true, label: "5001 (HTTPS)" },
+              { p: "443", https: true, label: "443 (DDNS / Proxy)" },
               { p: "5000", https: false, label: "5000 (HTTP)" },
               { p: "8443", https: true, label: "8443" },
-              { p: "443", https: true, label: "443" },
-              { p: "8080", https: false, label: "8080" },
+              { p: "80", https: false, label: "80" },
             ].map((preset) => {
               const isSelected = port === preset.p && https === preset.https;
               return (

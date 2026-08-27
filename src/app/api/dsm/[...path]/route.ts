@@ -252,12 +252,17 @@ async function handleProxy(request: NextRequest, resolvedParams: { path: string[
     const queryString = cleanSearchParams.toString() ? `?${cleanSearchParams.toString()}` : "";
     const fullPath = `${apiPrefix}${targetPath}${queryString}`;
 
+    const hostWithPort = (targetPort === 443 && isHttps) || (targetPort === 80 && !isHttps)
+      ? targetHost
+      : `${targetHost}:${targetPort}`;
+
     const headers: Record<string, string> = {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) DSMHelper/1.0",
       "Accept": "*/*",
       "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
-      "Origin": `${isHttps ? "https" : "http"}://${targetHost}:${targetPort}`,
-      "Referer": `${isHttps ? "https" : "http"}://${targetHost}:${targetPort}/`,
+      "Origin": `${isHttps ? "https" : "http"}://${hostWithPort}`,
+      "Referer": `${isHttps ? "https" : "http"}://${hostWithPort}/`,
+      "Host": hostWithPort,
     };
 
     // Forward Range header for HTML5 video and audio seeking
@@ -286,15 +291,41 @@ async function handleProxy(request: NextRequest, resolvedParams: { path: string[
       }
     }
 
-    const result = await makeNodeRequest({
-      isHttps,
-      host: targetHost,
-      port: targetPort,
-      path: fullPath,
-      method: request.method,
-      headers,
-      body: requestBody,
-    });
+    let result;
+    try {
+      result = await makeNodeRequest({
+        isHttps,
+        host: targetHost,
+        port: targetPort,
+        path: fullPath,
+        method: request.method,
+        headers,
+        body: requestBody,
+      });
+    } catch (initialErr: any) {
+      // Auto-fallback: If port 5001 times out or is refused on a DDNS/domain, retry on standard HTTPS port 443
+      if (
+        (initialErr.code === "ETIMEDOUT" || initialErr.code === "ECONNREFUSED") &&
+        isHttps &&
+        targetPort === 5001 &&
+        targetHost.includes(".")
+      ) {
+        headers["Origin"] = `https://${targetHost}`;
+        headers["Referer"] = `https://${targetHost}/`;
+        headers["Host"] = targetHost;
+        result = await makeNodeRequest({
+          isHttps: true,
+          host: targetHost,
+          port: 443,
+          path: fullPath,
+          method: request.method,
+          headers,
+          body: requestBody,
+        });
+      } else {
+        throw initialErr;
+      }
+    }
 
     const responseHeaders = new Headers();
     if (result.headers["set-cookie"]) {
