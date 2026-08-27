@@ -17,6 +17,11 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Settings2,
+  Bell,
+  Terminal,
+  Bot,
+  Shield,
 } from "lucide-react";
 
 export const Sidebar: React.FC = () => {
@@ -41,6 +46,11 @@ export const Sidebar: React.FC = () => {
     { id: "download", label: t.nav.downloadStation, icon: <DownloadCloud className="w-5 h-5" /> },
     { id: "storage", label: t.nav.storageManager, icon: <HardDrive className="w-5 h-5" /> },
     { id: "packages", label: t.nav.packageCenter, icon: <Package className="w-5 h-5" /> },
+    { id: "services", label: t.nav.services, icon: <Settings2 className="w-5 h-5" /> },
+    { id: "firewall", label: t.nav.firewall, icon: <Shield className="w-5 h-5" /> },
+    { id: "notifications", label: t.nav.notifications, icon: <Bell className="w-5 h-5" /> },
+    { id: "terminal", label: t.nav.terminal, icon: <Terminal className="w-5 h-5" /> },
+    { id: "mcp", label: t.nav.mcp, icon: <Bot className="w-5 h-5" /> },
     { id: "settings", label: t.nav.settings, icon: <Settings className="w-5 h-5" /> },
   ];
 
@@ -51,8 +61,8 @@ export const Sidebar: React.FC = () => {
         {/* Brand Header */}
         <div className={`p-4 border-b border-slate-200 dark:border-slate-800 flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
           <div className="flex items-center space-x-3 overflow-hidden">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-600 to-blue-500 flex items-center justify-center text-white shadow-lg shadow-sky-500/20 shrink-0">
-              <Server className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-lg shadow-sky-500/20 shrink-0 ring-1 ring-sky-500/10">
+              <img src="/logo.svg" alt="S logo" className="w-full h-full object-cover" />
             </div>
             {!collapsed && (
               <div className="truncate">
@@ -82,12 +92,10 @@ export const Sidebar: React.FC = () => {
               if (!session.isConnected) openLoginModal(true);
               setMobileDrawerOpen(false);
             }}
-            title={session.isConnected ? (session.isDemo ? "Chế độ Demo" : session.hostname) : "Chưa kết nối"}
+            title={session.isConnected ? session.hostname : "Chưa kết nối"}
             className={`flex items-center ${collapsed ? "justify-center p-2.5" : "justify-between p-2.5"} rounded-xl border text-xs cursor-pointer transition-all ${
               session.isConnected
-                ? session.isDemo
-                  ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400"
-                  : "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
                 : "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500"
             }`}
           >
@@ -95,18 +103,14 @@ export const Sidebar: React.FC = () => {
               <span
                 className={`w-2.5 h-2.5 rounded-full shrink-0 ${
                   session.isConnected
-                    ? session.isDemo
-                      ? "bg-amber-500 animate-pulse"
-                      : "bg-emerald-500 animate-pulse"
+                    ? "bg-emerald-500"
                     : "bg-slate-400"
                 }`}
               />
               {!collapsed && (
                 <span className="font-semibold truncate">
                   {session.isConnected
-                    ? session.isDemo
-                      ? t.common.demoMode
-                      : session.hostname || "Synology NAS"
+                    ? session.hostname
                     : t.common.disconnected}
                 </span>
               )}
@@ -161,7 +165,7 @@ export const Sidebar: React.FC = () => {
                     {session.account || "User"}
                   </p>
                   <p className="text-[11px] text-slate-400 truncate">
-                    {session.isDemo ? "Chế độ Demo" : session.model || "Synology"}
+                    {session.model || "Synology"}
                   </p>
                 </div>
               )}

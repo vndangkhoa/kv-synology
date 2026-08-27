@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import http from "http";
 import https from "https";
+import net from "net";
 import { URL } from "url";
 
 export const dynamic = "force-dynamic";
@@ -136,7 +137,7 @@ async function resolveQuickConnect(serverId: string): Promise<{ host: string; po
 
 function testHostConnection(host: string, port: number, timeout = 1200): Promise<boolean> {
   return new Promise((resolve) => {
-    const socket = new (require("net").Socket)();
+    const socket = new net.Socket();
     socket.setTimeout(timeout);
     socket.on("connect", () => {
       socket.destroy();

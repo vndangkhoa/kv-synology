@@ -3,6 +3,7 @@
 import React from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { formatSpeed } from "@/lib/utils";
+import { NasSwitcherDropdown } from "./NasSwitcherDropdown";
 import {
   Sun,
   Moon,
@@ -15,6 +16,7 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  Bell,
 } from "lucide-react";
 
 export const Header: React.FC = () => {
@@ -31,6 +33,8 @@ export const Header: React.FC = () => {
     setMobileDrawerOpen,
     isSidebarCollapsed,
     toggleSidebarCollapse,
+    setActiveTab,
+    notifications,
     t,
   } = useAppStore();
 
@@ -50,6 +54,16 @@ export const Header: React.FC = () => {
         return t.nav.storageManager;
       case "packages":
         return t.nav.packageCenter;
+      case "services":
+        return t.nav.services;
+      case "firewall":
+        return t.nav.firewall;
+      case "notifications":
+        return t.nav.notifications;
+      case "terminal":
+        return t.nav.terminal;
+      case "mcp":
+        return t.nav.mcp;
       case "settings":
         return t.nav.settings;
       default:
@@ -99,12 +113,10 @@ export const Header: React.FC = () => {
           {getTabTitle()}
         </h2>
 
-        {session.isConnected && (
-          <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            {session.isDemo ? "Demo" : session.model || session.hostname}
-          </span>
-        )}
+        {/* Multi-NAS Switcher */}
+        <div className="hidden sm:block">
+          <NasSwitcherDropdown />
+        </div>
       </div>
 
       {/* Center Live Telemetry */}
@@ -137,8 +149,8 @@ export const Header: React.FC = () => {
 
       {/* Right Controls */}
       <div className="flex items-center space-x-2 shrink-0">
-        {/* Language Switcher */}
-        <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-0.5 text-xs font-bold">
+        {/* Language Switcher (Desktop / Tablet) */}
+        <div className="hidden sm:flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-0.5 text-xs font-bold">
           <button
             onClick={() => setLanguage("vi")}
             className={`px-2.5 py-1 rounded-lg transition-all ${
@@ -172,6 +184,20 @@ export const Header: React.FC = () => {
           {getThemeIcon()}
         </button>
 
+        {/* Notifications Bell */}
+        <button
+          onClick={() => setActiveTab("notifications")}
+          className="relative p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-slate-700 transition-colors"
+          title={t.nav.notifications}
+        >
+          <Bell className="w-4 h-4" />
+          {notifications.filter((n) => !n.read).length > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+              {notifications.filter((n) => !n.read).length > 9 ? "9+" : notifications.filter((n) => !n.read).length}
+            </span>
+          )}
+        </button>
+
         {/* Power Menu */}
         {session.isConnected && (
           <button
@@ -183,13 +209,18 @@ export const Header: React.FC = () => {
           </button>
         )}
 
-        {/* Connect / Demo Switch Button */}
-        {(!session.isConnected || session.isDemo) && (
+        {/* Mobile Multi-NAS Switcher Trigger */}
+        <div className="sm:hidden">
+          <NasSwitcherDropdown />
+        </div>
+
+        {/* Connect Button */}
+        {!session.isConnected && (
           <button
             onClick={() => openLoginModal(true)}
-            className="px-3 py-1.5 text-xs font-bold rounded-xl bg-sky-600 hover:bg-sky-500 text-white shadow-sm transition-all shrink-0"
+            className="hidden sm:flex px-3 py-1.5 text-xs font-bold rounded-xl bg-sky-600 hover:bg-sky-500 text-white shadow-sm transition-all shrink-0"
           >
-            {session.isDemo ? "Kết nối thật" : t.common.connect}
+            {t.common.connect}
           </button>
         )}
       </div>

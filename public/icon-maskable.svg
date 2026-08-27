@@ -1,0 +1,13 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="S maskable">
+  <defs>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#g2)"/>
+  <!-- inset 10% safe zone for maskable -->
+  <g transform="translate(38,38) scale(0.851)">
+    <path d="M 168 158 H 338 C 364 158 372 178 346 210 L 180 304 C 152 326 152 358 180 380 H 342" fill="none" stroke="white" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

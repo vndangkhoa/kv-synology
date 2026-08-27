@@ -21,8 +21,11 @@
 - **Đăng nhập DSM linh hoạt:** IP LAN, DDNS (`*.synology.me`), **QuickConnect ID** (`your-id`, `your-id.quickconnect.to`) — tự động phân giải qua `global.quickconnect.to` và **relay fallback** (`relay_ip:relay_port`) cho NAS sau NAT không mở port.
 - **Bảng điều khiển & Giám sát:** CPU/RAM/Mạng/Ổ đĩa realtime, nhiệt độ, uptime, model/serial, DSM version.
 - **File Station:** duyệt tệp, tạo thư mục, xem ảnh/video/audio, đọc mã nguồn có đánh số dòng, tải lên/ tải về, chia sẻ link công khai, đổi tên/xóa.
+- **Dịch vụ (Services) ⭐ MỚI:** bật/tắt mọi dịch vụ đang chạy — SMB/CIFS (445), AFP (548), NFS (2049), FTP (21), SFTP (22), SSH (22), Telnet (23), rsync (873), WebDAV (5005) + gói ứng dụng. Giao diện toggle trực quan, đọc-ghi qua `SYNO.Core.FileServ.*` & `SYNO.Core.Terminal`, tương thích demo mode.
+- **Thông báo (Notifications) ⭐ MỚI:** trung tâm thông báo DSM — `SYNO.Core.DSMNotify` (`notify` load/clean) + `SYNO.Core.DSMNotify.Strings` + `SYNO.Core.AppNotify`. Hiển thị nhóm theo tiêu đề (như Flutter), lọc theo `system/storage/package/network/security/backup/file/app` & mức độ `info/warning/error/success`, polling 30s, badge chuông ở Header với số chưa đọc, xóa tất cả / đánh dấu đã đọc. Demo có 7 thông báo mẫu.
 - **Docker / Container Manager:** liệt kê container, CPU/RAM, start/stop/restart.
 - **Download Station, Storage Manager, Package Center, v.v.**
+- **MCP Server (Model Context Protocol) ⭐ MỚI:** 42 tools cho AI agent — xem `mcp/README.md`. Bao gồm `dsm_list_services`, `dsm_toggle_service`, `dsm_list_notifications`, `dsm_clear_notifications`, v.v. Chạy qua stdio, hỗ trợ auto-login qua `DSM_HOST/DSM_USER/DSM_PASS` env.
 
 Giao tiếp **trực tiếp** giữa trình duyệt của bạn và NAS qua proxy `/api/dsm/[...path]` (bỏ qua self-signed SSL nội bộ), không qua server trung gian. Phiên lưu cục bộ.
 
@@ -131,16 +134,24 @@ sudo docker compose up -d
 ## 🛠️ Cấu trúc
 
 ```
-kv-synology/                 # ← bạn đang ở đây (webapp standalone)
+kv-synology/
 ├── src/
 │   ├── app/
 │   │   ├── api/dsm/[...path]/route.ts  # DSM Smart Proxy + QuickConnect resolver
 │   │   ├── globals.css, layout.tsx, page.tsx
-│   ├── components/          # Dashboard, Files, Docker, Download, Storage, Layout...
+│   ├── components/          # Dashboard, Files, Docker, Download, Storage, Services ⭐, Notifications ⭐, Layout...
+│   │   ├── services/ServicesTab.tsx    # Bật/tắt SMB, AFP, NFS, FTP, SFTP, SSH, Telnet...
+│   │   └── notifications/NotificationsTab.tsx # DSMNotify grouped, filter, clear, bell badge
 │   └── lib/
-│       ├── dsm/             # DSM client, types, mockData
-│       ├── i18n/            # vi / en
-│       └── store/           # Zustand useAppStore
+│       ├── dsm/             # DSM client (getServices/toggleService, getNotifications...), types, mockData
+│       ├── i18n/            # vi / en (nav.services, nav.notifications, services.*, notifications.*)
+│       └── store/           # Zustand useAppStore (NavTab services+notifications, polling)
+├── mcp/                     # MCP Server cho AI agent (Claude, Cursor, v.v.) ⭐
+│   ├── src/
+│   │   ├── index.ts         # 42 tools: dsm_list_services, dsm_list_notifications...
+│   │   └── dsm/             # DSM Node client + QuickConnect + Notifications
+│   ├── package.json, tsconfig.json
+│   └── README.md            # Hướng dẫn cấu hình mcp.json & demo mode
 ├── public/                  # (nếu có) assets tĩnh
 ├── next.config.ts
 ├── tailwind.config.ts

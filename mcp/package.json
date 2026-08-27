@@ -1,0 +1,47 @@
+{
+  "name": "kv-synology-mcp",
+  "version": "1.0.0",
+  "description": "MCP Server for Synology DSM - based on dsm_helper (apaipai) and kv-synology. Exposes DSM APIs as MCP tools.",
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "bin": {
+    "kv-synology-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "lint": "tsc --noEmit",
+    "inspector": "npx @modelcontextprotocol/inspector node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "ssh2": "^1.17.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/ssh2": "^1.15.5",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.2"
+  },
+  "keywords": [
+    "mcp",
+    "synology",
+    "dsm",
+    "nas",
+    "model-context-protocol",
+    "dsm-helper",
+    "kv-synology"
+  ],
+  "author": "kv-synology",
+  "repository": {
+    "type": "git",
+    "url": "https://git.khoavo.myds.me/vndangkhoa/kv-synology"
+  }
+}

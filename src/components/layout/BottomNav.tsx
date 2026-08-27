@@ -8,6 +8,9 @@ import {
   FolderOpen,
   Boxes,
   Settings,
+  Settings2,
+  Bell,
+  Terminal,
 } from "lucide-react";
 
 export const BottomNav: React.FC = () => {
@@ -15,9 +18,9 @@ export const BottomNav: React.FC = () => {
 
   const primaryTabs: { id: NavTab; label: string; icon: React.ReactNode }[] = [
     { id: "dashboard", label: "Tổng quan", icon: <LayoutDashboard className="w-5 h-5" /> },
+    { id: "docker", label: "Docker", icon: <Boxes className="w-5 h-5" /> },
     { id: "files", label: "Tệp tin", icon: <FolderOpen className="w-5 h-5" /> },
     { id: "monitor", label: "Giám sát", icon: <Activity className="w-5 h-5" /> },
-    { id: "docker", label: "Docker", icon: <Boxes className="w-5 h-5" /> },
     { id: "settings", label: "Cài đặt", icon: <Settings className="w-5 h-5" /> },
   ];
 

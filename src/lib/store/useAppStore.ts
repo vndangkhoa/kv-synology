@@ -1,9 +1,10 @@
 import { create } from "zustand";
 import { Language, translations } from "../i18n";
-import { DSMSession, SystemInfo, SystemUtilization } from "../dsm/types";
+import { DSMSession, SystemInfo, SystemUtilization, NotificationItem, AppNotifyItem } from "../dsm/types";
 import { dsmClient } from "../dsm/client";
+import { clearPersistedSession } from "../sessionStorage";
 
-export type NavTab = "dashboard" | "monitor" | "files" | "docker" | "download" | "storage" | "packages" | "settings";
+export type NavTab = "dashboard" | "monitor" | "files" | "docker" | "download" | "storage" | "packages" | "services" | "firewall" | "notifications" | "terminal" | "mcp" | "settings";
 export type ThemeMode = "system" | "dark" | "light";
 
 interface AppState {
@@ -19,6 +20,9 @@ interface AppState {
   isMobileDrawerOpen: boolean;
   isSidebarCollapsed: boolean;
   powerModalType: "reboot" | "shutdown";
+  notifications: NotificationItem[];
+  appNotifications: AppNotifyItem[];
+  notificationsLoading: boolean;
   
   // Actions
   setLanguage: (lang: Language) => void;
@@ -33,6 +37,9 @@ interface AppState {
   setMobileDrawerOpen: (open: boolean) => void;
   toggleSidebarCollapse: () => void;
   logout: () => void;
+  fetchNotifications: (silent?: boolean) => Promise<void>;
+  clearNotifications: () => Promise<boolean>;
+  addLocalNotification: (notif: NotificationItem) => void;
   t: typeof translations["vi"];
 }
 
@@ -55,14 +62,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   theme: "system",
   activeTab: "dashboard",
   session: {
-    sid: "demo-session-token-12345",
-    isConnected: true,
-    isDemo: true,
+    sid: "",
+    isConnected: false,
     dsmVersion: 7,
-    versionString: "DSM 7.2.1-69057 (Demo)",
-    model: "DS920+",
-    hostname: "Synology-Demo",
-    account: "admin",
+    versionString: "",
+    model: "",
+    hostname: "",
+    account: "",
   },
   systemInfo: null,
   utilization: null,
@@ -72,6 +78,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   isMobileDrawerOpen: false,
   isSidebarCollapsed: false,
   powerModalType: "reboot",
+  notifications: [],
+  appNotifications: [],
+  notificationsLoading: false,
   t: translations["vi"],
 
   setLanguage: (lang: Language) => {
@@ -117,11 +126,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   logout: () => {
     dsmClient.logout();
+    clearPersistedSession();
     set({
       session: {
         sid: "",
         isConnected: false,
-        isDemo: false,
         dsmVersion: 7,
         versionString: "",
         model: "",
@@ -131,6 +140,33 @@ export const useAppStore = create<AppState>((set, get) => ({
       systemInfo: null,
       utilization: null,
       utilizationHistory: [],
+      notifications: [],
+      appNotifications: [],
     });
+  },
+
+  fetchNotifications: async (silent = false) => {
+    if (!silent) set({ notificationsLoading: true });
+    try {
+      const [notifs, appNotifs] = await Promise.all([
+        dsmClient.getNotifications().catch(() => []),
+        dsmClient.getAppNotifications().catch(() => []),
+      ]);
+      set({ notifications: notifs, appNotifications: appNotifs });
+    } finally {
+      if (!silent) set({ notificationsLoading: false });
+    }
+  },
+
+  clearNotifications: async () => {
+    const ok = await dsmClient.clearNotifications();
+    if (ok) set({ notifications: [], appNotifications: [] });
+    return ok;
+  },
+
+  addLocalNotification: (notif: NotificationItem) => {
+    set((state) => ({
+      notifications: [notif, ...state.notifications],
+    }));
   },
 }));

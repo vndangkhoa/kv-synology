@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { dsmClient } from "@/lib/dsm/client";
 import { DSMConnectionConfig } from "@/lib/dsm/types";
+import { persistSession, loadPersistedCredentials, getNasProfiles, saveNasProfile, setActiveProfileId, NasProfile } from "@/lib/sessionStorage";
 import {
   X,
   Server,
@@ -12,16 +13,21 @@ import {
   ShieldCheck,
   KeyRound,
   AlertCircle,
-  Sparkles,
   Eye,
   EyeOff,
   Globe,
   Zap,
+  Clock,
+  BookmarkCheck,
+  Shield,
+  Layers,
 } from "lucide-react";
 
 export const LoginModal: React.FC = () => {
   const { isLoginModalOpen, openLoginModal, setSession, t } = useAppStore();
 
+  const [savedProfiles, setSavedProfiles] = useState<NasProfile[]>([]);
+  const [profileName, setProfileName] = useState("");
   const [host, setHost] = useState("");
   const [port, setPort] = useState("5001");
   const [https, setHttps] = useState(true);
@@ -30,9 +36,69 @@ export const LoginModal: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState("");
   const [ignoreCert, setIgnoreCert] = useState(true);
+  const [remember, setRemember] = useState(true);
+  const [stay7Days, setStay7Days] = useState(true);
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Prefill from saved credentials or active profile when modal opens
+  useEffect(() => {
+    if (!isLoginModalOpen) return;
+    const profs = getNasProfiles();
+    setSavedProfiles(profs);
+
+    const activeProf = profs.find((p) => p.isCurrent) || profs[0];
+    if (activeProf) {
+      setProfileName(activeProf.name || "");
+      setHost(activeProf.host || "");
+      setPort(String(activeProf.port || (activeProf.https ? 5001 : 5000)));
+      setHttps(activeProf.https ?? true);
+      setAccount(activeProf.account || "");
+      if (activeProf.password) {
+        try {
+          setPassword(atob(activeProf.password));
+        } catch {
+          setPassword(activeProf.password);
+        }
+      }
+      setIgnoreCert(activeProf.ignoreCert ?? true);
+      setRemember(activeProf.remember ?? true);
+      setStay7Days(activeProf.stay7Days ?? true);
+    } else {
+      const creds = loadPersistedCredentials();
+      if (creds) {
+        if (creds.host) setHost(creds.host);
+        if (creds.port) setPort(String(creds.port));
+        if (typeof creds.https === "boolean") setHttps(creds.https);
+        if (creds.account) setAccount(creds.account);
+        if (creds.password) setPassword(creds.password);
+        if (typeof creds.ignoreCert === "boolean") setIgnoreCert(creds.ignoreCert);
+        setRemember(creds.remember ?? true);
+        setStay7Days(creds.stay7Days ?? true);
+      }
+    }
+  }, [isLoginModalOpen]);
+
+  const selectProfile = (prof: NasProfile) => {
+    setProfileName(prof.name);
+    setHost(prof.host);
+    setPort(String(prof.port));
+    setHttps(prof.https);
+    setAccount(prof.account);
+    if (prof.password) {
+      try {
+        setPassword(atob(prof.password));
+      } catch {
+        setPassword(prof.password);
+      }
+    } else {
+      setPassword("");
+    }
+    setIgnoreCert(prof.ignoreCert ?? true);
+    setRemember(prof.remember ?? true);
+    setStay7Days(prof.stay7Days ?? true);
+  };
 
   if (!isLoginModalOpen) return null;
 
@@ -79,7 +145,31 @@ export const LoginModal: React.FC = () => {
     };
 
     try {
-      const session = await dsmClient.login(config, false);
+      const session = await dsmClient.login(config);
+      // Persist per user choice
+      persistSession(session, config, { stay7Days, remember });
+
+      // Save custom name if specified
+      if (profileName.trim()) {
+        const profileId = `nas_${config.host.replace(/\./g, "_")}_${config.port}_${config.account}`;
+        saveNasProfile({
+          id: profileId,
+          name: profileName.trim(),
+          host: config.host,
+          port: config.port,
+          https: config.https,
+          account: config.account,
+          password: remember && config.password ? btoa(config.password) : undefined,
+          ignoreCert: config.ignoreCert,
+          stay7Days,
+          remember,
+          model: session.model || "DS920+",
+          versionString: session.versionString || "DSM 7.2.1",
+          lastConnectedAt: Date.now(),
+          session: stay7Days ? { ...session } : undefined,
+        });
+      }
+
       setSession(session);
       openLoginModal(false);
     } catch (err: any) {
@@ -87,20 +177,6 @@ export const LoginModal: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDemoLogin = async () => {
-    setLoading(true);
-    const config: DSMConnectionConfig = {
-      host: "demo.synology.lan",
-      port: 5001,
-      https: true,
-      account: "demo_admin",
-    };
-    const session = await dsmClient.login(config, true);
-    setSession(session);
-    setLoading(false);
-    openLoginModal(false);
   };
 
   // QuickConnect ID detector
@@ -114,15 +190,15 @@ export const LoginModal: React.FC = () => {
         {/* Modal Header */}
         <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
           <div className="flex items-center space-x-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-sky-600 to-blue-500 text-white flex items-center justify-center shadow-lg shadow-sky-500/20 shrink-0">
-              <Server className="w-5 h-5" />
+            <div className="w-11 h-11 rounded-2xl overflow-hidden shadow-lg shadow-sky-500/20 shrink-0 ring-1 ring-sky-500/10">
+              <img src="/logo.svg" alt="S logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white leading-snug">
                 {t.auth.title}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t.auth.subtitle}
+                {savedProfiles.length > 0 ? "Chọn thiết bị đã lưu hoặc thêm NAS mới" : t.auth.subtitle}
               </p>
             </div>
           </div>
@@ -143,6 +219,47 @@ export const LoginModal: React.FC = () => {
               <span className="leading-relaxed font-medium">{errorMsg}</span>
             </div>
           )}
+
+          {/* Quick Saved NAS Profiles Selector */}
+          {savedProfiles.length > 0 && (
+            <div className="space-y-1.5 pb-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                Thiết bị NAS đã lưu ({savedProfiles.length}):
+              </label>
+              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                {savedProfiles.map((prof) => (
+                  <button
+                    key={prof.id}
+                    type="button"
+                    onClick={() => selectProfile(prof)}
+                    className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold border transition-all flex items-center gap-1 ${
+                      host === prof.host && account === prof.account
+                        ? "bg-sky-500 text-white border-sky-500 shadow-sm"
+                        : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-sky-400"
+                    }`}
+                  >
+                    <Server className="w-3 h-3" />
+                    <span>{prof.name || prof.host}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Optional Profile Name Field */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+              <span>Tên định danh NAS (Tùy chọn)</span>
+              <span className="text-[10px] text-slate-400 font-normal">Để nhận diện nhiều NAS</span>
+            </label>
+            <input
+              type="text"
+              value={profileName}
+              onChange={(e) => setProfileName(e.target.value)}
+              placeholder="VD: DS920+ Cơ quan hoặc DS220+ Gia đình"
+              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium placeholder:text-slate-400"
+            />
+          </div>
 
           {/* Protocol Selector Tabs */}
           <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl">
@@ -313,6 +430,56 @@ export const LoginModal: React.FC = () => {
             />
           </div>
 
+          {/* Remember & Stay 7 days — Visual options */}
+          <div className="space-y-2.5 pt-1">
+            {/* Stay 7 days */}
+            <label className={`flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-all ${stay7Days ? "bg-sky-500/10 border-sky-500/30 dark:bg-sky-500/10" : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"}`}>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${stay7Days ? "bg-sky-500 text-white shadow-md" : "bg-slate-200 dark:bg-slate-700 text-slate-500"}`}>
+                <Clock className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0 text-left">
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-bold text-slate-900 dark:text-white">{t.auth.stay7Days}</p>
+                  <span className="px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-bold">7 NGÀY</span>
+                </div>
+                <p className="text-[11px] leading-snug text-slate-500 dark:text-slate-400 mt-0.5">{t.auth.stay7DaysDesc}</p>
+              </div>
+              <div className="shrink-0 pt-1">
+                <div className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked={stay7Days} onChange={(e) => setStay7Days(e.target.checked)} className="sr-only peer" />
+                  <div className={`w-11 h-6 rounded-full peer transition-all ${stay7Days ? "bg-sky-500" : "bg-slate-300 dark:bg-slate-700"}`} />
+                  <div className={`absolute w-5 h-5 bg-white rounded-full shadow-md transition-transform ${stay7Days ? "translate-x-5" : "translate-x-0.5"} top-0.5 left-0`} />
+                </div>
+              </div>
+            </label>
+
+            {/* Remember */}
+            <label className={`flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-all ${remember ? "bg-emerald-500/10 border-emerald-500/30 dark:bg-emerald-500/10" : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"}`}>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${remember ? "bg-emerald-500 text-white shadow-md" : "bg-slate-200 dark:bg-slate-700 text-slate-500"}`}>
+                <BookmarkCheck className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-xs font-bold text-slate-900 dark:text-white">{t.auth.remember}</p>
+                <p className="text-[11px] leading-snug text-slate-500 dark:text-slate-400 mt-0.5">{t.auth.rememberDesc}</p>
+              </div>
+              <div className="shrink-0 pt-1">
+                <div className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="sr-only peer" />
+                  <div className={`w-11 h-6 rounded-full peer transition-all ${remember ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"}`} />
+                  <div className={`absolute w-5 h-5 bg-white rounded-full shadow-md transition-transform ${remember ? "translate-x-5" : "translate-x-0.5"} top-0.5 left-0`} />
+                </div>
+              </div>
+            </label>
+
+            {/* Info hint when stay enabled */}
+            {stay7Days && (
+              <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/50 text-sky-700 dark:text-sky-300 text-[11px] leading-relaxed">
+                <Shield className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>Phiên sẽ tự động khôi phục trong 7 ngày — đóng tab/trình duyệt vẫn giữ đăng nhập. Dữ liệu lưu cục bộ trên thiết bị này và có thể xóa bằng “Đăng xuất”.</span>
+              </div>
+            )}
+          </div>
+
           {/* Action Buttons */}
           <div className="pt-2 space-y-2.5">
             <button
@@ -330,14 +497,7 @@ export const LoginModal: React.FC = () => {
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={handleDemoLogin}
-              className="w-full py-2.5 px-4 bg-slate-100 dark:bg-slate-800/90 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-semibold transition-all flex items-center justify-center space-x-2 border border-slate-200/60 dark:border-slate-700/60"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>{t.auth.loginDemoButton}</span>
-            </button>
+            <p className="text-[11px] text-center text-slate-400">Kết nối trực tiếp tới DSM qua LAN, DDNS hoặc QuickConnect. Dữ liệu không qua trung gian.</p>
           </div>
         </form>
       </div>
