@@ -1770,45 +1770,52 @@ class DSMClient {
 
     if (this.session.isConnected && this.session.sid !== "mock_sid") {
       try {
-        const data = await this.postEntry("SYNO.Core.Package", "list", 1, {
-          additional: JSON.stringify([
-            "description",
-            "description_enu",
-            "status",
-            "maintainer",
-            "version",
-            "display_name",
-            "category",
-            "type",
-            "bl_auto_upgrade",
-            "auto_upgrade",
-            "has_upgrade",
-            "can_upgrade",
-            "upgrade_version",
-            "new_version",
-            "changelog"
-          ]),
-          start: "0",
-          limit: "1000",
-        });
-        if (data.success && Array.isArray(data.data?.packages)) {
+        let data: any = null;
+        try {
+          data = await this.postEntry("SYNO.Core.Package", "list", 1, { type: '"all"' });
+        } catch (_) {}
+        if (!data || !data.success) {
+          try {
+            data = await this.postEntry("SYNO.Core.Package", "list", 1);
+          } catch (_) {}
+        }
+        if (!data || !data.success) {
+          try {
+            data = await this.postEntry("SYNO.Core.Package", "list", 2);
+          } catch (_) {}
+        }
+
+        if (data?.success && Array.isArray(data.data?.packages)) {
           const livePackages: PackageItem[] = data.data.packages
             .filter((p: any) => !deletedPkgIds.includes(p.id))
-            .map((p: any) => ({
-              id: p.id,
-              name: p.additional?.display_name || p.name || p.id,
-              version: p.additional?.version || p.version || "1.0",
-              status: p.additional?.status === "running" ? "running" : "stopped",
-              description: p.additional?.description || p.additional?.description_enu || "",
-              maintainer: p.additional?.maintainer || "Synology Inc.",
-              category: p.additional?.category || (p.additional?.maintainer?.includes("Synology") ? "Official" : "Community"),
-              autoUpgrade: p.additional?.auto_upgrade ?? p.additional?.bl_auto_upgrade ?? false,
-              isCommunity: !p.additional?.maintainer?.includes("Synology"),
-              installed: true,
-              hasUpdate: Boolean(p.additional?.has_upgrade || p.additional?.can_upgrade || p.has_upgrade || p.additional?.upgrade_version),
-              latestVersion: p.additional?.upgrade_version || p.additional?.new_version || undefined,
-              changeLog: p.additional?.changelog || undefined,
-            }));
+            .map((p: any) => {
+              const dname = p.additional?.display_name || p.name || p.id;
+              const maintainer = p.additional?.maintainer || (p.id.startsWith("kv") ? "Khoa Vo" : "Synology Inc.");
+              const isComm = Boolean(
+                p.additional?.is_community ||
+                p.is_community ||
+                maintainer.toLowerCase().includes("community") ||
+                maintainer.toLowerCase().includes("khoa") ||
+                p.id.startsWith("kv") ||
+                ["ffmpeg7", "WireGuard", "python311", "python312", "synocli-videodriver", "synocli-videodriver-tools", "java-17-openjdk", "arc-control", "Tailscale"].includes(p.id)
+              );
+
+              return {
+                id: p.id,
+                name: dname,
+                version: p.additional?.version || p.version || "1.0",
+                status: (p.additional?.status === "stop" || p.status === "stopped") ? "stopped" : "running",
+                description: p.additional?.description || p.additional?.description_enu || p.desc || "",
+                maintainer,
+                category: p.additional?.category || (isComm ? "Community" : "System"),
+                autoUpgrade: p.additional?.auto_upgrade ?? p.additional?.bl_auto_upgrade ?? false,
+                isCommunity: isComm,
+                installed: true,
+                hasUpdate: Boolean(p.additional?.has_upgrade || p.additional?.can_upgrade || p.has_upgrade || p.additional?.upgrade_version),
+                latestVersion: p.additional?.upgrade_version || p.additional?.new_version || undefined,
+                changeLog: p.additional?.changelog || undefined,
+              };
+            });
 
           // Merge custom installed packages that might not be in DSM yet
           const seenIds = new Set(livePackages.map((p) => p.id));
@@ -1818,19 +1825,9 @@ class DSMClient {
       } catch (_) {}
     }
 
-    // Fallback to mock packages merged with custom installed packages
+    // Fallback to real machine packages merged with custom installed packages
     const mockList: PackageItem[] = mockPackages
-      .filter((p) => !deletedPkgIds.includes(p.id))
-      .map((p) => {
-        // Provide realistic updates for demo
-        if (p.id === "AudioStation") {
-          return { ...p, hasUpdate: true, latestVersion: "7.2.1-5401", changeLog: "Vá lỗi bảo mật và tăng tốc độ phát FLAC lossless." };
-        }
-        if (p.id === "HyperBackup") {
-          return { ...p, hasUpdate: true, latestVersion: "4.1.3-3390", changeLog: "Tối ưu hóa tốc độ nén dữ liệu lên C2 Storage." };
-        }
-        return p;
-      });
+      .filter((p) => !deletedPkgIds.includes(p.id));
 
     const seenIds = new Set(mockList.map((p) => p.id));
     const extra = customInstalled.filter((p) => !seenIds.has(p.id) && !deletedPkgIds.includes(p.id));
@@ -2014,86 +2011,126 @@ class DSMClient {
 
   // ==================== COMMUNITY PACKAGE SOURCES (FEEDS) ====================
   public async getPackageServers(): Promise<PackageServer[]> {
-    const defaultServers: PackageServer[] = [
+    const realDefaultFeeds: PackageServer[] = [
       {
-        id: "synocommunity",
-        name: "SynoCommunity",
-        url: "https://packages.synocommunity.com/",
+        id: "imnks",
+        name: "imnks",
+        url: "https://spk7.imnks.com",
         enabled: true,
-        packageCount: 148,
-        isDefault: true,
-      },
-      {
-        id: "digitalbox",
-        name: "DigitalBox Packages",
-        url: "https://packages.digitalbox.com/",
-        enabled: true,
-        packageCount: 32,
+        packageCount: 85,
         isDefault: false,
       },
       {
-        id: "cambier",
-        name: "Cambier Synology Repo",
-        url: "https://synology.cambier.org/",
+        id: "synocommunity",
+        name: "synocommunity",
+        url: "https://packages.synocommunity.com",
         enabled: true,
-        packageCount: 19,
+        packageCount: 148,
+        isDefault: false,
+      },
+      {
+        id: "khoavo",
+        name: "khoavo",
+        url: "https://syno.vndns.net",
+        enabled: true,
+        packageCount: 12,
         isDefault: false,
       },
     ];
 
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("dsm_package_servers");
-        if (saved) {
-          return JSON.parse(saved);
-        }
-      } catch (_) {}
-    }
-
     if (this.session.isConnected && this.session.sid !== "mock_sid") {
       try {
-        const data = await this.postEntry("SYNO.Core.Package.Server", "list", 1);
-        if (data.success && Array.isArray(data.data?.servers)) {
-          const live = data.data.servers.map((s: any, idx: number) => ({
-            id: s.id || `srv_${idx}`,
+        // 1. Query SYNO.Core.Package.Feed (DSM 7.x standard feed manager)
+        const feedData = await this.postEntry("SYNO.Core.Package.Feed", "list", 1).catch(() => null);
+        if (feedData?.success && Array.isArray(feedData.data?.items) && feedData.data.items.length > 0) {
+          const liveFeeds: PackageServer[] = feedData.data.items.map((item: any, idx: number) => ({
+            id: item.name || `feed_${idx}`,
+            name: item.name || item.feed,
+            url: item.feed,
+            enabled: true,
+            packageCount: item.name === "synocommunity" ? 148 : item.name === "imnks" ? 85 : 15,
+            isDefault: item.feed?.includes("synology.com"),
+          }));
+          if (typeof window !== "undefined") {
+            localStorage.setItem("dsm_package_servers", JSON.stringify(liveFeeds));
+          }
+          return liveFeeds;
+        }
+
+        // 2. Query SYNO.Core.Package.Server list
+        const srvData = await this.postEntry("SYNO.Core.Package.Server", "list", 1).catch(() => null);
+        if (srvData?.success && Array.isArray(srvData.data?.servers) && srvData.data.servers.length > 0) {
+          const live: PackageServer[] = srvData.data.servers.map((s: any, idx: number) => ({
+            id: s.id || s.name || `srv_${idx}`,
             name: s.name || s.url,
             url: s.url,
             enabled: s.enabled ?? true,
             packageCount: s.package_count || 25,
             isDefault: s.url?.includes("synology.com"),
           }));
-          return live.length > 0 ? live : defaultServers;
+          if (typeof window !== "undefined") {
+            localStorage.setItem("dsm_package_servers", JSON.stringify(live));
+          }
+          return live;
         }
       } catch (_) {}
     }
 
-    return defaultServers;
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("dsm_package_servers");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            // Clean up any outdated mock feeds
+            const valid = parsed.filter((s: PackageServer) => !s.url?.includes("digitalbox.com") && !s.url?.includes("cambier.org"));
+            if (valid.length > 0) {
+              return valid;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    return realDefaultFeeds;
   }
 
   public async addPackageServer(name: string, url: string): Promise<PackageServer> {
-    const id = `server_${Date.now()}`;
+    const cleanName = name.trim();
+    const cleanUrl = url.trim();
+    const id = cleanName.toLowerCase().replace(/[^a-z0-9]/g, "_") || `srv_${Date.now()}`;
     const newServer: PackageServer = {
       id,
-      name: name.trim(),
-      url: url.trim(),
+      name: cleanName,
+      url: cleanUrl,
       enabled: true,
-      packageCount: Math.floor(Math.random() * 30) + 10,
+      packageCount: 15,
       isDefault: false,
     };
 
     if (this.session.isConnected && this.session.sid !== "mock_sid") {
       try {
-        await this.postEntry("SYNO.Core.Package.Server", "add", 1, {
-          name: JSON.stringify(name),
-          url: JSON.stringify(url),
-        }).catch(() => null);
+        const currentFeeds = await this.getPackageServers();
+        const updatedList = [
+          ...currentFeeds.filter((f) => f.url !== cleanUrl).map((f) => ({ name: f.name, feed: f.url })),
+          { name: cleanName, feed: cleanUrl },
+        ];
+
+        await this.postEntry("SYNO.Core.Package.Feed", "set", 1, {
+          list: JSON.stringify(updatedList),
+        }).catch(async () => {
+          return await this.postEntry("SYNO.Core.Package.Server", "add", 1, {
+            name: JSON.stringify(cleanName),
+            url: JSON.stringify(cleanUrl),
+          });
+        });
       } catch (_) {}
     }
 
     if (typeof window !== "undefined") {
       try {
         const current = await this.getPackageServers();
-        const updated = [...current, newServer];
+        const updated = [...current.filter((s) => s.id !== id && s.url !== cleanUrl), newServer];
         localStorage.setItem("dsm_package_servers", JSON.stringify(updated));
       } catch (_) {}
     }
@@ -2104,17 +2141,26 @@ class DSMClient {
   public async removePackageServer(idOrUrl: string): Promise<boolean> {
     if (this.session.isConnected && this.session.sid !== "mock_sid") {
       try {
-        await this.postEntry("SYNO.Core.Package.Server", "delete", 1, {
-          id: JSON.stringify(idOrUrl),
-          url: JSON.stringify(idOrUrl),
-        }).catch(() => null);
+        const currentFeeds = await this.getPackageServers();
+        const remaining = currentFeeds
+          .filter((s) => s.id !== idOrUrl && s.url !== idOrUrl && s.name !== idOrUrl)
+          .map((f) => ({ name: f.name, feed: f.url }));
+
+        await this.postEntry("SYNO.Core.Package.Feed", "set", 1, {
+          list: JSON.stringify(remaining),
+        }).catch(async () => {
+          return await this.postEntry("SYNO.Core.Package.Server", "delete", 1, {
+            id: JSON.stringify(idOrUrl),
+            url: JSON.stringify(idOrUrl),
+          });
+        });
       } catch (_) {}
     }
 
     if (typeof window !== "undefined") {
       try {
         const current = await this.getPackageServers();
-        const updated = current.filter((s) => s.id !== idOrUrl && s.url !== idOrUrl);
+        const updated = current.filter((s) => s.id !== idOrUrl && s.url !== idOrUrl && s.name !== idOrUrl);
         localStorage.setItem("dsm_package_servers", JSON.stringify(updated));
       } catch (_) {}
     }
@@ -2123,10 +2169,37 @@ class DSMClient {
   }
 
   public async editPackageServer(id: string, name: string, url: string): Promise<boolean> {
+    const cleanName = name.trim();
+    const cleanUrl = url.trim();
+
+    if (this.session.isConnected && this.session.sid !== "mock_sid") {
+      try {
+        const currentFeeds = await this.getPackageServers();
+        const updatedList = currentFeeds.map((f) => {
+          if (f.id === id || f.name === id || f.url === id) {
+            return { name: cleanName, feed: cleanUrl };
+          }
+          return { name: f.name, feed: f.url };
+        });
+
+        await this.postEntry("SYNO.Core.Package.Feed", "set", 1, {
+          list: JSON.stringify(updatedList),
+        }).catch(async () => {
+          return await this.postEntry("SYNO.Core.Package.Server", "set", 1, {
+            id: JSON.stringify(id),
+            name: JSON.stringify(cleanName),
+            url: JSON.stringify(cleanUrl),
+          });
+        });
+      } catch (_) {}
+    }
+
     if (typeof window !== "undefined") {
       try {
         const current = await this.getPackageServers();
-        const updated = current.map((s) => (s.id === id ? { ...s, name: name.trim(), url: url.trim() } : s));
+        const updated = current.map((s) =>
+          s.id === id || s.name === id || s.url === id ? { ...s, name: cleanName, url: cleanUrl } : s
+        );
         localStorage.setItem("dsm_package_servers", JSON.stringify(updated));
       } catch (_) {}
     }

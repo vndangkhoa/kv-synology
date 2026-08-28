@@ -246,6 +246,16 @@ export const PackageCenterTab: React.FC = () => {
   const loadPackagesAndServers = async () => {
     setLoading(true);
     try {
+      // Auto-cleanup legacy mock feeds if previously persisted in browser
+      if (typeof window !== "undefined") {
+        try {
+          const raw = localStorage.getItem("dsm_package_servers");
+          if (raw && (raw.includes("digitalbox.com") || raw.includes("cambier.org"))) {
+            localStorage.removeItem("dsm_package_servers");
+          }
+        } catch (_) {}
+      }
+
       const [pkgList, servers] = await Promise.all([
         dsmClient.getPackages(),
         dsmClient.getPackageServers(),
@@ -1503,7 +1513,7 @@ export const PackageCenterTab: React.FC = () => {
             </p>
 
             {/* List of Configured Sources */}
-            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-[340px] overflow-y-auto p-1 scrollbar-thin">
               {packageServers.map((server) => {
                 const isEditing = editingServerId === server.id;
 

@@ -131,6 +131,11 @@ export interface PackageItem {
   status: "running" | "stopped";
   description: string;
   maintainer: string;
+  category?: string;
+  isCommunity?: boolean;
+  hasUpdate?: boolean;
+  latestVersion?: string;
+  changeLog?: string;
 }
 
 export type ServiceCategory = "file" | "system" | "network" | "application";
