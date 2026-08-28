@@ -27,7 +27,23 @@ import { McpDocsTab } from "@/components/mcp/McpDocsTab";
 import { SettingsTab } from "@/components/settings/SettingsTab";
 
 export default function Home() {
-  const { activeTab, session, setSystemInfo, updateUtilization, setLanguage, setTheme, setExperienceMode, fetchNotifications, setSession } = useAppStore();
+  const {
+    activeTab,
+    session,
+    setSystemInfo,
+    updateUtilization,
+    setLanguage,
+    setTheme,
+    setExperienceMode,
+    fetchNotifications,
+    setSession,
+    showAiChatBubble,
+    setShowAiChatBubble,
+    setAiProvider,
+    setAiApiKey,
+    setAiModel,
+    setAiCustomBaseUrl,
+  } = useAppStore();
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => setMounted(true), []);
@@ -46,6 +62,34 @@ export default function Home() {
       const storedExp = localStorage.getItem("dsm_experience_mode");
       if (storedExp === "beginner" || storedExp === "advance") {
         setExperienceMode(storedExp as any);
+      }
+
+      const storedShowBubble = localStorage.getItem("dsm_show_ai_bubble");
+      if (storedShowBubble !== null) {
+        setShowAiChatBubble(storedShowBubble === "true");
+      }
+
+      const storedAiProvider = localStorage.getItem("dsm_ai_provider");
+      if (storedAiProvider) {
+        setAiProvider(storedAiProvider as any);
+      }
+
+      const storedAiKeys = localStorage.getItem("dsm_ai_keys");
+      if (storedAiKeys) {
+        const parsed = JSON.parse(storedAiKeys);
+        Object.entries(parsed).forEach(([k, v]) => setAiApiKey(k, v as string));
+      }
+
+      const storedAiModels = localStorage.getItem("dsm_ai_models");
+      if (storedAiModels) {
+        const parsed = JSON.parse(storedAiModels);
+        Object.entries(parsed).forEach(([k, v]) => setAiModel(k, v as string));
+      }
+
+      const storedBaseUrls = localStorage.getItem("dsm_ai_base_urls");
+      if (storedBaseUrls) {
+        const parsed = JSON.parse(storedBaseUrls);
+        Object.entries(parsed).forEach(([k, v]) => setAiCustomBaseUrl(k, v as string));
       }
     } catch (_) {}
 

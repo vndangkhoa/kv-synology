@@ -38,57 +38,140 @@ import {
   LogIn,
   AlertTriangle,
   X,
+  Key,
+  Eye,
+  EyeOff,
+  Zap,
+  HelpCircle,
 } from "lucide-react";
+import { AiProviderType } from "@/lib/dsm/types";
 
-const AI_MODELS = [
+const AI_PROVIDERS: Array<{
+  id: AiProviderType;
+  name: string;
+  badge: string;
+  icon: string;
+  desc: string;
+  defaultModel: string;
+  models: Array<{ id: string; label: string; desc: string }>;
+  apiKeyPlaceholder: string;
+  docsUrl: string;
+  keyName: string;
+}> = [
   {
-    id: "Qwen2.5-0.5B-Instruct-q4f32_1-MLC",
-    name: "Qwen 2.5 (0.5B Micro)",
-    size: "~380 MB",
-    vram: "~600 MB VRAM",
-    desc: "Siêu nhẹ, tải trong 5-10s, chạy mượt mà ngay trên laptop và máy tính cấu hình yếu.",
-    badge: "Mặc định (Siêu nhẹ)",
-    recommended: true,
+    id: "gemini",
+    name: "Google Gemini",
+    badge: "Mặc định / Khuyên dùng",
+    icon: "✨",
+    desc: "Mô hình thế hệ mới từ Google DeepMind với khả năng suy luận nhanh, ngữ cảnh rộng và hỗ trợ Tiếng Việt xuất sắc.",
+    defaultModel: "gemini-2.0-flash",
+    models: [
+      { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash (Nhanh & Thông minh)", desc: "Mô hình mới nhất, độ trễ cực thấp, tối ưu cho DSM" },
+      { id: "gemini-1.5-flash", label: "Gemini 1.5 Flash (Tiêu chuẩn)", desc: "Cân bằng tốc độ và độ chính xác" },
+      { id: "gemini-1.5-pro", label: "Gemini 1.5 Pro (Suy luận sâu)", desc: "Khả năng phân tích hệ thống và mã nguồn chuyên sâu" },
+    ],
+    apiKeyPlaceholder: "AIzaSy...",
+    docsUrl: "https://aistudio.google.com/app/apikey",
+    keyName: "Google AI Studio API Key",
   },
   {
-    id: "Llama-3.2-1B-Instruct-q4f32_1-MLC",
-    name: "Llama 3.2 (1B Universal)",
-    size: "~880 MB",
-    vram: "~1.1 GB VRAM",
-    desc: "Mô hình Meta AI thế hệ mới, hỗ trợ 100% WebGPU phổ thông.",
-    badge: "Phổ biến",
+    id: "openrouter",
+    name: "OpenRouter",
+    badge: "Đa mô hình",
+    icon: "🌐",
+    desc: "Cổng kết nối AI toàn năng hỗ trợ mọi mô hình hàng đầu (Claude 3.5, GPT-4o, DeepSeek-V3, Llama 3.3, Gemini 2.0) chỉ với 1 API Key duy nhất.",
+    defaultModel: "anthropic/claude-3.5-sonnet",
+    models: [
+      { id: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet (anthropic/claude-3.5-sonnet)", desc: "Khả năng phân tích hệ thống và lập luận kỹ thuật tốt nhất" },
+      { id: "openai/gpt-4o", label: "GPT-4o (openai/gpt-4o)", desc: "Mô hình đa phương thức hàng đầu OpenAI" },
+      { id: "deepseek/deepseek-chat", label: "DeepSeek V3 (deepseek/deepseek-chat)", desc: "Mô hình hiệu năng cao, chi phí siêu rẻ" },
+      { id: "deepseek/deepseek-r1", label: "DeepSeek R1 (deepseek/deepseek-r1)", desc: "Mô hình lý luận sâu giải quyết lỗi phức tạp" },
+      { id: "meta-llama/llama-3.3-70b-instruct", label: "Llama 3.3 70B (meta-llama/llama-3.3-70b-instruct)", desc: "Mô hình mã nguồn mở thế hệ mới nhất của Meta" },
+      { id: "google/gemini-2.0-flash-exp:free", label: "Gemini 2.0 Flash (Free Tier)", desc: "Bản thử nghiệm miễn phí tốc độ cao" },
+      { id: "qwen/qwen-2.5-72b-instruct", label: "Qwen 2.5 72B (qwen/qwen-2.5-72b-instruct)", desc: "Mô hình tiếng Việt và đa ngữ mạnh mẽ từ Alibaba" },
+    ],
+    apiKeyPlaceholder: "sk-or-v1-...",
+    docsUrl: "https://openrouter.ai/keys",
+    keyName: "OpenRouter API Key",
   },
   {
-    id: "SmolLM2-135M-Instruct-q0f32-MLC",
-    name: "SmolLM2 (135M Cực nhỏ)",
-    size: "~120 MB",
-    vram: "~300 MB VRAM",
-    desc: "Mô hình siêu nhỏ gọn, tải tức thì trong 3 giây.",
-    badge: "120MB",
+    id: "opencode",
+    name: "OpenCode API",
+    badge: "Local / Zen",
+    icon: "🧩",
+    desc: "Môi trường thực thi mã và suy luận OpenCode chuyên dụng cho việc quản trị máy chủ, điều khiển NAS qua MCP và tự động hóa.",
+    defaultModel: "opencode-interpreter",
+    models: [
+      { id: "opencode-interpreter", label: "OpenCode Interpreter (Tự động hóa DSM)", desc: "Tối ưu cho việc thực thi lệnh quản trị và điều khiển NAS" },
+      { id: "opencode/zen-1", label: "OpenCode Zen-1 (Code & Script)", desc: "Chuyên sâu viết script bash, cron và docker-compose" },
+      { id: "opencode-llama", label: "OpenCode Llama (Local Agent)", desc: "Chạy cục bộ qua OpenCode server" },
+    ],
+    apiKeyPlaceholder: "opencode-... (hoặc bỏ trống nếu chạy local)",
+    docsUrl: "https://github.com/opencode-ai",
+    keyName: "OpenCode API Key / Token",
   },
   {
-    id: "SmolLM2-360M-Instruct-q0f32-MLC",
-    name: "SmolLM2 (360M Gọn nhẹ)",
-    size: "~260 MB",
-    vram: "~450 MB VRAM",
-    desc: "Tiêu thụ ít RAM, lý tưởng cho đường truyền mạng chậm.",
-    badge: "260MB",
+    id: "deepseek",
+    name: "DeepSeek AI",
+    badge: "Tiết kiệm & Suy luận",
+    icon: "⚡",
+    desc: "Mô hình mã nguồn mở thế hệ mới DeepSeek-V3 và DeepSeek-R1 với năng lực toán học, code và suy luận logic vượt trội.",
+    defaultModel: "deepseek-chat",
+    models: [
+      { id: "deepseek-chat", label: "DeepSeek-V3 (deepseek-chat)", desc: "Mô hình tổng quát đa nhiệm mạnh mẽ và tốc độ cao" },
+      { id: "deepseek-reasoner", label: "DeepSeek-R1 (deepseek-reasoner)", desc: "Mô hình chuỗi suy luận sâu (Reasoning Chain) chuyên biệt" },
+    ],
+    apiKeyPlaceholder: "sk-...",
+    docsUrl: "https://platform.deepseek.com/",
+    keyName: "DeepSeek Platform API Key",
   },
   {
-    id: "Qwen2.5-1.5B-Instruct-q4f32_1-MLC",
-    name: "Qwen 2.5 (1.5B Tiếng Việt)",
-    size: "~1.1 GB",
-    vram: "~1.4 GB VRAM",
-    desc: "Hiểu sâu ngữ cảnh Tiếng Việt và thuật ngữ kỹ thuật Synology.",
-    badge: "Tiếng Việt",
+    id: "claude",
+    name: "Anthropic Claude",
+    badge: "Chính xác cao",
+    icon: "🧠",
+    desc: "Dòng mô hình Claude 3.5 Sonnet hàng đầu thế giới về hiểu ngữ cảnh kỹ thuật, chẩn đoán an ninh và hỗ trợ quản trị hệ thống.",
+    defaultModel: "claude-3-5-sonnet-latest",
+    models: [
+      { id: "claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet (Đỉnh cao)", desc: "Khả năng lập luận và giải quyết sự cố DSM chuẩn xác nhất" },
+      { id: "claude-3-5-haiku-latest", label: "Claude 3.5 Haiku (Siêu tốc)", desc: "Phản hồi tức thì, chi phí siêu rẻ" },
+    ],
+    apiKeyPlaceholder: "sk-ant-...",
+    docsUrl: "https://console.anthropic.com/",
+    keyName: "Anthropic Console API Key",
   },
   {
-    id: "Llama-3.2-3B-Instruct-q4f32_1-MLC",
-    name: "Llama 3.2 (3B Nâng cao)",
-    size: "~1.8 GB",
-    vram: "~2.2 GB VRAM",
-    desc: "Khả năng phân tích hệ thống và suy luận kỹ thuật chuyên sâu.",
-    badge: "Nâng cao",
+    id: "openai",
+    name: "OpenAI ChatGPT",
+    badge: "Phổ biến toàn cầu",
+    icon: "🚀",
+    desc: "Mô hình GPT-4o và GPT-4o-mini tiên tiến của OpenAI với kho tri thức rộng lớn và tính ổn định cao.",
+    defaultModel: "gpt-4o-mini",
+    models: [
+      { id: "gpt-4o-mini", label: "GPT-4o Mini (Nhanh & Nhẹ)", desc: "Hiệu năng ấn tượng, chi phí tối thiểu cho DSM" },
+      { id: "gpt-4o", label: "GPT-4o (Toàn năng Flagship)", desc: "Mô hình mạnh nhất của OpenAI" },
+      { id: "o3-mini", label: "o3-mini (Suy luận chuyên sâu)", desc: "Mô hình lý luận logic mới" },
+    ],
+    apiKeyPlaceholder: "sk-proj-...",
+    docsUrl: "https://platform.openai.com/api-keys",
+    keyName: "OpenAI Platform API Key",
+  },
+  {
+    id: "webllm",
+    name: "WebLLM Local (WebGPU)",
+    badge: "100% Ngoại tuyến",
+    icon: "💻",
+    desc: "Chạy mô hình AI trực tiếp trong trình duyệt máy tính của bạn thông qua WebGPU — không cần API key, không gửi dữ liệu ra ngoài.",
+    defaultModel: "Qwen2.5-0.5B-Instruct-q4f32_1-MLC",
+    models: [
+      { id: "Qwen2.5-0.5B-Instruct-q4f32_1-MLC", label: "Qwen 2.5 (0.5B Micro - 380MB)", desc: "Siêu nhẹ, tải trong 5-10s, chạy mượt trên mọi máy tính" },
+      { id: "Llama-3.2-1B-Instruct-q4f32_1-MLC", label: "Llama 3.2 (1B Universal - 880MB)", desc: "Mô hình Meta AI thế hệ mới, hỗ trợ WebGPU" },
+      { id: "Qwen2.5-1.5B-Instruct-q4f32_1-MLC", label: "Qwen 2.5 (1.5B Tiếng Việt - 1.1GB)", desc: "Hiểu sâu ngữ cảnh Tiếng Việt và thuật ngữ Synology" },
+      { id: "SmolLM2-360M-Instruct-q0f32-MLC", label: "SmolLM2 (360M Gọn nhẹ - 260MB)", desc: "Mô hình tiêu thụ ít RAM nhất" },
+    ],
+    apiKeyPlaceholder: "Không cần API Key",
+    docsUrl: "https://webllm.mlc.ai/",
+    keyName: "WebGPU Local In-Browser",
   },
 ];
 
@@ -106,6 +189,16 @@ export const SettingsTab: React.FC = () => {
     openLoginModal,
     logout,
     t,
+    showAiChatBubble,
+    setShowAiChatBubble,
+    aiProvider,
+    setAiProvider,
+    aiApiKeys,
+    setAiApiKey,
+    aiModels,
+    setAiModel,
+    aiCustomBaseUrls,
+    setAiCustomBaseUrl,
   } = useAppStore();
 
   const [persistInfo, setPersistInfo] = useState<{ expiry: number; daysLeft: number } | null>(null);
@@ -120,7 +213,14 @@ export const SettingsTab: React.FC = () => {
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const isBeginner = experienceMode === "beginner";
 
-  // AI Copilot Model Selection & Downloader State
+  // AI Provider & Key Management State
+  const [activeAiTab, setActiveAiTab] = useState<AiProviderType>(aiProvider || "gemini");
+  const [showKeyPassword, setShowKeyPassword] = useState<Record<string, boolean>>({});
+  const [testStatus, setTestStatus] = useState<Record<string, { loading: boolean; success?: boolean; text?: string }>>({});
+  const [customModelInput, setCustomModelInput] = useState<string>("");
+  const [customBaseUrlInput, setCustomBaseUrlInput] = useState<string>("");
+
+  // WebLLM Downloader State
   const [selectedAiModel, setSelectedAiModel] = useState<string>("Qwen2.5-0.5B-Instruct-q4f32_1-MLC");
   const [aiDownloadProgress, setAiDownloadProgress] = useState<number | null>(null);
   const [aiDownloadText, setAiDownloadText] = useState<string>("");
@@ -128,17 +228,57 @@ export const SettingsTab: React.FC = () => {
   const [aiDownloadSuccess, setAiDownloadSuccess] = useState<boolean>(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("dsm_ai_model");
-      if (saved) setSelectedAiModel(saved);
-    } catch (_) {}
-  }, []);
+    if (aiProvider) setActiveAiTab(aiProvider);
+  }, [aiProvider]);
 
-  const handleSelectAiModel = (modelId: string) => {
-    setSelectedAiModel(modelId);
+  const handleTestConnection = async (provider: AiProviderType) => {
+    const key = aiApiKeys[provider] || "";
+    const model = aiModels[provider] || "";
+    const baseUrl = aiCustomBaseUrls[provider] || "";
+
+    if (provider !== "webllm" && !key.trim()) {
+      setTestStatus((prev) => ({
+        ...prev,
+        [provider]: { loading: false, success: false, text: "Vui lòng nhập API Key trước khi kiểm tra." },
+      }));
+      return;
+    }
+
+    setTestStatus((prev) => ({
+      ...prev,
+      [provider]: { loading: true, text: "Đang kiểm tra kết nối tới máy chủ AI..." },
+    }));
+
     try {
-      localStorage.setItem("dsm_ai_model", modelId);
-    } catch (_) {}
+      const res = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "test",
+          provider,
+          apiKey: key,
+          model,
+          customBaseUrl: baseUrl,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTestStatus((prev) => ({
+          ...prev,
+          [provider]: { loading: false, success: true, text: data.message || "Kết nối thành công!" },
+        }));
+      } else {
+        setTestStatus((prev) => ({
+          ...prev,
+          [provider]: { loading: false, success: false, text: data.error || "Lỗi kiểm tra API Key." },
+        }));
+      }
+    } catch (e: any) {
+      setTestStatus((prev) => ({
+        ...prev,
+        [provider]: { loading: false, success: false, text: `Lỗi mạng: ${e.message}` },
+      }));
+    }
   };
 
   const handleDownloadAiModel = async () => {
@@ -555,99 +695,282 @@ export const SettingsTab: React.FC = () => {
           </div>
         </div>
 
-        {/* CARD 3: AI Copilot Model Configuration & Downloader */}
+        {/* CARD 3: AI Copilot Multi-Provider Configuration & API Keys */}
         <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "rounded-lg sm:rounded-xl p-2 sm:p-3 shadow-sm space-y-2 sm:space-y-3" : "rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5"} border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between`}>
-          <div className="space-y-2 sm:space-y-3">
+          <div className="space-y-3">
+            {/* Card Header */}
             <div className="flex items-center justify-between pb-1.5 sm:pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 <Bot className="w-4 h-4 text-purple-500" />
-                Mô hình AI Copilot (WebLLM)
+                Cấu hình AI Copilot &amp; API Keys
               </h3>
-              <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-500 border border-purple-500/20">
-                100% WebGPU
+              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center gap-1">
+                <span>{AI_PROVIDERS.find((p) => p.id === aiProvider)?.icon || "✨"}</span>
+                <span>{AI_PROVIDERS.find((p) => p.id === aiProvider)?.name || "Gemini"}</span>
               </span>
             </div>
 
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Chọn &amp; tải trước mô hình AI để phân tích chẩn đoán Synology DSM ngoại tuyến trực tiếp trên trình duyệt:
-            </p>
-
-            {/* Model List */}
-            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-              {AI_MODELS.map((m) => {
-                const isSelected = selectedAiModel === m.id;
-                return (
-                  <div
-                    key={m.id}
-                    onClick={() => handleSelectAiModel(m.id)}
-                    className={`p-2 rounded-xl border text-xs cursor-pointer transition-all ${
-                      isSelected
-                        ? "bg-purple-500/10 border-purple-500 text-purple-700 dark:text-purple-300 shadow-xs"
-                        : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-300 hover:border-slate-400"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between font-bold">
-                      <span className="flex items-center gap-1.5">
-                        <span className={`w-2 h-2 rounded-full ${isSelected ? "bg-purple-500 animate-pulse" : "bg-slate-400"}`} />
-                        {m.name}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        {m.badge && (
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-purple-500/20 text-purple-600 dark:text-purple-300">
-                            {m.badge}
-                          </span>
-                        )}
-                        <span className="text-[10px] font-mono text-slate-400">{m.size}</span>
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">{m.desc}</p>
-                  </div>
-                );
-              })}
+            {/* AI Chat Bubble Visibility Toggle */}
+            <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                  Bong bóng AI Bot trên màn hình
+                </span>
+                <span className="text-[10.5px] text-slate-500 dark:text-slate-400 block leading-tight">
+                  {showAiChatBubble ? "Đang hiển thị nút chat tròn ở góc dưới màn hình" : "Đã ẩn bong bóng AI nổi khỏi giao diện"}
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  const nextVal = !showAiChatBubble;
+                  setShowAiChatBubble(nextVal);
+                  setSaveFeedback(nextVal ? "Đã bật hiển thị bong bóng AI Copilot." : "Đã ẩn bong bóng AI Copilot khỏi màn hình.");
+                  setTimeout(() => setSaveFeedback(null), 3000);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  showAiChatBubble
+                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                    : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                }`}
+              >
+                {showAiChatBubble ? "✓ Đang hiện" : "✕ Đã ẩn"}
+              </button>
             </div>
 
-            {/* Live Download & Cache Status */}
-            {aiDownloadText && (
-              <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-[11px] space-y-1.5">
-                <div className="flex items-center justify-between font-bold text-slate-700 dark:text-slate-200">
-                  <span className="truncate pr-2">{aiDownloadText}</span>
-                  {aiDownloadProgress !== null && <span>{aiDownloadProgress}%</span>}
-                </div>
-                {aiDownloadProgress !== null && (
-                  <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-blue-500 via-purple-500 to-rose-500 h-full transition-all duration-300"
-                      style={{ width: `${aiDownloadProgress}%` }}
-                    />
-                  </div>
-                )}
+            {/* Provider Selector Tabs */}
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block">
+                Chọn Nhà cung cấp Trí tuệ Nhân tạo (AI Provider)
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl text-xs">
+                {AI_PROVIDERS.map((p) => {
+                  const isActiveProvider = aiProvider === p.id;
+                  const isCurrentTab = activeAiTab === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        setActiveAiTab(p.id);
+                        setAiProvider(p.id);
+                      }}
+                      className={`p-1.5 rounded-lg text-left transition-all cursor-pointer flex items-center justify-between ${
+                        isActiveProvider
+                          ? "bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-300 font-bold shadow-xs border border-purple-500/20"
+                          : isCurrentTab
+                          ? "bg-white/60 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                      }`}
+                    >
+                      <span className="flex items-center gap-1 truncate text-[11px]">
+                        <span>{p.icon}</span>
+                        <span className="truncate">{p.name.replace("Google ", "").replace("Anthropic ", "").replace("OpenAI ", "")}</span>
+                      </span>
+                      {isActiveProvider && <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse shrink-0" />}
+                    </button>
+                  );
+                })}
               </div>
-            )}
+            </div>
+
+            {/* Provider Details & Key Config */}
+            {(() => {
+              const currentP = AI_PROVIDERS.find((p) => p.id === activeAiTab) || AI_PROVIDERS[0];
+              const currentKey = aiApiKeys[currentP.id] || "";
+              const currentModel = aiModels[currentP.id] || currentP.defaultModel;
+              const currentBaseUrl = aiCustomBaseUrls[currentP.id] || "";
+              const status = testStatus[currentP.id];
+              const isWebLlm = currentP.id === "webllm";
+
+              return (
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <span>{currentP.icon}</span>
+                        <span>{currentP.name}</span>
+                        <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/20">
+                          {currentP.badge}
+                        </span>
+                      </h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">{currentP.desc}</p>
+                    </div>
+                    {currentP.docsUrl && (
+                      <a
+                        href={currentP.docsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-0.5 shrink-0 font-semibold"
+                        title="Lấy API Key"
+                      >
+                        <span>Lấy Key</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+
+                  {!isWebLlm ? (
+                    <>
+                      {/* API Key Input */}
+                      <div>
+                        <label className="text-[10px] font-bold uppercase text-slate-400 mb-1 flex items-center justify-between">
+                          <span className="flex items-center gap-1">
+                            <Key className="w-3 h-3 text-purple-500" />
+                            {currentP.keyName}
+                          </span>
+                          {currentKey && <span className="text-emerald-500 font-bold">✓ Đã lưu</span>}
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showKeyPassword[currentP.id] ? "text" : "password"}
+                            value={currentKey}
+                            onChange={(e) => setAiApiKey(currentP.id, e.target.value)}
+                            placeholder={currentP.apiKeyPlaceholder}
+                            className="w-full pl-3 pr-16 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowKeyPassword((prev) => ({ ...prev, [currentP.id]: !prev[currentP.id] }))
+                            }
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                          >
+                            {showKeyPassword[currentP.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Model Selector Dropdown */}
+                      <div>
+                        <label className="text-[10px] font-bold uppercase text-slate-400 mb-1 block">
+                          Mô hình AI (Model)
+                        </label>
+                        <select
+                          value={currentModel}
+                          onChange={(e) => setAiModel(currentP.id, e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                        >
+                          {currentP.models.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Optional Custom Base URL */}
+                      {(currentP.id === "deepseek" || currentP.id === "openai" || currentP.id === "openrouter" || currentP.id === "opencode") && (
+                        <div>
+                          <label className="text-[10px] font-semibold text-slate-400 mb-0.5 block">
+                            Custom Base URL / API Endpoint (Tùy chọn)
+                          </label>
+                          <input
+                            type="text"
+                            value={currentBaseUrl}
+                            onChange={(e) => setAiCustomBaseUrl(currentP.id, e.target.value)}
+                            placeholder={
+                              currentP.id === "openrouter"
+                                ? "https://openrouter.ai/api/v1"
+                                : currentP.id === "opencode"
+                                ? "http://localhost:4096/v1"
+                                : currentP.id === "deepseek"
+                                ? "https://api.deepseek.com"
+                                : "https://api.openai.com/v1"
+                            }
+                            className="w-full px-3 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+                      )}
+
+                      {/* Connection Test Status Feedback */}
+                      {status?.text && (
+                        <div
+                          className={`p-2 rounded-xl text-[11px] font-semibold flex items-center justify-between ${
+                            status.success
+                              ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                              : status.loading
+                              ? "bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400"
+                              : "bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400"
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {status.loading ? (
+                              <RotateCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                            ) : status.success ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            ) : (
+                              <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                            )}
+                            <span className="truncate">{status.text}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Test Connection Action Button */}
+                      <button
+                        onClick={() => handleTestConnection(currentP.id)}
+                        disabled={status?.loading || (!currentKey.trim() && currentP.id !== "opencode")}
+                        className="w-full py-1.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                      >
+                        {status?.loading ? (
+                          <>
+                            <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Đang kiểm tra kết nối...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="w-3.5 h-3.5" />
+                            <span>Kiểm tra kết nối API Key ({currentP.name})</span>
+                          </>
+                        )}
+                      </button>
+                    </>
+                  ) : (
+                    /* WebLLM Downloader Subview */
+                    <div className="space-y-2">
+                      <select
+                        value={selectedAiModel}
+                        onChange={(e) => setSelectedAiModel(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-white"
+                      >
+                        {currentP.models.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button
+                        onClick={handleDownloadAiModel}
+                        disabled={isAiDownloading}
+                        className="w-full py-1.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 via-purple-600 to-rose-500 hover:opacity-90 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                      >
+                        {isAiDownloading ? (
+                          <>
+                            <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Đang tải ({aiDownloadProgress || 0}%)...</span>
+                          </>
+                        ) : aiDownloadSuccess ? (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                            <span>Mô hình đã sẵn sàng trong Cache!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Tải &amp; Lưu mô hình vào WebGPU Cache</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-            <button
-              onClick={handleDownloadAiModel}
-              disabled={isAiDownloading}
-              className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-blue-600 via-purple-600 to-rose-500 hover:opacity-90 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
-            >
-              {isAiDownloading ? (
-                <>
-                  <RotateCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Đang tải mô hình ({aiDownloadProgress || 0}%)...</span>
-                </>
-              ) : aiDownloadSuccess ? (
-                <>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
-                  <span>Mô hình đã sẵn sàng trong Cache!</span>
-                </>
-              ) : (
-                <>
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Tải &amp; Lưu mô hình vào Cache</span>
-                </>
-              )}
-            </button>
+          <div className="pt-2 text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <span>Tự động đồng bộ với NAS Telemetry</span>
+            <span className="font-mono text-purple-500 font-bold">API / WebLLM Ready</span>
           </div>
         </div>
 

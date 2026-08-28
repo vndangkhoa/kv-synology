@@ -219,6 +219,67 @@ export interface PackageItem {
   status: "running" | "stopped";
   description: string;
   maintainer: string;
+  category?: string;
+  autoUpgrade?: boolean;
+  size?: number | string;
+  iconUrl?: string;
+  sourceUrl?: string;
+  isCommunity?: boolean;
+  installed?: boolean;
+  hasUpdate?: boolean;
+  latestVersion?: string;
+  changeLog?: string;
+}
+
+export interface PackageServer {
+  id: string;
+  name: string;
+  url: string;
+  enabled?: boolean;
+  packageCount?: number;
+  isDefault?: boolean;
+}
+
+export interface PackageInstallPayload {
+  id?: string;
+  name: string;
+  version?: string;
+  description?: string;
+  maintainer?: string;
+  url?: string;
+  spkFile?: string;
+  category?: string;
+  isCommunity?: boolean;
+}
+
+export interface PackageSetting {
+  id: string;
+  autoUpgrade?: boolean;
+  displayName?: string;
+  description?: string;
+  maintainer?: string;
+}
+
+export type AiProviderType = "gemini" | "deepseek" | "claude" | "openai" | "opencode" | "openrouter" | "webllm" | "heuristic";
+
+export interface McpToolCallAction {
+  tool: string;
+  params: Record<string, any>;
+  result?: {
+    success: boolean;
+    message?: string;
+    data?: any;
+    error?: string;
+  };
+}
+
+export interface AiProviderConfig {
+  provider: AiProviderType;
+  apiKeys: Record<string, string>;
+  models: Record<string, string>;
+  customBaseUrls: Record<string, string>;
+  temperature: number;
+  showAiChatBubble: boolean;
 }
 
 export type ServiceCategory = "file" | "system" | "network" | "application";

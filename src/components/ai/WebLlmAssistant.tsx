@@ -100,7 +100,17 @@ interface ChatMessage {
 }
 
 export const WebLlmAssistant: React.FC = () => {
-  const { session, systemInfo, utilization, language } = useAppStore();
+  const {
+    session,
+    systemInfo,
+    utilization,
+    language,
+    aiProvider,
+    aiApiKeys,
+    aiModels,
+    aiCustomBaseUrls,
+    setActiveTab,
+  } = useAppStore();
 
   const [selectedModelId, setSelectedModelId] = useState<string>(
     "Llama-3.2-1B-Instruct-q4f32_1-MLC"
@@ -302,6 +312,41 @@ Dựa trên dữ liệu giám sát thời gian thực của thiết bị:
     setMessages(newMessages);
     setInputPrompt("");
     setIsGenerating(true);
+
+    const currentKey = aiApiKeys[aiProvider] || "";
+    const currentModel = aiModels[aiProvider] || "";
+    const currentBaseUrl = aiCustomBaseUrls[aiProvider] || "";
+
+    // 1. If user configured remote provider (Gemini / OpenRouter / OpenCode / DeepSeek / Claude / OpenAI) and not running local WebLLM
+    if (aiProvider !== "webllm" && (currentKey.trim() || aiProvider === "opencode") && (!engine || !isModelLoaded || loadedModelId === "instant_diagnostic")) {
+      try {
+        const res = await fetch("/api/ai/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "chat",
+            provider: aiProvider,
+            apiKey: currentKey,
+            model: currentModel,
+            customBaseUrl: currentBaseUrl,
+            messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+            telemetryContext: nasTelemetryContext,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success && data.reply) {
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", content: data.reply, timestamp: Date.now() },
+          ]);
+          setIsGenerating(false);
+          return;
+        }
+      } catch (err) {
+        console.warn("[WebLLM Remote AI Error]", err);
+      }
+    }
 
     if (engine && isModelLoaded && loadedModelId !== "instant_diagnostic") {
       try {
