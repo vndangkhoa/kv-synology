@@ -175,7 +175,20 @@ class DSMClient {
           method: "GET",
         });
 
-        const data = await res.json();
+        let data: any = null;
+        const text = await res.text();
+        try {
+          data = JSON.parse(text);
+        } catch (_) {
+          if (res.status === 403) {
+            throw new Error("Máy chủ (hoặc tường lửa NAS) từ chối kết nối (Mã 403). Hãy kiểm tra cổng kết nối (5001/5000) hoặc IP Auto-block.");
+          } else if (res.status === 502 || res.status === 504) {
+            throw new Error(`Không thể kết nối đến máy chủ Synology (Mã ${res.status}). Vui lòng kiểm tra lại QuickConnect ID hoặc IP NAS.`);
+          } else {
+            throw new Error(`Phản hồi từ máy chủ không hợp lệ (Mã ${res.status}). Vui lòng kiểm tra lại địa chỉ NAS.`);
+          }
+        }
+
         if (data.success && data.data) {
           const sid = data.data.sid || "";
           const synoToken = data.data.synotoken || "";
@@ -226,7 +239,7 @@ class DSMClient {
           }
         }
       } catch (err: any) {
-        if (err.message && (err.message.includes("OTP") || err.message.includes("mật khẩu") || err.message.includes("khóa") || err.message.includes("từ chối"))) {
+        if (err.message && (err.message.includes("OTP") || err.message.includes("mật khẩu") || err.message.includes("khóa") || err.message.includes("từ chối") || err.message.includes("Mã 403") || err.message.includes("Mã 502"))) {
           throw err;
         }
         lastError = err.message || lastError;

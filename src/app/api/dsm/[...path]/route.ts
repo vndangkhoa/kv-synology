@@ -55,6 +55,33 @@ async function fetchServerInfo(cleanId: string, controlHost: string, portalId = 
   return JSON.parse(raw);
 }
 
+async function verifyDsmCandidate(c: { host: string; port: number; isHttps: boolean }, timeout = 1500): Promise<boolean> {
+  try {
+    const res = await makeNodeRequest({
+      isHttps: c.isHttps,
+      host: c.host,
+      port: c.port,
+      path: "/webapi/query.cgi?api=SYNO.API.Info&version=1&method=query&query=SYNO.API.Auth",
+      method: "GET",
+      headers: {
+        "User-Agent": "DSMHelper/1.0",
+        Accept: "*/*",
+      },
+      body: null,
+      timeoutMs: timeout,
+    });
+    const ctype = String(res.headers["content-type"] || "");
+    const bodyStr = res.body.toString("utf-8", 0, Math.min(res.body.length, 1000));
+    const isHtml = bodyStr.includes("<html") || bodyStr.includes("<!DOCTYPE") || ctype.includes("text/html");
+    if (!isHtml && (bodyStr.includes('"success"') || bodyStr.includes("SYNO.API.Auth") || ctype.includes("json"))) {
+      return true;
+    }
+    return false;
+  } catch (_) {
+    return false;
+  }
+}
+
 async function resolveQuickConnect(
   serverId: string,
   userPort?: number,
@@ -68,13 +95,13 @@ async function resolveQuickConnect(
     return cached;
   }
 
-  const controlHosts = ["global.quickconnect.to", "tw.quickconnect.to", "us.quickconnect.to", "eu.quickconnect.to"];
+  const controlHosts = ["global.quickconnect.to", "usc.quickconnect.to", "tw.quickconnect.to", "us.quickconnect.to", "eu.quickconnect.to"];
 
   for (const controlHost of controlHosts) {
     try {
       let parsed = await fetchServerInfo(cleanId, controlHost, "dsm_portal_https");
 
-      // If dsm_portal_https failed (e.g. user uses HTTP or custom portal), fallback to dsm_portal or Synology
+      // If dsm_portal_https failed (e.g. user uses HTTP or custom portal), fallback to dsm_portal
       if (!parsed || parsed.errno !== 0 || !parsed.server) {
         try {
           parsed = await fetchServerInfo(cleanId, controlHost, "dsm_portal");
@@ -108,69 +135,80 @@ async function resolveQuickConnect(
         const relayPort: number | null = parsed.service?.relay_port || 443;
         const relayDn: string | null = parsed.service?.relay_dn || null;
 
-        // Collect all distinct potential ports
-        const possiblePorts = Array.from(
-          new Set(
-            [userPort, dsmExtPort, dsmHttpsPort, dsmHttpPort, 5001, 5000, 443, 80].filter(
-              (p): p is number => typeof p === "number" && p > 0 && p <= 65535
-            )
-          )
-        );
-
         type Candidate = { host: string; port: number; isHttps: boolean };
         const candidates: Candidate[] = [];
+        const seen = new Set<string>();
 
-        // Hosts list to probe
-        const hostList = Array.from(
-          new Set(
-            [
-              ...allLanIps,
-              lanIp,
-              smartDnsLan,
-              ddns,
-              smartDns,
-              smartDnsExt,
-              wanIp,
-              `${cleanId}.direct.quickconnect.to`,
-            ].filter(Boolean) as string[]
-          )
-        );
-
-        for (const h of hostList) {
-          for (const p of possiblePorts) {
-            const isHttps = p === 443 || p === 5001 || p === dsmHttpsPort || (userHttps ?? true);
+        const addCand = (h: string | undefined | null, p: number | undefined | null, isHttps: boolean) => {
+          if (!h || !p || p <= 0 || p > 65535) return;
+          const key = `${h}:${p}:${isHttps}`;
+          if (!seen.has(key)) {
+            seen.add(key);
             candidates.push({ host: h, port: p, isHttps });
+          }
+        };
+
+        // 1. High Priority: Specific DSM Ports (5001, 5000, userPort) on LAN IPs & DDNS
+        const standardPorts = Array.from(new Set([userPort, dsmHttpsPort, 5001, dsmHttpPort, 5000, dsmExtPort].filter(Boolean))) as number[];
+        
+        for (const p of standardPorts) {
+          const isH = p === 5001 || p === dsmHttpsPort || (userHttps ?? true);
+          for (const ip of allLanIps) addCand(ip, p, isH);
+          if (lanIp) addCand(lanIp, p, isH);
+          if (smartDnsLan) addCand(smartDnsLan, p, isH);
+          if (ddns) addCand(ddns, p, isH);
+          if (smartDns) addCand(smartDns, p, isH);
+          if (smartDnsExt) addCand(smartDnsExt, p, isH);
+          addCand(`${cleanId}.direct.quickconnect.to`, p, isH);
+          if (wanIp) addCand(wanIp, p, isH);
+        }
+
+        // 2. Low Priority: Standard Web Ports (443, 80)
+        for (const p of [443, 80]) {
+          const isH = p === 443;
+          if (ddns) addCand(ddns, p, isH);
+          if (smartDnsExt) addCand(smartDnsExt, p, isH);
+          if (wanIp) addCand(wanIp, p, isH);
+        }
+
+        // 3. Relay fallbacks
+        if (relayDn && relayPort) addCand(relayDn, relayPort, true);
+        if (relayIp && relayPort) addCand(relayIp, relayPort, true);
+
+        // Concurrently probe candidates for genuine DSM API response
+        let verifiedTarget: Candidate | null = null;
+        for (let i = 0; i < candidates.length; i += 6) {
+          const batch = candidates.slice(i, i + 6);
+          const probeResults = await Promise.all(
+            batch.map(async (cand) => {
+              const ok = await verifyDsmCandidate(cand, 1800);
+              return ok ? cand : null;
+            })
+          );
+          const valid = probeResults.filter(Boolean) as Candidate[];
+          if (valid.length > 0) {
+            verifiedTarget = valid[0];
+            break;
           }
         }
 
-        // Add relay candidates (Relay uses its own designated tunnel port)
-        if (relayDn && relayPort) candidates.push({ host: relayDn, port: relayPort, isHttps: true });
-        if (relayIp && relayPort) candidates.push({ host: relayIp, port: relayPort, isHttps: true });
-
-        // Concurrent reachability check (fast 1200ms probe)
-        const results = await Promise.all(
-          candidates.map(async (c) => {
-            const ok = await testHostConnection(c.host, c.port, 1200);
-            return ok ? c : null;
-          })
-        );
-        const reachable = results.filter(Boolean) as Candidate[];
-
-        let target: Candidate | null = reachable[0] || null;
-
-        if (!target) {
-          // If direct TCP probes timed out (e.g. pure QuickConnect relay network), fallback to relay server
-          if (relayDn && relayPort) target = { host: relayDn, port: relayPort, isHttps: true };
-          else if (relayIp && relayPort) target = { host: relayIp, port: relayPort, isHttps: true };
-          else if (ddns) target = { host: ddns, port: userPort || dsmHttpsPort || 5001, isHttps: true };
-          else target = { host: `${cleanId}.direct.quickconnect.to`, port: userPort || dsmHttpsPort || 5001, isHttps: true };
+        if (!verifiedTarget) {
+          // If direct probes didn't reply in time, pick first TCP-reachable or relay fallback
+          const tcpProbes = await Promise.all(
+            candidates.slice(0, 10).map(async (cand) => {
+              const ok = await testHostConnection(cand.host, cand.port, 1000);
+              return ok ? cand : null;
+            })
+          );
+          const tcpOk = tcpProbes.filter(Boolean) as Candidate[];
+          verifiedTarget = tcpOk[0] || (relayDn && relayPort ? { host: relayDn, port: relayPort, isHttps: true } : candidates[0]) || null;
         }
 
-        if (target) {
+        if (verifiedTarget) {
           const resolved = {
-            host: target.host,
-            port: target.port,
-            isHttps: target.isHttps,
+            host: verifiedTarget.host,
+            port: verifiedTarget.port,
+            isHttps: verifiedTarget.isHttps,
             expires: Date.now() + 10 * 60 * 1000,
           };
           quickConnectCache.set(cacheKey, resolved);
@@ -219,31 +257,12 @@ function buildUniversalCandidates(host: string, port: number, isHttps: boolean):
   };
   // Original as provided
   push(host, port, isHttps);
-  // If custom port like 41533, try standard DSM ports with both protocols
-  if (port === 41533 || port === 5001 || port === 5000) {
-    push(host, 5001, true);
-    push(host, 5000, false);
-    push(host, 443, true);
-    push(host, 80, false);
-    push(host, 5001, false);
-    push(host, 5000, true);
-    // Try swapped protocol on same custom port
-    push(host, port, !isHttps);
-  } else {
-    push(host, port, !isHttps);
-    if (isHttps) {
-      push(host, 443, true);
-      push(host, 5001, true);
-    } else {
-      push(host, 80, false);
-      push(host, 5000, false);
-    }
-  }
-  // For host with custom port like 192.168.10.79:41533 parsed earlier, host is without port, so also try with original port 41533 swapped proto
-  if (port !== 41533) {
-    push(host, 41533, true);
-    push(host, 41533, false);
-  }
+  // Standard DSM ports
+  push(host, 5001, true);
+  push(host, 5000, false);
+  push(host, 443, true);
+  push(host, 80, false);
+  push(host, port, !isHttps);
   return list;
 }
 
@@ -251,17 +270,8 @@ async function findWorkingCandidate(
   candidates: Array<{ host: string; port: number; isHttps: boolean }>,
   pathSegments: string[]
 ): Promise<{ host: string; port: number; isHttps: boolean } | null> {
-  // First quick TCP probe to filter
-  const tcpResults = await Promise.all(
-    candidates.map(async (c) => {
-      const ok = await testHostConnection(c.host, c.port, 1200);
-      return ok ? c : null;
-    })
-  );
-  const reachable = tcpResults.filter(Boolean) as typeof candidates;
-  const toTest = reachable.length ? reachable : candidates;
-  // Then HTTP-level probe: try to hit SYNO.API.Info or auth.cgi and see if not 404
-  for (const cand of toTest) {
+  // Try to hit SYNO.API.Info and ensure it is real DSM JSON
+  for (const cand of candidates) {
     try {
       const probePath = "/webapi/query.cgi?api=SYNO.API.Info&version=1&method=query&query=SYNO.API.Auth";
       const res = await makeNodeRequest({
@@ -275,27 +285,17 @@ async function findWorkingCandidate(
           Accept: "*/*",
         },
         body: null,
+        timeoutMs: 2000,
       });
-      // DSM should return 200 with JSON {success:true} or {success:false, error:{code:...}} but not 404 HTML
-      const bodyStr = res.body.toString("utf-8", 0, Math.min(res.body.length, 2000));
-      if (res.statusCode === 200 && (bodyStr.includes('"success"') || bodyStr.includes("SYNO.API.Auth"))) {
+      const ctype = String(res.headers["content-type"] || "");
+      const bodyStr = res.body.toString("utf-8", 0, Math.min(res.body.length, 1000));
+      const isHtml = bodyStr.includes("<html") || bodyStr.includes("<!DOCTYPE") || ctype.includes("text/html");
+      if (!isHtml && (bodyStr.includes('"success"') || bodyStr.includes("SYNO.API.Auth") || ctype.includes("json"))) {
         return cand;
       }
-      if (res.statusCode === 404) {
-        // This candidate's /webapi not found, try next
-        continue;
-      }
-      // For other status like 401/403, it still indicates DSM is there (auth required)
-      if (res.statusCode >= 200 && res.statusCode < 500 && res.statusCode !== 404) {
-        return cand;
-      }
-    } catch (e: any) {
-      // Network error (ETIMEDOUT, ECONNREFUSED) -> try next
-      if (e.code === "ETIMEDOUT" || e.code === "ECONNREFUSED" || e.code === "ENOTFOUND") continue;
-    }
+    } catch (_) {}
   }
-  // If none probed successfully, return first TCP-reachable or first candidate as fallback
-  return reachable[0] || candidates[0] || null;
+  return candidates[0] || null;
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
@@ -577,6 +577,7 @@ interface RequestOptions {
   method: string;
   headers: Record<string, string>;
   body: Buffer | null;
+  timeoutMs?: number;
 }
 
 function makeNodeRequest(options: RequestOptions): Promise<{ statusCode: number; headers: http.IncomingHttpHeaders; body: Buffer }> {
@@ -586,6 +587,7 @@ function makeNodeRequest(options: RequestOptions): Promise<{ statusCode: number;
     // Safely encode any non-ASCII characters without destroying existing %2F or %XX encodings
     const safePath = options.path.replace(/[^\x00-\x7F]/g, (c) => encodeURIComponent(c));
 
+    const timeout = options.timeoutMs || 30000;
     const reqOptions: https.RequestOptions = {
       hostname: options.host,
       port: options.port,
@@ -593,7 +595,7 @@ function makeNodeRequest(options: RequestOptions): Promise<{ statusCode: number;
       method: options.method,
       headers: options.headers,
       agent: options.isHttps ? httpsAgent : httpAgent,
-      timeout: 30000,
+      timeout,
     };
 
     const req = client.request(reqOptions, (res) => {
