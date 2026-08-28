@@ -50,7 +50,7 @@ export default function RootLayout({
         {/* Set initial theme before hydration to avoid flash/mismatch */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{const t=localStorage.getItem('dsm_theme')||'system';const m=window.matchMedia('(prefers-color-scheme: dark)').matches;const d=t==='dark'||t==='gemini'||(t==='system'&&m);if(d)document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');if(t==='gemini')document.documentElement.classList.add('gemini');else document.documentElement.classList.remove('gemini');}catch{}`,
+            __html: `try{const t=localStorage.getItem('dsm_theme')||'system';const m=window.matchMedia('(prefers-color-scheme: dark)').matches;const d=t==='gemini'||t==='dark'||(t==='system'&&m);if(d){document.documentElement.classList.add('dark','gemini');}else{document.documentElement.classList.remove('dark','gemini');}}catch{}`,
           }}
         />
       </head>

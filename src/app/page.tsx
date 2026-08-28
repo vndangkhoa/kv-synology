@@ -78,9 +78,9 @@ export default function Home() {
       const currentTheme = localStorage.getItem("dsm_theme") || "system";
       if (currentTheme === "system") {
         if (e.matches) {
-          document.documentElement.classList.add("dark");
+          document.documentElement.classList.add("dark", "gemini");
         } else {
-          document.documentElement.classList.remove("dark");
+          document.documentElement.classList.remove("dark", "gemini");
         }
       }
     };

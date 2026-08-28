@@ -136,10 +136,14 @@ export const LoginModal: React.FC = () => {
         setHttps(u.protocol === "https:");
         setPort(String(cleanPort));
       } catch (_) {}
-    } else if (cleanHost.includes(":") && !cleanHost.includes(".quickconnect.to")) {
-      const [h, p] = cleanHost.split(":");
-      cleanHost = h;
-      if (p) cleanPort = parseInt(p, 10);
+    } else if (cleanHost.includes(":")) {
+      const lastColon = cleanHost.lastIndexOf(":");
+      const possiblePort = cleanHost.slice(lastColon + 1);
+      if (/^\d+$/.test(possiblePort)) {
+        cleanPort = parseInt(possiblePort, 10);
+        cleanHost = cleanHost.slice(0, lastColon);
+        setPort(String(cleanPort));
+      }
     }
 
     const config: DSMConnectionConfig = {

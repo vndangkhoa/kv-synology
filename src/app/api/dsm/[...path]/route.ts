@@ -18,13 +18,13 @@ const httpAgent = new http.Agent({
 // Cache resolved QuickConnect IDs for 10 minutes
 const quickConnectCache = new Map<string, { host: string; port: number; isHttps: boolean; expires: number }>();
 
-async function fetchServerInfo(cleanId: string, controlHost: string): Promise<any> {
+async function fetchServerInfo(cleanId: string, controlHost: string, portalId = "dsm_portal_https"): Promise<any> {
   const payload = JSON.stringify({
     version: 1,
     command: "get_server_info",
     stop_mirror: true,
     serverID: cleanId,
-    id: "dsm_portal_https",
+    id: portalId,
   });
   const raw = await new Promise<string>((resolve, reject) => {
     const req = https.request(
@@ -55,81 +55,133 @@ async function fetchServerInfo(cleanId: string, controlHost: string): Promise<an
   return JSON.parse(raw);
 }
 
-async function resolveQuickConnect(serverId: string): Promise<{ host: string; port: number; isHttps: boolean } | null> {
+async function resolveQuickConnect(
+  serverId: string,
+  userPort?: number,
+  userHttps?: boolean
+): Promise<{ host: string; port: number; isHttps: boolean } | null> {
   const cleanId = serverId.replace(/\.quickconnect\.to$/i, "").trim().toLowerCase();
+  const cacheKey = `${cleanId}_${userPort || "auto"}_${userHttps ?? "auto"}`;
 
-  const cached = quickConnectCache.get(cleanId);
+  const cached = quickConnectCache.get(cacheKey) || quickConnectCache.get(cleanId);
   if (cached && cached.expires > Date.now()) {
     return cached;
   }
 
-  try {
-    let parsed = await fetchServerInfo(cleanId, "global.quickconnect.to");
+  const controlHosts = ["global.quickconnect.to", "tw.quickconnect.to", "us.quickconnect.to", "eu.quickconnect.to"];
 
-    // Handle site redirect (errno 4) like the Flutter app does: retry with alternative control_host
-    if (parsed.errno === 4 && Array.isArray(parsed.sites) && parsed.sites.length > 0) {
-      try {
-        parsed = await fetchServerInfo(cleanId, parsed.sites[0]);
-      } catch (_) {
-        // keep original parsed
-      }
-    }
+  for (const controlHost of controlHosts) {
+    try {
+      let parsed = await fetchServerInfo(cleanId, controlHost, "dsm_portal_https");
 
-    if (parsed.errno === 0 && parsed.server) {
-      const lanIp = parsed.server.interface?.[0]?.ip;
-      const ddns = parsed.server.ddns && parsed.server.ddns !== "NULL" ? parsed.server.ddns : null;
-      const smartDns = parsed.smartdns?.host;
-      const smartDnsLan = parsed.smartdns?.lan?.[0];
-      const smartDnsExt = parsed.smartdns?.external;
-      const wanIp = parsed.server.external?.ip;
-      const port = parsed.service?.port || 5001;
-      const relayIp: string | null = parsed.service?.relay_ip || null;
-      const relayPort: number | null = parsed.service?.relay_port || null;
-      const relayDn: string | null = parsed.service?.relay_dn || null;
-
-      // Build candidates with per-host port/isHttps – relay uses its own port and is always HTTPS
-      type Candidate = { host: string; port: number; isHttps: boolean };
-      const candidates: Candidate[] = [];
-      if (lanIp) candidates.push({ host: lanIp, port, isHttps: true });
-      if (smartDnsLan) candidates.push({ host: smartDnsLan, port, isHttps: true });
-      if (ddns) candidates.push({ host: ddns, port, isHttps: true });
-      if (smartDns) candidates.push({ host: smartDns, port: 443, isHttps: true });
-      if (smartDnsExt) candidates.push({ host: smartDnsExt, port: 443, isHttps: true });
-      if (wanIp) candidates.push({ host: wanIp, port, isHttps: true });
-      candidates.push({ host: `${cleanId}.direct.quickconnect.to`, port, isHttps: true });
-      // Relay is the guaranteed fallback for NAT without port forwarding
-      if (relayDn && relayPort) candidates.push({ host: relayDn, port: relayPort, isHttps: true });
-      if (relayIp && relayPort) candidates.push({ host: relayIp, port: relayPort, isHttps: true });
-
-      // Test all candidates concurrently – each with its own port
-      const results = await Promise.all(
-        candidates.map(async (c) => {
-          const ok = await testHostConnection(c.host, c.port, 1500);
-          return ok ? c : null;
-        })
-      );
-      const firstReachable = results.find(Boolean) as Candidate | undefined;
-
-      // Prefer first reachable; if none, fall back to relay (which we just proved is reachable via pingpong)
-      let target: Candidate | null = firstReachable || null;
-      if (!target) {
-        // No direct host reachable – use relay DN/IP as fallback even without TCP probe (tunnel is up)
-        if (relayDn && relayPort) target = { host: relayDn, port: relayPort, isHttps: true };
-        else if (relayIp && relayPort) target = { host: relayIp, port: relayPort, isHttps: true };
-        else target = candidates[0] || null;
+      // If dsm_portal_https failed (e.g. user uses HTTP or custom portal), fallback to dsm_portal or Synology
+      if (!parsed || parsed.errno !== 0 || !parsed.server) {
+        try {
+          parsed = await fetchServerInfo(cleanId, controlHost, "dsm_portal");
+        } catch (_) {}
       }
 
-      if (!target) return null;
+      // Handle site redirect (errno 4)
+      if (parsed?.errno === 4 && Array.isArray(parsed.sites) && parsed.sites.length > 0) {
+        try {
+          parsed = await fetchServerInfo(cleanId, parsed.sites[0], "dsm_portal_https");
+          if (!parsed || parsed.errno !== 0) {
+            parsed = await fetchServerInfo(cleanId, parsed.sites[0], "dsm_portal");
+          }
+        } catch (_) {}
+      }
 
-      const resolved = { host: target.host, port: target.port, isHttps: target.isHttps, expires: Date.now() + 10 * 60 * 1000 };
-      quickConnectCache.set(cleanId, resolved);
-      console.log(`[QuickConnect] ${cleanId} -> ${resolved.host}:${resolved.port} https=${resolved.isHttps}`);
-      return resolved;
-    } else {
-      console.warn("[QuickConnect] lookup failed", parsed);
+      if (parsed && parsed.errno === 0 && parsed.server) {
+        const lanIp = parsed.server.interface?.[0]?.ip;
+        const allLanIps: string[] = (parsed.server.interface || []).map((i: any) => i.ip).filter(Boolean);
+        const ddns = parsed.server.ddns && parsed.server.ddns !== "NULL" ? parsed.server.ddns : null;
+        const smartDns = parsed.smartdns?.host;
+        const smartDnsLan = parsed.smartdns?.lan?.[0];
+        const smartDnsExt = parsed.smartdns?.external;
+        const wanIp = parsed.server.external?.ip;
+
+        const dsmHttpsPort = parsed.server?.https_port || parsed.service?.port || 5001;
+        const dsmHttpPort = parsed.server?.port || 5000;
+        const dsmExtPort = parsed.server?.external?.port || parsed.service?.ext_port;
+
+        const relayIp: string | null = parsed.service?.relay_ip || null;
+        const relayPort: number | null = parsed.service?.relay_port || 443;
+        const relayDn: string | null = parsed.service?.relay_dn || null;
+
+        // Collect all distinct potential ports
+        const possiblePorts = Array.from(
+          new Set(
+            [userPort, dsmExtPort, dsmHttpsPort, dsmHttpPort, 5001, 5000, 443, 80].filter(
+              (p): p is number => typeof p === "number" && p > 0 && p <= 65535
+            )
+          )
+        );
+
+        type Candidate = { host: string; port: number; isHttps: boolean };
+        const candidates: Candidate[] = [];
+
+        // Hosts list to probe
+        const hostList = Array.from(
+          new Set(
+            [
+              ...allLanIps,
+              lanIp,
+              smartDnsLan,
+              ddns,
+              smartDns,
+              smartDnsExt,
+              wanIp,
+              `${cleanId}.direct.quickconnect.to`,
+            ].filter(Boolean) as string[]
+          )
+        );
+
+        for (const h of hostList) {
+          for (const p of possiblePorts) {
+            const isHttps = p === 443 || p === 5001 || p === dsmHttpsPort || (userHttps ?? true);
+            candidates.push({ host: h, port: p, isHttps });
+          }
+        }
+
+        // Add relay candidates (Relay uses its own designated tunnel port)
+        if (relayDn && relayPort) candidates.push({ host: relayDn, port: relayPort, isHttps: true });
+        if (relayIp && relayPort) candidates.push({ host: relayIp, port: relayPort, isHttps: true });
+
+        // Concurrent reachability check (fast 1200ms probe)
+        const results = await Promise.all(
+          candidates.map(async (c) => {
+            const ok = await testHostConnection(c.host, c.port, 1200);
+            return ok ? c : null;
+          })
+        );
+        const reachable = results.filter(Boolean) as Candidate[];
+
+        let target: Candidate | null = reachable[0] || null;
+
+        if (!target) {
+          // If direct TCP probes timed out (e.g. pure QuickConnect relay network), fallback to relay server
+          if (relayDn && relayPort) target = { host: relayDn, port: relayPort, isHttps: true };
+          else if (relayIp && relayPort) target = { host: relayIp, port: relayPort, isHttps: true };
+          else if (ddns) target = { host: ddns, port: userPort || dsmHttpsPort || 5001, isHttps: true };
+          else target = { host: `${cleanId}.direct.quickconnect.to`, port: userPort || dsmHttpsPort || 5001, isHttps: true };
+        }
+
+        if (target) {
+          const resolved = {
+            host: target.host,
+            port: target.port,
+            isHttps: target.isHttps,
+            expires: Date.now() + 10 * 60 * 1000,
+          };
+          quickConnectCache.set(cacheKey, resolved);
+          quickConnectCache.set(cleanId, resolved);
+          console.log(`[QuickConnect] ${cleanId} -> ${resolved.host}:${resolved.port} https=${resolved.isHttps}`);
+          return resolved;
+        }
+      }
+    } catch (err) {
+      console.warn(`[QuickConnect] query error on ${controlHost}:`, err);
     }
-  } catch (err) {
-    console.error("[QuickConnect Resolver Error]", err);
   }
 
   return null;
@@ -303,10 +355,13 @@ async function handleProxy(request: NextRequest, resolvedParams: { path: string[
         rawHost = parsed.hostname;
         if (parsed.port) rawPort = parsed.port;
       } catch (_) {}
-    } else if (rawHost.includes(":") && !rawHost.includes(".quickconnect.to")) {
-      const [h, p] = rawHost.split(":");
-      rawHost = h;
-      if (p) rawPort = p;
+    } else if (rawHost.includes(":")) {
+      const lastColon = rawHost.lastIndexOf(":");
+      const possiblePort = rawHost.slice(lastColon + 1);
+      if (/^\d+$/.test(possiblePort)) {
+        rawPort = possiblePort;
+        rawHost = rawHost.slice(0, lastColon);
+      }
     }
 
     let targetHost = rawHost;
@@ -323,7 +378,7 @@ async function handleProxy(request: NextRequest, resolvedParams: { path: string[
     // Heuristic: if host looks like DDNS/synology.me/myds.me or user provided custom port like 41533, treat as potential reverse proxy
 
     if (isQuickConnect) {
-      const resolved = await resolveQuickConnect(rawHost);
+      const resolved = await resolveQuickConnect(rawHost, targetPort, targetHttps);
       if (resolved) {
         targetHost = resolved.host;
         targetPort = resolved.port;

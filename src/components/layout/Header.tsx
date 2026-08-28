@@ -78,20 +78,6 @@ export const Header: React.FC = () => {
     }
   };
 
-  const handleCycleTheme = () => {
-    if (theme === "system") setTheme("dark");
-    else if (theme === "dark") setTheme("gemini");
-    else if (theme === "gemini") setTheme("light");
-    else setTheme("system");
-  };
-
-  const getThemeIcon = () => {
-    if (theme === "system") return <Laptop className="w-4 h-4 text-sky-500" />;
-    if (theme === "dark") return <Moon className="w-4 h-4 text-indigo-400" />;
-    if (theme === "gemini") return <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />;
-    return <Sun className="w-4 h-4 text-amber-500" />;
-  };
-
   return (
     <header className="h-14 sm:h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-2.5 sm:px-6 flex items-center justify-between sticky top-0 z-20 gap-1.5 sm:gap-3 w-full max-w-full overflow-x-hidden">
       {/* Left: Hamburger Sidebar Toggle + Full Title */}
@@ -212,14 +198,7 @@ export const Header: React.FC = () => {
           </button>
         </div>
 
-        {/* 4-State Theme Button */}
-        <button
-          onClick={handleCycleTheme}
-          className="p-1.5 sm:p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center"
-          title={`Giao diện: ${theme === "system" ? "Hệ thống" : theme === "dark" ? "Tối" : theme === "gemini" ? "Google Gemini (AI Dark)" : "Sáng"}`}
-        >
-          {getThemeIcon()}
-        </button>
+
 
         {/* Notifications Bell */}
         <button

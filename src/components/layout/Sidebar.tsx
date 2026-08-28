@@ -38,6 +38,8 @@ export const Sidebar: React.FC = () => {
     setMobileDrawerOpen,
     isSidebarCollapsed,
     toggleSidebarCollapse,
+    language,
+    setLanguage,
     t,
   } = useAppStore();
 
@@ -156,8 +158,8 @@ export const Sidebar: React.FC = () => {
         </nav>
       </div>
 
-      {/* Footer Profile & Logout */}
-      <div className="p-3 border-t border-slate-200 dark:border-slate-800">
+      {/* Footer Profile, Language & Logout */}
+      <div className="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
         {session.isConnected ? (
           <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
             <div className="flex items-center space-x-2.5 overflow-hidden">
@@ -200,6 +202,31 @@ export const Sidebar: React.FC = () => {
             <LogIn className="w-4 h-4 shrink-0" />
             {!collapsed && <span>{t.common.connect} NAS</span>}
           </button>
+        )}
+
+        {!collapsed && (
+          <div className="flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl p-0.5 text-xs font-bold w-full">
+            <button
+              onClick={() => setLanguage("vi")}
+              className={`flex-1 py-1 rounded-lg transition-all text-center ${
+                language === "vi"
+                  ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm"
+                  : "text-slate-500 hover:text-slate-800 dark:hover:text-white"
+              }`}
+            >
+              🇻🇳 Tiếng Việt
+            </button>
+            <button
+              onClick={() => setLanguage("en")}
+              className={`flex-1 py-1 rounded-lg transition-all text-center ${
+                language === "en"
+                  ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm"
+                  : "text-slate-500 hover:text-slate-800 dark:hover:text-white"
+              }`}
+            >
+              🇬🇧 English
+            </button>
+          </div>
         )}
       </div>
     </div>

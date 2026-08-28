@@ -28,7 +28,20 @@ export const AiChatBubble: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [trafficSummary, setTrafficSummary] = useState<any>(null);
+  const [activeModelName, setActiveModelName] = useState<string>("Qwen 0.5B");
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("dsm_ai_model");
+      if (saved?.includes("Llama-3.2-1B")) setActiveModelName("Llama 1B");
+      else if (saved?.includes("Llama-3.2-3B")) setActiveModelName("Llama 3B");
+      else if (saved?.includes("Qwen2.5-1.5B")) setActiveModelName("Qwen 1.5B");
+      else if (saved?.includes("SmolLM2-135M")) setActiveModelName("Smol 135M");
+      else if (saved?.includes("SmolLM2-360M")) setActiveModelName("Smol 360M");
+      else setActiveModelName("Qwen 0.5B");
+    } catch (_) {}
+  }, [isAiChatOpen]);
 
   useEffect(() => {
     fetch("/api/traffic/connections")
@@ -164,7 +177,7 @@ export const AiChatBubble: React.FC = () => {
                   <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-bold text-white max-w-fit">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     <span>Gemini DSM</span>
-                    <span className="text-[9px] font-mono text-purple-300 font-extrabold uppercase">Flash</span>
+                    <span className="text-[9px] font-mono text-purple-300 font-extrabold uppercase">{activeModelName}</span>
                   </div>
                 </div>
               </div>
