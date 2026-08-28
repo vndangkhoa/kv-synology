@@ -8,8 +8,12 @@ import { Header } from "@/components/layout/Header";
 import { NasTabBar } from "@/components/layout/NasTabBar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { LoginModal } from "@/components/layout/LoginModal";
+import { PowerModal } from "@/components/settings/PowerModal";
+import { AiChatBubble } from "@/components/ai/AiChatBubble";
 import { OverviewTab } from "@/components/dashboard/OverviewTab";
 import { ResourceMonitorTab } from "@/components/monitor/ResourceMonitorTab";
+import { SnmpTab } from "@/components/snmp/SnmpTab";
+import { NetworkTrafficTab } from "@/components/traffic/NetworkTrafficTab";
 import { FileStationTab } from "@/components/files/FileStationTab";
 import { DockerTab } from "@/components/docker/DockerTab";
 import { DownloadStationTab } from "@/components/download/DownloadStationTab";
@@ -23,12 +27,13 @@ import { McpDocsTab } from "@/components/mcp/McpDocsTab";
 import { SettingsTab } from "@/components/settings/SettingsTab";
 
 export default function Home() {
-  const { activeTab, session, setSystemInfo, updateUtilization, setLanguage, setTheme, fetchNotifications, setSession } = useAppStore();
+  const { activeTab, session, setSystemInfo, updateUtilization, setLanguage, setTheme, setExperienceMode, fetchNotifications, setSession } = useAppStore();
   const [mounted, setMounted] = React.useState(false);
+
   React.useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    // Theme & Language Initialization
+    // Theme, Language & Experience Mode Initialization
     try {
       const storedTheme = (localStorage.getItem("dsm_theme") as ThemeMode) || "system";
       setTheme(storedTheme);
@@ -36,6 +41,11 @@ export default function Home() {
       const storedLang = localStorage.getItem("dsm_lang");
       if (storedLang === "vi" || storedLang === "en") {
         setLanguage(storedLang);
+      }
+
+      const storedExp = localStorage.getItem("dsm_experience_mode");
+      if (storedExp === "beginner" || storedExp === "advance") {
+        setExperienceMode(storedExp as any);
       }
     } catch (_) {}
 
@@ -107,6 +117,16 @@ export default function Home() {
     return () => { clearInterval(timer); clearInterval(notifTimer); };
   }, [session.isConnected, setSystemInfo, updateUtilization, fetchNotifications]);
 
+  // Auto scroll to top when switching tabs (mobile + desktop)
+  useEffect(() => {
+    const main = document.querySelector("main");
+    if (main) {
+      main.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    document.documentElement.scrollTo?.({ top: 0, behavior: "smooth" });
+  }, [activeTab]);
+
   const renderActiveContent = () => {
     if (!mounted) {
       return <div className="h-[60vh] bg-slate-100 dark:bg-slate-900 rounded-3xl animate-pulse border border-slate-200 dark:border-slate-800" />;
@@ -116,6 +136,10 @@ export default function Home() {
         return <OverviewTab />;
       case "monitor":
         return <ResourceMonitorTab />;
+      case "snmp":
+        return <SnmpTab />;
+      case "traffic":
+        return <NetworkTrafficTab />;
       case "files":
         return <FileStationTab />;
       case "docker":
@@ -144,17 +168,17 @@ export default function Home() {
   };
 
   return (
-    <div suppressHydrationWarning className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased selection:bg-sky-500 selection:text-white transition-colors">
+    <div suppressHydrationWarning className="flex min-h-screen w-full max-w-full overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased selection:bg-sky-500 selection:text-white transition-colors">
       {/* Sidebar (Desktop + Mobile Slide-over Drawer) */}
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 w-full max-w-full overflow-x-hidden">
         <Header />
         <NasTabBar />
 
-        <main className="flex-1 p-2.5 sm:p-4 lg:p-5 w-full max-w-none overflow-y-auto pb-20 md:pb-6">
-          <div className="w-full max-w-[1720px] mx-auto">
+        <main className="flex-1 p-2.5 sm:p-4 lg:p-5 w-full max-w-full overflow-y-auto overflow-x-hidden pb-24 md:pb-6">
+          <div className="w-full max-w-[1720px] mx-auto min-w-0">
             {renderActiveContent()}
           </div>
         </main>
@@ -165,6 +189,10 @@ export default function Home() {
 
       {/* Global Login Dialog */}
       <LoginModal />
+      {/* Global Power Modal (Restart/Shutdown) - available from any tab */}
+      <PowerModal />
+      {/* Global AI Chat Bubble - floating on all pages */}
+      <AiChatBubble />
     </div>
   );
 }

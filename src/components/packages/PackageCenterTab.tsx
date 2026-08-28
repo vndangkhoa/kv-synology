@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import ResponsiveModal from "@/components/common/ResponsiveModal";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { dsmClient } from "@/lib/dsm/client";
 import { PackageItem } from "@/lib/dsm/types";
@@ -415,7 +416,96 @@ export const PackageCenterTab: React.FC = () => {
       ) : viewMode === "list" ? (
         /* TABLE / LIST VIEW */
         <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Mobile card list */}
+          <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            {filtered.map((pkg) => {
+              const isRunning = pkg.status === "running";
+              const isActionLoading = actionLoadingId === pkg.id;
+              return (
+                <div
+                  key={pkg.id}
+                  onClick={() => setSelectedPkg(pkg)}
+                  className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 m-3.5 cursor-pointer"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2 rounded-xl bg-sky-500/10 text-sky-500 shrink-0">
+                        <Package className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="font-bold text-slate-900 dark:text-white block truncate">
+                          {pkg.name}
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          v{pkg.version} · ID: {pkg.id}
+                        </span>
+                      </div>
+                    </div>
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                        isRunning
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700"
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          isRunning ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+                        }`}
+                      />
+                      {isRunning ? "Đang chạy" : "Đã dừng"}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed mt-3">
+                    {pkg.description || "Ứng dụng Synology Package Center"}
+                  </p>
+
+                  <div
+                    className="flex items-center justify-between gap-2 mt-3"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span className="text-[10px] font-semibold text-slate-400 truncate max-w-[130px]">
+                      {pkg.maintainer}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {isRunning && (
+                        <button
+                          onClick={() => handleRestart(pkg)}
+                          disabled={isActionLoading}
+                          className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs transition-colors disabled:opacity-50"
+                          title="Khởi động lại gói"
+                        >
+                          <RotateCw className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleToggle(pkg)}
+                        disabled={isActionLoading}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                          isRunning
+                          ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                          : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                        } disabled:opacity-50`}
+                      >
+                        {isActionLoading ? (
+                          <RefreshCw className="w-3 h-3 animate-spin" />
+                        ) : isRunning ? (
+                          <Square className="w-3 h-3 fill-current" />
+                        ) : (
+                          <Play className="w-3 h-3 fill-current" />
+                        )}
+                        <span>{isRunning ? "Dừng" : "Chạy"}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 font-bold border-b border-slate-200/80 dark:border-slate-800 text-[11px]">
                 <tr>
@@ -612,74 +702,20 @@ export const PackageCenterTab: React.FC = () => {
 
       {/* Package Inspector Modal */}
       {selectedPkg && (
-        <div
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={() => setSelectedPkg(null)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200"
-          >
-            {/* Modal Header */}
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-sky-500/10 text-sky-500 ring-1 ring-sky-500/20">
-                  <Package className="w-7 h-7" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white">
-                    {selectedPkg.name}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs font-mono text-slate-400">ID: {selectedPkg.id}</span>
-                    <span className="text-xs font-mono font-bold text-sky-600 dark:text-sky-400">v{selectedPkg.version}</span>
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedPkg(null)}
-                className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Description */}
-            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Mô tả chi tiết:
-              </span>
-              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                {selectedPkg.description || "Gói ứng dụng chính thức từ Synology Package Center."}
-              </p>
-            </div>
-
-            {/* Meta Table */}
-            <div className="grid grid-cols-2 gap-2.5 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                <span className="text-slate-400 block text-[11px]">Trạng thái:</span>
-                <span className="font-bold text-slate-900 dark:text-white mt-0.5 flex items-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${selectedPkg.status === "running" ? "bg-emerald-500" : "bg-slate-400"}`} />
-                  {selectedPkg.status === "running" ? "Đang chạy (Active)" : "Đã tạm dừng (Stopped)"}
-                </span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                <span className="text-slate-400 block text-[11px]">Nhà phát triển:</span>
-                <span className="font-bold text-slate-900 dark:text-white mt-0.5 truncate block">
-                  {selectedPkg.maintainer}
-                </span>
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 gap-2">
+        <ResponsiveModal
+          open={!!selectedPkg}
+          onClose={() => setSelectedPkg(null)}
+          maxWidth="lg"
+          title={`${selectedPkg.name} • v${selectedPkg.version}`}
+          icon={<Package className="w-5 h-5" />}
+          footer={
+            <div className="flex items-center justify-between gap-2">
               <button
                 onClick={() => setSelectedPkg(null)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
               >
                 Đóng
               </button>
-
               <div className="flex items-center gap-2">
                 {selectedPkg.status === "running" && (
                   <button
@@ -691,7 +727,6 @@ export const PackageCenterTab: React.FC = () => {
                     <span>Khởi động lại</span>
                   </button>
                 )}
-
                 <button
                   onClick={() => handleToggle(selectedPkg)}
                   disabled={actionLoadingId === selectedPkg.id}
@@ -712,8 +747,34 @@ export const PackageCenterTab: React.FC = () => {
                 </button>
               </div>
             </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Mô tả chi tiết:
+              </span>
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                {selectedPkg.description || "Gói ứng dụng chính thức từ Synology Package Center."}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 text-xs">
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                <span className="text-slate-400 block text-[11px]">Trạng thái:</span>
+                <span className="font-bold text-slate-900 dark:text-white mt-0.5 flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${selectedPkg.status === "running" ? "bg-emerald-500" : "bg-slate-400"}`} />
+                  {selectedPkg.status === "running" ? "Đang chạy (Active)" : "Đã tạm dừng (Stopped)"}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                <span className="text-slate-400 block text-[11px]">Nhà phát triển:</span>
+                <span className="font-bold text-slate-900 dark:text-white mt-0.5 truncate block">
+                  {selectedPkg.maintainer}
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
+        </ResponsiveModal>
       )}
     </div>
   );

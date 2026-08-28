@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import ResponsiveModal from "@/components/common/ResponsiveModal";
 import { FileItem, ShareLink } from "@/lib/dsm/types";
 import { formatBytes, formatDate } from "@/lib/utils";
 import { dsmClient } from "@/lib/dsm/client";
@@ -182,8 +183,8 @@ export const FilePreviewModal: React.FC<Props> = ({ file, onClose, onFileSaved }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-2 sm:p-6 animate-in fade-in duration-200 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-4xl max-h-[94vh] shadow-2xl overflow-hidden flex flex-col my-auto">
+    <ResponsiveModal open={!!file} onClose={onClose} maxWidth="4xl" noPadding>
+      <div className="flex flex-col w-full max-h-[90vh]">
         {/* Header */}
         <div className="p-3.5 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-900/60 shrink-0">
           <div className="flex items-center space-x-3 truncate">
@@ -563,23 +564,8 @@ export const FilePreviewModal: React.FC<Props> = ({ file, onClose, onFileSaved }
 
       {/* Public Share Link Modal */}
       {shareModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center space-x-2 text-sky-500">
-                <Share2 className="w-5 h-5" />
-                <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-                  Chia sẻ liên kết công khai
-                </h3>
-              </div>
-              <button
-                onClick={() => setShareModalOpen(false)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
+        <ResponsiveModal open={shareModalOpen} onClose={() => setShareModalOpen(false)} maxWidth="md" title="Chia sẻ liên kết công khai" icon={<Share2 className="w-5 h-5" />}>
+          <div className="space-y-4">
             {creatingShare ? (
               <div className="py-8 flex flex-col items-center justify-center space-y-2 text-slate-400 text-xs">
                 <Loader2 className="w-6 h-6 animate-spin text-sky-500" />
@@ -627,8 +613,8 @@ export const FilePreviewModal: React.FC<Props> = ({ file, onClose, onFileSaved }
               </div>
             ) : null}
           </div>
-        </div>
+        </ResponsiveModal>
       )}
-    </div>
+    </ResponsiveModal>
   );
 };

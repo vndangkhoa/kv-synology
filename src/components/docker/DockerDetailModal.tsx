@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import ResponsiveModal from "@/components/common/ResponsiveModal";
 import { DockerContainerDetails, DockerPortBinding, DockerVolumeMount, DockerEnvVar } from "@/lib/dsm/types";
 import { dsmClient } from "@/lib/dsm/client";
 import {
@@ -213,7 +214,7 @@ export const DockerDetailModal: React.FC<DockerDetailModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-3 sm:p-4 animate-in fade-in duration-200 overflow-y-auto">
+    <ResponsiveModal open={true} onClose={onClose} maxWidth="4xl" noPadding={true}>
       {/* Toast Feedback */}
       {toastMsg && (
         <div
@@ -228,20 +229,20 @@ export const DockerDetailModal: React.FC<DockerDetailModalProps> = ({
         </div>
       )}
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden my-auto flex flex-col max-h-[92vh]">
+      <div className="w-full flex flex-col flex-1 min-h-0">
         {/* Modal Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3 shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2.5 rounded-2xl bg-sky-500/10 text-sky-500 shrink-0">
-              <Server className="w-6 h-6" />
+        <div className="p-3.5 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2.5 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="p-2 sm:p-2.5 rounded-2xl bg-sky-500/10 text-sky-500 shrink-0">
+              <Server className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 <h3 className="font-black text-sm sm:text-base text-slate-900 dark:text-white truncate">
                   {container.name}
                 </h3>
                 <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 shrink-0 ${
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 shrink-0 ${
                     isRunning
                       ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                       : "bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700"
@@ -252,23 +253,23 @@ export const DockerDetailModal: React.FC<DockerDetailModalProps> = ({
                       isRunning ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
                     }`}
                   />
-                  <span>{isRunning ? "Đang chạy (Running)" : "Đã dừng (Stopped)"}</span>
+                  <span>{isRunning ? "Đang chạy" : "Đã dừng"}</span>
                 </span>
               </div>
-              <p className="text-xs font-mono text-slate-400 truncate mt-0.5" title={container.image}>
+              <p className="text-[11px] sm:text-xs font-mono text-slate-400 truncate mt-0.5" title={container.image}>
                 {container.image} • {container.uptime || "Khởi tạo 2026"}
               </p>
             </div>
           </div>
 
           {/* Quick Action Buttons */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {isRunning ? (
               <>
                 <button
                   onClick={() => handleAction("restart")}
                   disabled={actionLoading}
-                  className="px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 hover:bg-sky-100 text-xs font-bold transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-2.5 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 hover:bg-sky-100 text-xs font-bold transition-colors flex items-center gap-1.5 disabled:opacity-50"
                   title="Khởi động lại"
                 >
                   <RotateCw className={`w-3.5 h-3.5 ${actionLoading ? "animate-spin" : ""}`} />
@@ -278,7 +279,7 @@ export const DockerDetailModal: React.FC<DockerDetailModalProps> = ({
                 <button
                   onClick={() => handleAction("stop")}
                   disabled={actionLoading}
-                  className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold border border-rose-500/20 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-2.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold border border-rose-500/20 transition-colors flex items-center gap-1.5 disabled:opacity-50"
                   title="Dừng container"
                 >
                   <Square className="w-3.5 h-3.5" />
@@ -289,7 +290,7 @@ export const DockerDetailModal: React.FC<DockerDetailModalProps> = ({
               <button
                 onClick={() => handleAction("start")}
                 disabled={actionLoading}
-                className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                className="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20 transition-colors flex items-center gap-1.5 disabled:opacity-50"
                 title="Khởi chạy container"
               >
                 <Play className="w-3.5 h-3.5" />
@@ -305,18 +306,11 @@ export const DockerDetailModal: React.FC<DockerDetailModalProps> = ({
             >
               <Trash2 className="w-4 h-4" />
             </button>
-
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-1.5 px-4 sm:px-5 pt-3 border-b border-slate-100 dark:border-slate-800 overflow-x-auto bg-slate-50/50 dark:bg-slate-900 shrink-0">
+        <div className="flex items-center gap-1 px-3 sm:px-5 pt-2 sm:pt-3 border-b border-slate-100 dark:border-slate-800 overflow-x-auto no-scrollbar flex-nowrap bg-slate-50/50 dark:bg-slate-900 shrink-0">
           {[
             { id: "stats", label: "📊 Thống kê & Giám sát", icon: Activity },
             { id: "config", label: "⚙️ Cấu hình & Chỉnh sửa", icon: Sliders },
@@ -329,13 +323,13 @@ export const DockerDetailModal: React.FC<DockerDetailModalProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-3.5 py-2 rounded-t-xl text-xs font-bold flex items-center gap-1.5 transition-all border-b-2 ${
+                className={`px-3 py-2 rounded-t-xl text-xs font-bold flex items-center gap-1.5 transition-all border-b-2 whitespace-nowrap shrink-0 ${
                   isSel
                     ? "border-sky-500 text-sky-600 dark:text-sky-400 bg-white dark:bg-slate-800/80 shadow-xs"
                     : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-3.5 h-3.5 shrink-0" />
                 <span>{tab.label}</span>
               </button>
             );
@@ -343,29 +337,29 @@ export const DockerDetailModal: React.FC<DockerDetailModalProps> = ({
         </div>
 
         {/* Modal Body (Scrollable) */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 text-xs">
+        <div className="p-3 sm:p-5 overflow-y-auto flex-1 space-y-4 text-xs">
           {/* ==================== SUB-TAB 1: STATS & TELEMETRY ==================== */}
           {activeTab === "stats" && (
             <div className="space-y-4">
               {/* 4 Metric Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 space-y-1">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 space-y-1">
                   <div className="flex items-center justify-between text-slate-400">
                     <span className="text-[11px] font-semibold">Sử dụng CPU</span>
                     <Cpu className="w-3.5 h-3.5 text-sky-500" />
                   </div>
-                  <p className="text-lg font-black text-slate-900 dark:text-white font-mono">
+                  <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white font-mono">
                     {container.stats?.cpuPercent?.toFixed(1) || container.cpuUsage || 0.8}%
                   </p>
                   <span className="text-[10px] text-slate-400 block font-medium">Giới hạn: {container.cpuLimit || 2} Cores</span>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 space-y-1">
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 space-y-1">
                   <div className="flex items-center justify-between text-slate-400">
                     <span className="text-[11px] font-semibold">Bộ nhớ RAM</span>
                     <Layers className="w-3.5 h-3.5 text-blue-500" />
                   </div>
-                  <p className="text-lg font-black text-slate-900 dark:text-white font-mono">
+                  <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white font-mono">
                     {container.memoryUsage || "64.2 MB"}
                   </p>
                   <span className="text-[10px] text-slate-400 block font-medium">Giới hạn: {container.memoryLimitMB || 512} MB</span>
@@ -809,6 +803,6 @@ export const DockerDetailModal: React.FC<DockerDetailModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </ResponsiveModal>
   );
 };

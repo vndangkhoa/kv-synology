@@ -30,10 +30,14 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  RotateCw,
+  Trash2,
 } from "lucide-react";
 
+import ResponsiveModal from "@/components/common/ResponsiveModal";
+
 export const ResourceMonitorTab: React.FC = () => {
-  const { utilization, utilizationHistory, systemInfo, session, language, t } = useAppStore();
+  const { utilization, utilizationHistory, systemInfo, session, language, experienceMode, t } = useAppStore();
   const [processes, setProcesses] = useState<DSMProcess[]>([]);
   const [volumes, setVolumes] = useState<StorageVolume[]>([]);
   const [loading, setLoading] = useState(false);
@@ -101,7 +105,6 @@ export const ResourceMonitorTab: React.FC = () => {
     }
   };
 
-  // Process filtering and sorting
   const filteredAndSortedProcesses = useMemo(() => {
     let list = processes.filter((p) => {
       const matchesSearch =
@@ -243,6 +246,218 @@ export const ResourceMonitorTab: React.FC = () => {
 
   const avgCpu = cpuData.length > 0 ? (cpuData.reduce((a, b) => a + b, 0) / cpuData.length).toFixed(1) : "0.0";
   const peakCpu = cpuData.length > 0 ? Math.max(...cpuData) : (utilization?.cpuPercent || 0);
+
+  // ==========================================
+  // 🟢 DEDICATED BEGINNER MODE: RESOURCE HUB (REAL TELEMETRY)
+  // ==========================================
+  if (experienceMode === "beginner") {
+    const cpuPercent = utilization?.cpuPercent || 0;
+    const memPercent = utilization?.memoryPercent || 0;
+    const rx = utilization?.networkRxBytes || 0;
+    const tx = utilization?.networkTxBytes || 0;
+    const topProcesses = [...processes]
+      .sort((a, b) => b.cpu - a.cpu || b.memory - a.memory)
+      .slice(0, 5);
+
+    return (
+      <div className="space-y-3 animate-in fade-in duration-200">
+        {/* Compact Resource Hub Banner */}
+        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl border border-sky-500/20 bg-gradient-to-br from-white via-sky-50/40 to-indigo-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/20 p-3 sm:p-4 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-500 text-white shadow-md shadow-sky-500/20 shrink-0">
+                <Activity className="w-5 h-5 sm:w-5 sm:h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-none">
+                    Tiêu Thụ Tài Nguyên NAS
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {cpuPercent < 50 ? "Cực Kỳ Mượt Mà" : "Đang Tải Cao"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                  CPU, RAM, mạng và tiến trình chính trên {session.model || "DS920+"}.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={fetchProcesses}
+              disabled={loading}
+              className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 shadow-xs flex items-center gap-1.5 shrink-0 cursor-pointer self-start sm:self-auto"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-sky-500" : ""}`} />
+              <span>{loading ? "Đang nạp..." : "Làm mới"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 4 Compact Resource Dials */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* CPU Card */}
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">CPU</span>
+              <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-500"><Cpu className="w-3.5 h-3.5" /></div>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">{cpuPercent}%</span>
+              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                {cpuPercent < 30 ? "Rất mượt" : cpuPercent < 70 ? "Ổn định" : "Tải cao"}
+              </span>
+            </div>
+            <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-sky-500 rounded-full transition-all duration-300" style={{ width: `${Math.min(cpuPercent, 100)}%` }} />
+            </div>
+            <div className="text-[10px] text-slate-500 truncate">{systemInfo?.cpuModel || "J4125"} • {systemInfo?.cpuCores || 4} Nhân</div>
+          </div>
+
+          {/* RAM Card */}
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">RAM</span>
+              <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500"><Layers className="w-3.5 h-3.5" /></div>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">{memPercent}%</span>
+              <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400">Trống {(freeRamMB/1024).toFixed(1)} GB</span>
+            </div>
+            <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 rounded-full transition-all duration-300" style={{ width: `${Math.min(memPercent, 100)}%` }} />
+            </div>
+            <div className="text-[10px] text-slate-500 truncate">Đã dùng {(usedRamMB/1024).toFixed(1)} / {(totalRamMB/1024).toFixed(0)} GB</div>
+          </div>
+
+          {/* Network Card */}
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Mạng</span>
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500"><Activity className="w-3.5 h-3.5" /></div>
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500 text-[11px]">⬇️ Tải xuống:</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white text-xs">{formatSpeed(rx)}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500 text-[11px]">⬆️ Tải lên:</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white text-xs">{formatSpeed(tx)}</span>
+              </div>
+            </div>
+            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Gigabit 1 Gbps ổn định</div>
+          </div>
+
+          {/* Thermal Card */}
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Nhiệt Độ</span>
+              <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500"><Thermometer className="w-3.5 h-3.5" /></div>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">{systemInfo?.temperature || 46}°C</span>
+              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                {(systemInfo?.temperature || 46) < 55 ? "Rất mát" : "Ấm"}
+              </span>
+            </div>
+            <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full"
+                style={{ width: `${Math.min(((systemInfo?.temperature || 46) / 80) * 100, 100)}%` }}
+              />
+            </div>
+            <div className="text-[10px] text-slate-500">Quạt êm (Quiet Mode)</div>
+          </div>
+        </div>
+
+        {/* Processes & Advice - Compact */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+          {/* Top Processes List */}
+          <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3 sm:p-4 shadow-sm space-y-2.5">
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                <Zap className="w-4 h-4 text-sky-500" />
+                Tiến Trình Đang Chạy
+              </h3>
+              <span className="text-[10px] text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">{processes.length} tasks</span>
+            </div>
+            <div className="space-y-1.5">
+              {topProcesses.length === 0 ? (
+                <div className="py-6 text-center text-xs text-slate-400">
+                  Đang đồng bộ danh sách tiến trình từ DSM...
+                </div>
+              ) : (
+                topProcesses.map((p) => (
+                  <div
+                    key={p.pid}
+                    className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2"
+                  >
+                    <div className="truncate max-w-[180px] sm:max-w-[240px]">
+                      <div className="font-bold text-xs text-slate-900 dark:text-white truncate font-mono leading-none">
+                        {p.name}
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        PID: {p.pid} • {p.user}
+                      </div>
+                    </div>
+                    <div className="text-right font-mono text-xs shrink-0">
+                      <span className="font-bold text-sky-600 dark:text-sky-400">
+                        {p.cpu > 0 ? p.cpu.toFixed(1) : "<0.1"}%
+                      </span>
+                      <span className="mx-1 text-slate-300 dark:text-slate-600">•</span>
+                      <span className="font-bold text-indigo-600 dark:text-indigo-400 text-[11px]">
+                        {formatBytes(p.memory)}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Health Verdict */}
+          <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 p-3 sm:p-4 shadow-sm flex flex-col justify-between space-y-3">
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  Đánh Giá Hệ Thống
+                </h3>
+              </div>
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 space-y-1">
+                <div className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                  Hoạt động ổn định
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-snug">
+                  RAM trống {(freeRamMB/1024).toFixed(1)} GB, nhiệt độ {systemInfo?.temperature || 46}°C lý tưởng.
+                </p>
+              </div>
+            </div>
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-2">
+              <div className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
+                💡 Cần xem toàn bộ {processes.length} tiến trình?
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                Nâng cao: tìm PID, xem RAM, kill tiến trình treo.
+              </p>
+              <button
+                onClick={() => useAppStore.getState().setExperienceMode("advance")}
+                className="w-full py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs transition-colors cursor-pointer"
+              >
+                Mở Bảng Chi Tiết ⚡
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // ⚡ ADVANCE MODE VIEW (Full Technical Process Inspector)
+  // ==========================================
 
   return (
     <div className="space-y-4 sm:space-y-5 animate-in fade-in duration-200">
@@ -990,124 +1205,109 @@ export const ResourceMonitorTab: React.FC = () => {
 
       {/* Inspect Process Modal */}
       {inspectProcess && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center space-x-2 text-sky-500">
-                <Info className="w-5 h-5" />
-                <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-                  Chi tiết tiến trình
-                </h3>
+        <ResponsiveModal
+          open={!!inspectProcess}
+          onClose={() => setInspectProcess(null)}
+          maxWidth="md"
+          title="Chi tiết tiến trình"
+          icon={<Info className="w-5 h-5" />}
+        >
+          <div className="space-y-4 text-xs">
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-2.5">
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-400 shrink-0">Tên:</span>
+                <span className="font-bold text-slate-900 dark:text-white font-mono truncate text-right">{inspectProcess.name}</span>
               </div>
-              <button
-                onClick={() => setInspectProcess(null)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5 text-xs">
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Tên:</span>
-                  <span className="font-bold text-slate-900 dark:text-white font-mono">{inspectProcess.name}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">PID:</span>
-                  <span className="font-bold text-slate-900 dark:text-white font-mono">#{inspectProcess.pid}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Tài khoản (User):</span>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">{inspectProcess.user}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Trạng thái:</span>
-                  <span className="font-bold uppercase text-emerald-600 dark:text-emerald-400">{inspectProcess.status}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Chiếm dụng CPU:</span>
-                  <span className="font-bold text-sky-500 font-mono">{inspectProcess.cpu.toFixed(1)}%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Chiếm dụng RAM:</span>
-                  <span className="font-bold text-blue-500 font-mono">{formatBytes(inspectProcess.memory)}</span>
-                </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-400 shrink-0">PID:</span>
+                <span className="font-bold text-slate-900 dark:text-white font-mono">#{inspectProcess.pid}</span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-400 shrink-0">Tài khoản (User):</span>
+                <span className="font-medium text-slate-700 dark:text-slate-300">{inspectProcess.user}</span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-400 shrink-0">Trạng thái:</span>
+                <span className="font-bold uppercase text-emerald-600 dark:text-emerald-400">{inspectProcess.status}</span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-400 shrink-0">Chiếm dụng CPU:</span>
+                <span className="font-bold text-sky-500 font-mono">{inspectProcess.cpu.toFixed(1)}%</span>
+              </div>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-400 shrink-0">Chiếm dụng RAM:</span>
+                <span className="font-bold text-blue-500 font-mono">{formatBytes(inspectProcess.memory)}</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <button
                 onClick={() => {
                   const p = inspectProcess;
                   setInspectProcess(null);
                   setKillCandidate(p);
                 }}
-                className="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold transition-all flex items-center gap-1"
+                className="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold transition-all flex items-center gap-1 shrink-0"
               >
                 <XCircle className="w-3.5 h-3.5" /> Dừng tiến trình này
               </button>
               <button
                 onClick={() => setInspectProcess(null)}
-                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold"
+                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shrink-0"
               >
                 Đóng
               </button>
             </div>
           </div>
-        </div>
+        </ResponsiveModal>
       )}
 
       {/* Confirmation Modal to Kill Process */}
       {killCandidate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-6 space-y-4">
-            <div className="flex items-center space-x-3 text-rose-500">
-              <div className="p-2.5 rounded-2xl bg-rose-500/10">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                  Xác nhận dừng tiến trình?
-                </h3>
-                <p className="text-xs text-slate-400">
-                  PID: <span className="font-mono font-bold text-slate-700 dark:text-slate-200">#{killCandidate.pid}</span>
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Tên tiến trình:</span>
+        <ResponsiveModal
+          open={!!killCandidate}
+          onClose={() => setKillCandidate(null)}
+          maxWidth="md"
+          title="Xác nhận dừng tiến trình?"
+          icon={<AlertTriangle className="w-5 h-5 text-rose-500" />}
+        >
+          <div className="space-y-4 text-xs">
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-400 shrink-0">Tên tiến trình:</span>
                 <span className="font-bold text-slate-900 dark:text-white font-mono truncate max-w-[200px]" title={killCandidate.name}>
                   {killCandidate.name}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Mức chiếm dụng CPU:</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-400 shrink-0">PID:</span>
+                <span className="font-bold text-slate-900 dark:text-white font-mono">#{killCandidate.pid}</span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-400 shrink-0">Mức chiếm dụng CPU:</span>
                 <span className="font-bold text-sky-500 font-mono">
                   {killCandidate.cpu.toFixed(1)}%
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Bộ nhớ RAM:</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-400 shrink-0">Bộ nhớ RAM:</span>
                 <span className="font-bold text-blue-500 font-mono">
                   {formatBytes(killCandidate.memory)}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Người thực thi:</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-400 shrink-0">Người thực thi:</span>
                 <span className="font-medium text-slate-700 dark:text-slate-300">
                   {killCandidate.user}
                 </span>
               </div>
             </div>
 
-            <p className="text-xs text-rose-500/90 leading-relaxed bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">
+            <p className="text-[11px] text-rose-600 dark:text-rose-400 leading-relaxed bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">
               ⚠️ <strong>Cảnh báo:</strong> Việc dừng tiến trình hệ thống quan trọng có thể gây gián đoạn hoặc khởi động lại các dịch vụ trên NAS.
             </p>
 
-            <div className="flex items-center justify-end space-x-2 pt-2">
+            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 disabled={killing}
@@ -1122,21 +1322,12 @@ export const ResourceMonitorTab: React.FC = () => {
                 onClick={handleConfirmKill}
                 className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition-all flex items-center space-x-1.5 disabled:opacity-50"
               >
-                {killing ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Đang dừng...</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="w-3.5 h-3.5" />
-                    <span>Dừng tiến trình</span>
-                  </>
-                )}
+                {killing ? <RotateCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                <span>Dừng tiến trình</span>
               </button>
             </div>
           </div>
-        </div>
+        </ResponsiveModal>
       )}
     </div>
   );

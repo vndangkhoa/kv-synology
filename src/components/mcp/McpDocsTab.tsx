@@ -411,7 +411,7 @@ const AI_SCENARIOS = [
 ];
 
 export const McpDocsTab: React.FC = () => {
-  const { session, language } = useAppStore();
+  const { session, language, setAiChatOpen } = useAppStore();
   const [activeSubTab, setActiveSubTab] = useState<"quickstart" | "tools" | "scenarios" | "api" | "export">("quickstart");
   const [selectedClient, setSelectedClient] = useState<"claude" | "cursor" | "windsurf" | "python" | "curl">("claude");
   const [toolSearch, setToolSearch] = useState("");
@@ -595,14 +595,14 @@ curl -X POST "http://localhost:8088/api/dsm/entry.cgi" \\
           </button>
         </div>
 
-        {/* Sub-tabs Navigation */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-4 mt-4 border-t border-slate-200/60 dark:border-slate-800/80">
+        {/* Sub-tabs Navigation: Horizontally Swipeable on Mobile, Wrap on Desktop */}
+        <div className="flex items-center gap-1.5 pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-slate-200/60 dark:border-slate-800/80 overflow-x-auto no-scrollbar scrollbar-none flex-nowrap pb-1">
           {[
-            { id: "quickstart", label: "⚡ Thiết lập Kết nối", icon: Zap },
-            { id: "tools", label: `🛠️ Tra cứu 42 Tools (${MCP_TOOLS.length})`, icon: SlidersHorizontal },
-            { id: "scenarios", label: "💬 Kịch bản Mẫu AI", icon: Workflow },
-            { id: "api", label: "🌐 DSM WebAPI Architecture", icon: Globe },
-            { id: "export", label: "📋 Xuất Markdown Context", icon: FileText },
+            { id: "quickstart", label: "⚡ Kết nối MCP", icon: Zap },
+            { id: "tools", label: `🛠️ 42 Tools (${MCP_TOOLS.length})`, icon: SlidersHorizontal },
+            { id: "scenarios", label: "💬 Kịch bản Mẫu", icon: Workflow },
+            { id: "api", label: "🌐 WebAPI Architecture", icon: Globe },
+            { id: "export", label: "📋 Markdown Context", icon: FileText },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeSubTab === tab.id;
@@ -610,7 +610,7 @@ curl -X POST "http://localhost:8088/api/dsm/entry.cgi" \\
               <button
                 key={tab.id}
                 onClick={() => setActiveSubTab(tab.id as any)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shrink-0 whitespace-nowrap cursor-pointer ${
                   isActive
                     ? "bg-sky-500 text-white shadow-sm"
                     : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80 border border-slate-200/80 dark:border-slate-700/80"
@@ -622,6 +622,15 @@ curl -X POST "http://localhost:8088/api/dsm/entry.cgi" \\
             );
           })}
         </div>
+      </div>
+
+      {/* AI Copilot now as floating bubble - quick access */}
+      <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800 flex items-center justify-between gap-3 text-xs">
+        <span className="text-slate-700 dark:text-slate-300 flex items-center gap-2">
+          <Bot className="w-4 h-4 text-indigo-500" />
+          <span><strong>DSM AI Copilot</strong> đã chuyển sang bong bóng chat góc phải màn hình — nhấn để hỏi ngay.</span>
+        </span>
+        <button onClick={() => setAiChatOpen(true)} className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shrink-0">Mở Chat 💬</button>
       </div>
 
       {/* SUB-TAB 1: Quickstart & Config Generator */}

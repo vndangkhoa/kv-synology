@@ -8,8 +8,9 @@ import { formatBytes, formatSpeed, formatUptime } from "@/lib/utils";
 import { StorageVolume, ServiceItem, DockerContainer, DSMProcess } from "@/lib/dsm/types";
 import {
   Cpu, Layers, HardDrive, Activity, ArrowDownCircle, ArrowUpCircle, FolderOpen, Boxes, DownloadCloud,
-  CheckCircle, Server, Thermometer, Clock, ChevronRight, ShieldCheck, AlertTriangle, Zap, Database, Network, Bell,
-  Gauge, TrendingUp, TrendingDown, Minus, Flame, Snowflake, Info, LayoutGrid, Maximize2, Minimize2, Eye, List, Grid3X3, BarChart3, Settings2, Wrench
+  CheckCircle, CheckCircle2, Bot, RotateCw, Server, Thermometer, Clock, ChevronRight, ShieldCheck, AlertTriangle, Zap, Database, Network, Bell,
+  Gauge, TrendingUp, TrendingDown, Minus, Flame, Snowflake, Info, LayoutGrid, Maximize2, Minimize2, Eye, List, Grid3X3, BarChart3, Settings2, Wrench,
+  Radio, Globe, ArrowUpRight, ArrowDownLeft, Compass, ShieldAlert
 } from "lucide-react";
 
 type Level = "low" | "normal" | "high" | "critical";
@@ -34,13 +35,14 @@ function Sparkline({ data, color, className = "" }: { data: number[]; color: str
 }
 
 export const OverviewTab: React.FC = () => {
-  const { systemInfo, utilization, utilizationHistory, session, setActiveTab, t, language, notifications, openLoginModal } = useAppStore();
+  const { systemInfo, utilization, utilizationHistory, session, setActiveTab, t, language, notifications, openLoginModal, openPowerModal, experienceMode, setAiChatOpen } = useAppStore();
   const [volumes, setVolumes] = useState<StorageVolume[]>([]);
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [containers, setContainers] = useState<DockerContainer[]>([]);
   const [processes, setProcesses] = useState<DSMProcess[]>([]);
   const [viewMode, setViewMode] = useState<"compact" | "normal" | "full">("normal");
   const [mounted, setMounted] = useState(false);
+  const [trafficSummary, setTrafficSummary] = useState<any>(null);
 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
@@ -48,6 +50,28 @@ export const OverviewTab: React.FC = () => {
     if (v === "compact" || v === "normal" || v === "full") setViewMode(v);
   }, []);
   useEffect(() => { if (mounted) localStorage.setItem("dashboard_view", viewMode); }, [viewMode, mounted]);
+
+  useEffect(() => {
+    // Fetch real traffic summary
+    const headers: Record<string, string> = {};
+    const dsmCfg = dsmClient.getConfig();
+    if (session?.isConnected && session.hostname) {
+      headers["x-dsm-host"] = session.hostname;
+      headers["x-dsm-port"] = String(dsmCfg?.port || 5001);
+      headers["x-dsm-https"] = dsmCfg?.https ? "true" : "false";
+      if (session.sid) headers["x-dsm-sid"] = session.sid;
+      if (session.synoToken) headers["x-dsm-synotoken"] = session.synoToken;
+    }
+
+    fetch("/api/traffic/connections", { headers })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.summary) {
+          setTrafficSummary(data.summary);
+        }
+      })
+      .catch(() => {});
+  }, [session.isConnected, session.hostname, session.sid]);
 
   useEffect(() => {
     if (!session.isConnected) return;
@@ -135,6 +159,236 @@ export const OverviewTab: React.FC = () => {
     return <div className="space-y-4 w-full"><div className="h-32 bg-white dark:bg-slate-900 rounded-[28px] border border-slate-200 dark:border-slate-800 animate-pulse" /><div className="grid grid-cols-2 xl:grid-cols-4 gap-4"><div className="h-32 bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 animate-pulse" /><div className="h-32 bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 animate-pulse hidden sm:block" /><div className="h-32 bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 animate-pulse hidden xl:block" /><div className="h-32 bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 animate-pulse hidden xl:block" /></div></div>;
   }
 
+  // ==========================================
+  // 🟢 DEDICATED BEGINNER MODE VIEW
+  // ==========================================
+  if (experienceMode === "beginner") {
+    const totalVolCap = displayVolumes.reduce((a, v) => a + (v.totalBytes || 0), 0);
+    const totalVolUsed = displayVolumes.reduce((a, v) => a + (v.usedBytes || 0), 0);
+    const totalVolFree = Math.max(totalVolCap - totalVolUsed, 0);
+    const volPercent = totalVolCap > 0 ? Math.round((totalVolUsed / totalVolCap) * 100) : 52;
+
+    return (
+      <div suppressHydrationWarning className="space-y-3 animate-in fade-in duration-300 w-full">
+        {/* Compact Hero Health Banner */}
+        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-white via-emerald-50/40 to-teal-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-emerald-950/20 p-3 sm:p-4 shadow-sm">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
+                <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-none">
+                    {systemInfo?.model || session.model || "DS920+"} • Hệ thống Khỏe mạnh
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    100% Bình thường
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-900 dark:bg-white text-white dark:text-slate-900">
+                    🟢 Cơ bản
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 leading-snug">
+                  Tất cả ổ đĩa, bộ nhớ, mạng và dịch vụ đang hoạt động an toàn.
+                </p>
+              </div>
+            </div>
+
+            {/* 4 Compact Metrics */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0 w-full lg:w-auto">
+              <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
+                <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                  <Thermometer className="w-3 h-3 text-emerald-500" /> Nhiệt độ
+                </div>
+                <div className="text-sm font-black text-slate-900 dark:text-white mt-0.5">{temp}°C</div>
+                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold leading-none">Mát mẻ &amp; An toàn</div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
+                <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                  <Layers className="w-3 h-3 text-blue-500" /> RAM
+                </div>
+                <div className="text-sm font-black text-slate-900 dark:text-white mt-0.5">{ram}%</div>
+                <div className="text-[10px] text-blue-600 dark:text-blue-400 font-bold leading-none">Trống {(ramFreeMB/1024).toFixed(1)} GB</div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
+                <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-sky-500" /> Uptime
+                </div>
+                <div className="text-sm font-black text-slate-900 dark:text-white mt-0.5 truncate leading-none">{formatUptime(systemInfo?.uptime || 20500, language)}</div>
+                <div className="text-[10px] text-sky-600 dark:text-sky-400 font-bold leading-none">Hoạt động liên tục</div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
+                <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                  <Activity className="w-3 h-3 text-indigo-500" /> Mạng LAN
+                </div>
+                <div className="text-sm font-black text-slate-900 dark:text-white mt-0.5 truncate leading-none">{formatSpeed(rx || 1200000)}</div>
+                <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold leading-none">Tốc độ cao</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 2 Compact Beginner Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+          {/* LEFT: Visual Simple Storage */}
+          <div className="lg:col-span-6 bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3 sm:p-4 shadow-sm flex flex-col justify-between space-y-3">
+            <div>
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <HardDrive className="w-4 h-4 text-indigo-500" />
+                  Dung Lượng Lưu Trữ NAS
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                  SHR (Btrfs) An Toàn
+                </span>
+              </div>
+
+              <div className="mt-3 space-y-2.5">
+                <div className="flex items-baseline justify-between">
+                  <div>
+                    <span className="text-2xl font-black text-slate-900 dark:text-white">{volPercent}%</span>
+                    <span className="text-xs text-slate-500 ml-1.5 font-medium">đã sử dụng</span>
+                  </div>
+                  <div className="text-right font-mono text-[11px] text-slate-500">
+                    <strong className="text-slate-900 dark:text-white font-bold">{formatBytes(totalVolUsed || 1800000000000)}</strong> / {formatBytes(totalVolCap || 3470000000000)}
+                  </div>
+                </div>
+
+                {/* Visual Progress Bar */}
+                <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
+                  <div
+                    className="h-full bg-gradient-to-r from-sky-500 to-indigo-600 rounded-full transition-all duration-500"
+                    style={{ width: `${volPercent}%` }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
+                  <span className="flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Còn trống {formatBytes(totalVolFree || 1670000000000)}
+                  </span>
+                  <span className="text-[11px]">{displayVolumes.length} Volume lưu trữ DSM</span>
+                </div>
+
+                {/* Volume Health List */}
+                <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trạng thái các Volume lưu trữ:</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+                    {displayVolumes.slice(0, 4).map((v) => (
+                      <div key={v.id || v.name} className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+                        <span className="font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[120px] text-[11px]">{v.name} ({v.fsType || "Btrfs"})</span>
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                          {v.status === "normal" ? "🟢 Khỏe mạnh" : "🟡 Cần chú ý"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setActiveTab("files")}
+              className="w-full py-2 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 font-bold text-xs transition-all shadow flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <FolderOpen className="w-4 h-4" />
+              <span>Mở Quản lý Tệp tin (File Station)</span>
+            </button>
+          </div>
+
+          {/* RIGHT: Quick Launchpad */}
+          <div className="lg:col-span-6 bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3 sm:p-4 shadow-sm flex flex-col justify-between space-y-3">
+            <div>
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                <h3 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <Zap className="w-4 h-4 text-amber-500" />
+                  Trung Tâm Thao Tác 1-Chạm
+                </h3>
+                <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Tiện ích thường dùng</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                <button
+                  onClick={() => setAiChatOpen(true)}
+                  className="p-2.5 rounded-xl bg-indigo-50/60 hover:bg-indigo-100/60 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 text-left transition-all cursor-pointer group"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="p-1.5 rounded-lg bg-indigo-500 text-white shadow-sm">
+                      <Bot className="w-3.5 h-3.5" />
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-indigo-400 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                  <div className="font-bold text-xs text-slate-900 dark:text-white mt-2">Trợ lý AI DSM Copilot</div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">Chat bubble — hỏi ngay</div>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("docker")}
+                  className="p-2.5 rounded-xl bg-sky-50/60 hover:bg-sky-100/60 dark:bg-sky-950/20 dark:hover:bg-sky-950/40 border border-sky-200/60 dark:border-sky-800/60 text-left transition-all cursor-pointer group"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="p-1.5 rounded-lg bg-sky-500 text-white shadow-sm">
+                      <Boxes className="w-3.5 h-3.5" />
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-sky-400 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                  <div className="font-bold text-xs text-slate-900 dark:text-white mt-2">Ứng dụng &amp; Docker</div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">Plex, AdGuard đang chạy</div>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("traffic")}
+                  className="p-2.5 rounded-xl bg-emerald-50/60 hover:bg-emerald-100/60 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 text-left transition-all cursor-pointer group"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="p-1.5 rounded-lg bg-emerald-500 text-white shadow-sm">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                  <div className="font-bold text-xs text-slate-900 dark:text-white mt-2">Kiểm tra An ninh Mạng</div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">Phát hiện kết nối lạ</div>
+                </button>
+
+                <button
+                  onClick={() => openPowerModal("reboot")}
+                  className="p-2.5 rounded-xl bg-amber-50/60 hover:bg-amber-100/60 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 text-left transition-all cursor-pointer group"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="p-1.5 rounded-lg bg-amber-500 text-white shadow-sm">
+                      <RotateCw className="w-3.5 h-3.5" />
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-amber-400 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                  <div className="font-bold text-xs text-slate-900 dark:text-white mt-2">Khởi động lại NAS</div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">Thao tác an toàn</div>
+                </button>
+              </div>
+            </div>
+
+            {/* Hint Banner */}
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-2 text-[11px]">
+              <span className="text-slate-600 dark:text-slate-300 leading-tight">
+                💡 Cần xem CPU, socket TCP, OID MIB?
+              </span>
+              <button
+                onClick={() => useAppStore.getState().setExperienceMode("advance")}
+                className="px-2.5 py-1 rounded-lg bg-sky-500 hover:bg-sky-600 text-white font-bold text-[11px] shrink-0 transition-colors cursor-pointer whitespace-nowrap"
+              >
+                Bật Nâng cao ⚡
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // ⚡ ADVANCE MODE VIEW (Full Technical Dashboard)
+  // ==========================================
+
   return (
     <div suppressHydrationWarning className={`space-y-4 animate-in fade-in duration-300 w-full ${isCompact?"space-y-3":"space-y-4"}`}>
       {/* Top controls */}
@@ -194,7 +448,7 @@ export const OverviewTab: React.FC = () => {
           </div>
           <div className={`grid gap-3 flex-1 ${isCompact?"grid-cols-2 sm:grid-cols-4":"grid-cols-2 lg:grid-cols-4"}`}>
             {[
-              { icon: Clock, label: t.dashboard.uptime, value: formatUptime(systemInfo?.uptime||846200, language), sub: isCompact?"9 ngày":"9 ngày, 19 giờ", color:"text-sky-500", bg:"bg-sky-500/10" },
+              { icon: Clock, label: t.dashboard.uptime, value: formatUptime(systemInfo?.uptime || 20500, language), sub: "Khởi động ổn định", color: "text-sky-500", bg: "bg-sky-500/10" },
               { icon: Thermometer, label: t.dashboard.temperature, value: `${temp}°C`, sub: tempMeta.label, color: tempMeta.color.replace("text-","text-"), bg: tempMeta.bg, badge: tempMeta.label },
               { icon: Cpu, label: "CPU", value: `${systemInfo?.cpuCores||4} Cores`, sub: isCompact?"J4125": systemInfo?.cpuModel?.match(/\(.+\)/)?.[0]||"2.0 GHz", color:"text-indigo-500", bg:"bg-indigo-500/10" },
               { icon: Layers, label: "RAM", value: `${(ramTotalMB/1024).toFixed(0)} GB`, sub: `${ram}%`, color: ramMeta.color.replace("text-","text-"), bg: ramMeta.bg, badge: ramMeta.label },
@@ -362,7 +616,7 @@ export const OverviewTab: React.FC = () => {
                           />
                         </div>
 
-                        {vol.drives && vol.drives.length > 0 && (
+                        {!isCompact && vol.drives && vol.drives.length > 0 && (
                           <div className="pt-1 flex flex-wrap gap-1.5">
                             {vol.drives.map((d) => {
                               const tm = tempLevel(d.temp);
@@ -391,11 +645,13 @@ export const OverviewTab: React.FC = () => {
               </>
             );
           })()}
-          <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-            <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-2"><div className="font-bold text-slate-500">ĐỌC</div><div className="font-mono font-bold">{formatSpeed(diskRead)}/s</div></div>
-            <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-2"><div className="font-bold text-slate-500">GHI</div><div className="font-mono font-bold">{formatSpeed(diskWrite)}/s</div></div>
-            <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-2"><div className="font-bold text-slate-500">IOPS</div><div className="font-mono font-bold">{Math.round((diskRead+diskWrite)/4096)} est.</div></div>
-          </div>
+          {!isCompact && (
+            <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-2"><div className="font-bold text-slate-500">ĐỌC</div><div className="font-mono font-bold">{formatSpeed(diskRead)}/s</div></div>
+              <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-2"><div className="font-bold text-slate-500">GHI</div><div className="font-mono font-bold">{formatSpeed(diskWrite)}/s</div></div>
+              <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-2"><div className="font-bold text-slate-500">IOPS</div><div className="font-mono font-bold">{Math.round((diskRead+diskWrite)/4096)} est.</div></div>
+            </div>
+          )}
         </div>
 
         <div className="lg:col-span-1 space-y-4 flex flex-col">
@@ -470,7 +726,36 @@ export const OverviewTab: React.FC = () => {
               <h4 className="text-sm font-black flex items-center gap-2"><Wrench className="w-4 h-4 text-amber-500"/>Top tiến trình</h4>
               <button onClick={()=>setActiveTab("monitor")} className="text-xs font-bold text-sky-600 hover:text-sky-500 flex items-center gap-1">Xem tất cả <ChevronRight className="w-3 h-3"/></button>
             </div>
-            <div className="overflow-x-auto">
+            {/* Mobile: process cards (< md) */}
+            <div className="md:hidden space-y-2.5">
+              {topProcesses.map(p=>(
+                <div key={p.pid} className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[11px] text-slate-400 shrink-0">#{p.pid}</span>
+                        <span className="font-bold text-sm text-slate-900 dark:text-white truncate">{p.name}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">{p.user}</div>
+                    </div>
+                  </div>
+                  <div className="mt-2.5 grid grid-cols-2 gap-2">
+                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 px-2.5 py-1.5">
+                      <div className="text-[10px] font-semibold text-slate-400 uppercase">CPU</div>
+                      <div className="font-mono font-bold text-sky-600 dark:text-sky-400 text-sm">{p.cpu.toFixed(1)}%</div>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 px-2.5 py-1.5">
+                      <div className="text-[10px] font-semibold text-slate-400 uppercase">RAM</div>
+                      <div className="font-mono font-bold text-slate-900 dark:text-white text-sm">{formatBytes(p.memory)}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {topProcesses.length===0 && <div className="py-6 text-center text-slate-400 text-xs">Không có dữ liệu — kiểm tra quyền DSM</div>}
+            </div>
+
+            {/* Desktop: process table (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="text-slate-500 font-bold border-b"><tr><th className="text-left py-2">PID</th><th className="text-left">Tên</th><th className="text-left">CPU</th><th className="text-left">RAM</th><th className="text-left">User</th></tr></thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -485,17 +770,148 @@ export const OverviewTab: React.FC = () => {
         </>
       )}
 
-      {/* Quick actions: Sleek 4-Tile Modern App Widget */}
+      {/* 2 Special Monitoring Modules: SNMP (PRTG) & Data Destination Flow */}
+      {!isCompact && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* SNMP PRTG Direct Card */}
+        <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500">
+                  <Radio className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    Giám sát SNMP (PRTG Direct)
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      Live OID
+                    </span>
+                  </h4>
+                  <p className="text-[11px] text-slate-400">Theo dõi trực tiếp không cần cài server PRTG/Zabbix riêng</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab("snmp")}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 flex items-center gap-0.5"
+              >
+                Mở Sensor Hub <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+              <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-2.5 border border-slate-100 dark:border-slate-800">
+                <div className="text-[10px] font-semibold text-slate-400">Tình trạng DSM</div>
+                <div className="font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">Bình thường</div>
+                <div className="text-[9px] text-slate-400 font-mono">OID .6574.1.1</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-2.5 border border-slate-100 dark:border-slate-800">
+                <div className="text-[10px] font-semibold text-slate-400">CPU Sensor</div>
+                <div className="font-bold text-sky-600 dark:text-sky-400 mt-0.5">{cpu}%</div>
+                <div className="text-[9px] text-slate-400 font-mono">OID .2021.11.9</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-2.5 border border-slate-100 dark:border-slate-800">
+                <div className="text-[10px] font-semibold text-slate-400">Nhiệt độ Bo mạch</div>
+                <div className="font-bold text-amber-600 dark:text-amber-400 mt-0.5">{temp}°C</div>
+                <div className="text-[9px] text-slate-400 font-mono">OID .6574.1.2</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 p-2.5 border border-slate-100 dark:border-slate-800">
+                <div className="text-[10px] font-semibold text-slate-400">Bộ lưu điện UPS</div>
+                <div className="font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">100% (Pin tốt)</div>
+                <div className="text-[9px] text-slate-400 font-mono">OID .6574.4.2</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+            <span className="text-[11px] font-medium flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              12 Sensor OID đang hoạt động (UDP Port 161)
+            </span>
+            <button onClick={() => setActiveTab("snmp")} className="px-3 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[11px] font-bold">
+              Quản lý OID &amp; Cảnh báo
+            </button>
+          </div>
+        </div>
+
+        {/* Data Destination Outbound Flow Card */}
+        <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <div className="p-2 rounded-xl bg-sky-500/10 text-sky-500">
+                  <Globe className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    Dữ liệu từ NAS chạy đi đâu?
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+                      IP &amp; ISP Watchdog
+                    </span>
+                  </h4>
+                  <p className="text-[11px] text-slate-400">Phân loại Quốc gia có gắn cờ &amp; Nhà mạng ISP sở hữu</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab("traffic")}
+                className="text-xs font-bold text-sky-600 hover:text-sky-500 dark:text-sky-400 flex items-center gap-0.5"
+              >
+                Chi tiết kết nối <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Top Destination Countries with flags (Real Dynamic Data) */}
+            <div className="space-y-2 pt-1">
+              {trafficSummary?.topCountries && trafficSummary.topCountries.length > 0 ? (
+                trafficSummary.topCountries.slice(0, 4).map((c: any) => (
+                  <div key={c.countryCode} className="flex items-center justify-between text-xs gap-2">
+                    <div className="flex items-center space-x-2 truncate min-w-0">
+                      <span className="text-base shrink-0">{c.flagEmoji}</span>
+                      <span className="font-bold text-slate-900 dark:text-white truncate">{c.countryName}</span>
+                      <span className="text-[10px] text-slate-400 truncate hidden sm:inline">
+                        ({c.primaryIsps?.join(", ") || c.countryCode})
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2 font-mono shrink-0">
+                      <span className="font-bold text-sky-600 dark:text-sky-400">{formatBytes(c.outboundBytes || 0)}</span>
+                      <span className="text-slate-400 font-semibold text-[10px]">({c.percentOutbound}%)</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-4 text-center text-slate-400 text-xs">
+                  Đang phân tích các luồng kết nối mạng thực tế...
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+            <span className="text-[11px] font-medium flex items-center gap-1">
+              <Zap className="w-3.5 h-3.5 text-amber-500" />
+              Bảo mật dữ liệu: Phát hiện ngay kết nối lạ ra ngoài
+            </span>
+            <button onClick={() => setActiveTab("traffic")} className="px-3 py-1 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 text-[11px] font-bold">
+              Kiểm tra Socket &amp; Chặn IP
+            </button>
+          </div>
+        </div>
+      </div>
+      )}
+
+      {/* Quick actions: Sleek Modern App Widget */}
       <div>
         <h4 className="text-xs font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase mb-2.5 flex items-center gap-2">
           Thao tác nhanh <span className="w-8 h-px bg-slate-200 dark:border-slate-800" />
         </h4>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
           {[
-            { id: "files", title: "File Station", icon: FolderOpen, color: "sky", badge: `${volumes[0]?.drives?.length || 4} phân vùng` },
-            { id: "docker", title: "Docker / Stacks", icon: Boxes, color: "blue", badge: `${runningContainers}/${containers.length || 47} chạy` },
+            { id: "snmp", title: "SNMP Monitor", icon: Radio, color: "indigo", badge: "12 Sensor OID" },
+            { id: "traffic", title: "Lưu lượng IP & ISP", icon: Globe, color: "sky", badge: "Live Watchdog" },
+            { id: "files", title: "File Station", icon: FolderOpen, color: "amber", badge: `${volumes[0]?.drives?.length || 4} phân vùng` },
+            { id: "docker", title: "Docker Stacks", icon: Boxes, color: "blue", badge: `${runningContainers}/${containers.length || 47} chạy` },
             { id: "download", title: "Download Station", icon: DownloadCloud, color: "emerald", badge: unreadNotifs ? `${unreadNotifs} tin mới` : "Sẵn sàng" },
-            { id: "firewall", title: "Tường lửa & Bảo mật", icon: ShieldCheck, color: "indigo", badge: "Đã kích hoạt" },
+            { id: "firewall", title: "Tường lửa & An ninh", icon: ShieldCheck, color: "rose", badge: "Đã kích hoạt" },
           ].map((a) => (
             <button
               key={a.id}

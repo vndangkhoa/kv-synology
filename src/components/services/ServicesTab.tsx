@@ -305,7 +305,7 @@ export const ServicesTab: React.FC = () => {
       </div>
 
       {/* Metrics Cards */}
-      <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <div
           onClick={() => setCategoryFilter("all")}
           className={`p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between cursor-pointer transition-all ${
@@ -473,7 +473,90 @@ export const ServicesTab: React.FC = () => {
       {gridMode === "list" ? (
         /* List / Table Mode */
         <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Mobile card list (< md) */}
+          <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/80">
+            {filteredServices.map((svc) => {
+              const isToggling = togglingId === svc.id;
+              const enabled = svc.enabled;
+              return (
+                <div
+                  key={svc.id}
+                  className="p-3.5 flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                        enabled
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                      }`}
+                    >
+                      {serviceIcons[svc.id] || <Server className="w-4 h-4" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                        {svc.displayName}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            enabled
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200/80 dark:border-slate-700"
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              enabled ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+                            }`}
+                          />
+                          {enabled ? "Đang bật" : "Đã tắt"}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-medium">
+                          {categoryIcons[svc.category]} {categoryLabels[svc.category]}
+                        </span>
+                        {svc.port ? (
+                          <span className="font-mono font-bold text-slate-700 dark:text-slate-300 text-[10px]">
+                            :{svc.port}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={enabled}
+                      onChange={() => handleToggle(svc)}
+                      disabled={isToggling || !svc.canToggle}
+                      className="sr-only peer"
+                    />
+                    <div
+                      className={`w-10 h-5 rounded-full peer transition-all ${
+                        enabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"
+                      } peer-focus:ring-2 peer-focus:ring-sky-500/20 ${
+                        isToggling ? "opacity-50" : ""
+                      }`}
+                    >
+                      <div
+                        className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform mt-0.5 ml-0.5 ${
+                          enabled ? "translate-x-5" : "translate-x-0"
+                        } flex items-center justify-center`}
+                      >
+                        {isToggling && (
+                          <RefreshCw className="w-2.5 h-2.5 animate-spin text-slate-500" />
+                        )}
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop table (>= md) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold border-b border-slate-100 dark:border-slate-800">
                 <tr>

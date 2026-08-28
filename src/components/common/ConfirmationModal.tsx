@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import ResponsiveModal from "@/components/common/ResponsiveModal";
 import { AlertTriangle, RotateCw, Square, Trash2, X, Check } from "lucide-react";
 
 interface ConfirmationModalProps {
@@ -65,23 +66,18 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   const Icon = style.icon;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden p-6 space-y-4 animate-in zoom-in-95 duration-150">
-        <div className="flex items-start gap-3.5">
-          <div className={`p-3 rounded-2xl border shrink-0 ${style.iconBg}`}>
-            <Icon className="w-5 h-5" />
-          </div>
-          <div className="min-w-0 flex-1 space-y-1">
-            <h3 className="font-black text-sm sm:text-base text-slate-900 dark:text-white">
-              {title}
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              {message}
-            </p>
-          </div>
+    <ResponsiveModal
+      open={isOpen}
+      onClose={onCancel}
+      title={title}
+      icon={
+        <div className={`p-2 rounded-xl border shrink-0 ${style.iconBg}`}>
+          <Icon className="w-5 h-5" />
         </div>
-
-        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+      }
+      maxWidth="md"
+      footer={
+        <div className="flex items-center justify-end gap-2.5">
           <button
             type="button"
             disabled={loading}
@@ -100,7 +96,9 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             <span>{confirmText || style.defaultConfirm}</span>
           </button>
         </div>
-      </div>
-    </div>
+      }
+    >
+      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{message}</p>
+    </ResponsiveModal>
   );
 };

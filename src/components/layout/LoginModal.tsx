@@ -23,6 +23,8 @@ import {
   Layers,
 } from "lucide-react";
 
+import ResponsiveModal from "@/components/common/ResponsiveModal";
+
 export const LoginModal: React.FC = () => {
   const { isLoginModalOpen, openLoginModal, setSession, t } = useAppStore();
 
@@ -191,8 +193,8 @@ export const LoginModal: React.FC = () => {
     (host.trim() && !host.includes(".") && !host.includes(":") && !host.startsWith("http") && host.toLowerCase() !== "localhost");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-200 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/90 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden my-auto">
+    <ResponsiveModal open={isLoginModalOpen} onClose={() => openLoginModal(false)} maxWidth="md" noPadding>
+      <div className="flex flex-col w-full">
         {/* Modal Header */}
         <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
           <div className="flex items-center space-x-3.5">
@@ -217,88 +219,40 @@ export const LoginModal: React.FC = () => {
           </button>
         </div>
 
-        {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
+        {/* Modal Form — Simplified */}
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5">
           {errorMsg && (
-            <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs flex items-start space-x-2.5">
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span className="leading-relaxed font-medium">{errorMsg}</span>
             </div>
           )}
 
-          {/* Quick Saved NAS Profiles Selector */}
+          {/* Saved devices - compact */}
           {savedProfiles.length > 0 && (
-            <div className="space-y-1.5 pb-1">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                Thiết bị NAS đã lưu ({savedProfiles.length}):
-              </label>
-              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-                {savedProfiles.map((prof) => (
-                  <button
-                    key={prof.id}
-                    type="button"
-                    onClick={() => selectProfile(prof)}
-                    className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold border transition-all flex items-center gap-1 ${
-                      host === prof.host && account === prof.account
-                        ? "bg-sky-500 text-white border-sky-500 shadow-sm"
-                        : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-sky-400"
-                    }`}
-                  >
-                    <Server className="w-3 h-3" />
-                    <span>{prof.name || prof.host}</span>
-                  </button>
-                ))}
-              </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+              {savedProfiles.map((prof) => (
+                <button
+                  key={prof.id}
+                  type="button"
+                  onClick={() => selectProfile(prof)}
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all flex items-center gap-1.5 ${
+                    host === prof.host && account === prof.account
+                      ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-transparent hover:border-slate-300 dark:hover:border-slate-600"
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${host === prof.host ? "bg-sky-400" : "bg-slate-400"}`} />
+                  {prof.name || prof.host}
+                </button>
+              ))}
             </div>
           )}
 
-          {/* Optional Profile Name Field */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-              <span>Tên định danh NAS (Tùy chọn)</span>
-              <span className="text-[10px] text-slate-400 font-normal">Để nhận diện nhiều NAS</span>
-            </label>
-            <input
-              type="text"
-              value={profileName}
-              onChange={(e) => setProfileName(e.target.value)}
-              placeholder="VD: DS920+ Cơ quan hoặc DS220+ Gia đình"
-              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium placeholder:text-slate-400"
-            />
-          </div>
-
-          {/* Protocol Selector Tabs */}
-          <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl">
-            <button
-              type="button"
-              onClick={() => handleProtocolSelect(true)}
-              className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition-all ${
-                https
-                  ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm"
-                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>HTTPS (Bảo mật)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleProtocolSelect(false)}
-              className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition-all ${
-                !https
-                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-              }`}
-            >
-              <Globe className="w-3.5 h-3.5" />
-              <span>HTTP (Nội bộ)</span>
-            </button>
-          </div>
-
-          {/* Address & Port Row */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2 space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+          {/* Primary credentials */}
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-600 dark:text-slate-300">
                 {t.auth.host}
               </label>
               <input
@@ -306,185 +260,123 @@ export const LoginModal: React.FC = () => {
                 required
                 value={host}
                 onChange={(e) => setHost(e.target.value)}
-                placeholder="192.168.1.100 hoặc my-nas.synology.me"
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium placeholder:text-slate-400"
+                placeholder="192.168.1.10 • my-nas.synology.me • QuickConnect ID"
+                className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-white focus:border-transparent transition-all"
               />
+              {isQuickConnectInput && (
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 pt-1">
+                  <Zap className="w-3 h-3" /> Tự động kết nối qua QuickConnect relay
+                </p>
+              )}
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                {t.auth.port}
-              </label>
-              <input
-                type="number"
-                required
-                value={port}
-                onChange={(e) => setPort(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono font-bold text-center"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                  <User className="w-3 h-3" />
+                  {t.auth.account}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={account}
+                  onChange={(e) => setAccount(e.target.value)}
+                  placeholder="admin"
+                  className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-white focus:border-transparent"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                  <Lock className="w-3 h-3" />
+                  {t.auth.password}
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-white focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* QuickConnect Badge Indicator */}
-          {isQuickConnectInput && (
-            <div className="px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] flex items-center space-x-2 font-medium">
-              <Zap className="w-3.5 h-3.5 shrink-0" />
-              <span>QuickConnect ID: Tự động phân giải qua relay — cổng sẽ được tự động chọn, không cần nhập 5001.</span>
-            </div>
-          )}
-
-          {/* Port Presets */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-            <span className="text-[11px] text-slate-400 font-medium mr-1">Cổng nhanh:</span>
-            {[
-              { p: "5001", https: true, label: "5001 (HTTPS)" },
-              { p: "443", https: true, label: "443 (DDNS / Proxy)" },
-              { p: "5000", https: false, label: "5000 (HTTP)" },
-              { p: "8443", https: true, label: "8443" },
-              { p: "80", https: false, label: "80" },
-            ].map((preset) => {
-              const isSelected = port === preset.p && https === preset.https;
-              return (
-                <button
-                  key={preset.p}
-                  type="button"
-                  onClick={() => handlePortSelect(preset.p, preset.https)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold font-mono transition-all ${
-                    isSelected
-                      ? "bg-sky-500 text-white shadow-sm shadow-sky-500/30"
-                      : "bg-slate-100 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* SSL Bypass Option */}
-          {https && (
-            <label className="flex items-center space-x-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 cursor-pointer text-xs transition-colors">
-              <input
-                type="checkbox"
-                checked={ignoreCert}
-                onChange={(e) => setIgnoreCert(e.target.checked)}
-                className="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 border-slate-300 dark:border-slate-700 cursor-pointer"
-              />
-              <span className="font-medium text-slate-700 dark:text-slate-300">
-                Bỏ qua lỗi chứng chỉ SSL (Self-signed / IP nội bộ)
+          {/* Advanced - collapsible */}
+          <details className="group">
+            <summary className="flex items-center justify-between py-2 text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer list-none">
+              <span className="flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5" />
+                Tùy chọn nâng cao
               </span>
-            </label>
-          )}
+              <span className="text-[11px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full group-open:hidden">
+                {https ? "HTTPS:" + port : "HTTP:" + port}{otp ? " • OTP" : ""} {ignoreCert ? "• SSL bỏ qua" : ""}
+              </span>
+              <span className="hidden group-open:inline text-slate-400">Thu gọn</span>
+            </summary>
+            <div className="mt-3 space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Giao thức</span>
+                <div className="flex bg-slate-100 dark:bg-slate-800 rounded-full p-1">
+                  <button type="button" onClick={() => handleProtocolSelect(true)} className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${https ? "bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white" : "text-slate-500"}`}>HTTPS</button>
+                  <button type="button" onClick={() => handleProtocolSelect(false)} className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${!https ? "bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white" : "text-slate-500"}`}>HTTP</button>
+                </div>
+              </div>
 
-          {/* Account Input */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
-              <User className="w-3.5 h-3.5 text-slate-400" />
-              <span>{t.auth.account}</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={account}
-              onChange={(e) => setAccount(e.target.value)}
-              placeholder="admin"
-              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium placeholder:text-slate-400"
-            />
-          </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium text-slate-500">Cổng</label>
+                  <input type="number" required value={port} onChange={(e) => setPort(e.target.value)} className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium text-slate-500">Tên hiển thị</label>
+                  <input type="text" value={profileName} onChange={(e) => setProfileName(e.target.value)} placeholder="VD: DS920+ Nhà" className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white" />
+                </div>
+              </div>
 
-          {/* Password Input with Show/Hide Toggle */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
-              <Lock className="w-3.5 h-3.5 text-slate-400" />
-              <span>{t.auth.password}</span>
-            </label>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full px-3.5 py-2.5 pr-10 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium placeholder:text-slate-400"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+              <div className="flex gap-1.5 flex-wrap">
+                {[
+                  { p: "5001", https: true, label: "5001" },
+                  { p: "5000", https: false, label: "5000" },
+                  { p: "443", https: true, label: "443" },
+                  { p: "80", https: false, label: "80" },
+                ].map((preset) => (
+                  <button key={preset.p} type="button" onClick={() => handlePortSelect(preset.p, preset.https)} className={`px-2.5 py-1 rounded-full text-xs font-mono border ${port === preset.p && https === preset.https ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"}`}>{preset.label}</button>
+                ))}
+                {https && (
+                  <label className="ml-auto flex items-center gap-1.5 text-xs cursor-pointer">
+                    <input type="checkbox" checked={ignoreCert} onChange={(e) => setIgnoreCert(e.target.checked)} className="w-3.5 h-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900" />
+                    <span className="text-slate-600 dark:text-slate-300">Bỏ qua SSL</span>
+                  </label>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-slate-500 flex items-center gap-1"><KeyRound className="w-3 h-3" /> {t.auth.otp} <span className="font-normal opacity-60">(nếu bật 2FA)</span></label>
+                <input type="text" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="123456" maxLength={6} className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono tracking-widest text-center text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white" />
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <label className="flex-1 flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 cursor-pointer">
+                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Ghi nhớ</span>
+                  <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900" />
+                </label>
+                <label className="flex-1 flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 cursor-pointer">
+                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Duy trì 7 ngày</span>
+                  <input type="checkbox" checked={stay7Days} onChange={(e) => setStay7Days(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900" />
+                </label>
+              </div>
             </div>
-          </div>
-
-          {/* 2FA OTP Input */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center space-x-1.5">
-              <KeyRound className="w-3.5 h-3.5 text-slate-400" />
-              <span>{t.auth.otp}</span>
-              <span className="text-[10px] text-slate-400 font-normal">(Tùy chọn)</span>
-            </label>
-            <input
-              type="text"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              placeholder="Nhập mã 6 chữ số nếu bật 2FA"
-              maxLength={6}
-              className={`w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 text-center placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-400 ${
-                otp.trim() ? "font-mono font-bold tracking-widest text-sm" : "font-sans tracking-normal"
-              }`}
-            />
-          </div>
-
-          {/* Remember & Stay 7 days — Visual options */}
-          <div className="space-y-2.5 pt-1">
-            {/* Stay 7 days */}
-            <label className={`flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-all ${stay7Days ? "bg-sky-500/10 border-sky-500/30 dark:bg-sky-500/10" : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"}`}>
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${stay7Days ? "bg-sky-500 text-white shadow-md" : "bg-slate-200 dark:bg-slate-700 text-slate-500"}`}>
-                <Clock className="w-4 h-4" />
-              </div>
-              <div className="flex-1 min-w-0 text-left">
-                <div className="flex items-center gap-2">
-                  <p className="text-xs font-bold text-slate-900 dark:text-white">{t.auth.stay7Days}</p>
-                  <span className="px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-bold">7 NGÀY</span>
-                </div>
-                <p className="text-[11px] leading-snug text-slate-500 dark:text-slate-400 mt-0.5">{t.auth.stay7DaysDesc}</p>
-              </div>
-              <div className="shrink-0 pt-1">
-                <div className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" checked={stay7Days} onChange={(e) => setStay7Days(e.target.checked)} className="sr-only peer" />
-                  <div className={`w-11 h-6 rounded-full peer transition-all ${stay7Days ? "bg-sky-500" : "bg-slate-300 dark:bg-slate-700"}`} />
-                  <div className={`absolute w-5 h-5 bg-white rounded-full shadow-md transition-transform ${stay7Days ? "translate-x-5" : "translate-x-0.5"} top-0.5 left-0`} />
-                </div>
-              </div>
-            </label>
-
-            {/* Remember */}
-            <label className={`flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-all ${remember ? "bg-emerald-500/10 border-emerald-500/30 dark:bg-emerald-500/10" : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"}`}>
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${remember ? "bg-emerald-500 text-white shadow-md" : "bg-slate-200 dark:bg-slate-700 text-slate-500"}`}>
-                <BookmarkCheck className="w-4 h-4" />
-              </div>
-              <div className="flex-1 min-w-0 text-left">
-                <p className="text-xs font-bold text-slate-900 dark:text-white">{t.auth.remember}</p>
-                <p className="text-[11px] leading-snug text-slate-500 dark:text-slate-400 mt-0.5">{t.auth.rememberDesc}</p>
-              </div>
-              <div className="shrink-0 pt-1">
-                <div className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="sr-only peer" />
-                  <div className={`w-11 h-6 rounded-full peer transition-all ${remember ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"}`} />
-                  <div className={`absolute w-5 h-5 bg-white rounded-full shadow-md transition-transform ${remember ? "translate-x-5" : "translate-x-0.5"} top-0.5 left-0`} />
-                </div>
-              </div>
-            </label>
-
-            {/* Info hint when stay enabled */}
-            {stay7Days && (
-              <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/50 text-sky-700 dark:text-sky-300 text-[11px] leading-relaxed">
-                <Shield className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                <span>Phiên sẽ tự động khôi phục trong 7 ngày — đóng tab/trình duyệt vẫn giữ đăng nhập. Dữ liệu lưu cục bộ trên thiết bị này và có thể xóa bằng “Đăng xuất”.</span>
-              </div>
-            )}
-          </div>
+          </details>
 
           {/* Action Buttons */}
           <div className="pt-2 space-y-2.5">
@@ -507,6 +399,6 @@ export const LoginModal: React.FC = () => {
           </div>
         </form>
       </div>
-    </div>
+    </ResponsiveModal>
   );
 };

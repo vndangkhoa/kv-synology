@@ -155,6 +155,97 @@ function testHostConnection(host: string, port: number, timeout = 1200): Promise
   });
 }
 
+function buildUniversalCandidates(host: string, port: number, isHttps: boolean): Array<{ host: string; port: number; isHttps: boolean }> {
+  const list: Array<{ host: string; port: number; isHttps: boolean }> = [];
+  const seen = new Set<string>();
+  const push = (h: string, p: number, https: boolean) => {
+    const key = `${h}:${p}:${https}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      list.push({ host: h, port: p, isHttps: https });
+    }
+  };
+  // Original as provided
+  push(host, port, isHttps);
+  // If custom port like 41533, try standard DSM ports with both protocols
+  if (port === 41533 || port === 5001 || port === 5000) {
+    push(host, 5001, true);
+    push(host, 5000, false);
+    push(host, 443, true);
+    push(host, 80, false);
+    push(host, 5001, false);
+    push(host, 5000, true);
+    // Try swapped protocol on same custom port
+    push(host, port, !isHttps);
+  } else {
+    push(host, port, !isHttps);
+    if (isHttps) {
+      push(host, 443, true);
+      push(host, 5001, true);
+    } else {
+      push(host, 80, false);
+      push(host, 5000, false);
+    }
+  }
+  // For host with custom port like 192.168.10.79:41533 parsed earlier, host is without port, so also try with original port 41533 swapped proto
+  if (port !== 41533) {
+    push(host, 41533, true);
+    push(host, 41533, false);
+  }
+  return list;
+}
+
+async function findWorkingCandidate(
+  candidates: Array<{ host: string; port: number; isHttps: boolean }>,
+  pathSegments: string[]
+): Promise<{ host: string; port: number; isHttps: boolean } | null> {
+  // First quick TCP probe to filter
+  const tcpResults = await Promise.all(
+    candidates.map(async (c) => {
+      const ok = await testHostConnection(c.host, c.port, 1200);
+      return ok ? c : null;
+    })
+  );
+  const reachable = tcpResults.filter(Boolean) as typeof candidates;
+  const toTest = reachable.length ? reachable : candidates;
+  // Then HTTP-level probe: try to hit SYNO.API.Info or auth.cgi and see if not 404
+  for (const cand of toTest) {
+    try {
+      const probePath = "/webapi/query.cgi?api=SYNO.API.Info&version=1&method=query&query=SYNO.API.Auth";
+      const res = await makeNodeRequest({
+        isHttps: cand.isHttps,
+        host: cand.host,
+        port: cand.port,
+        path: probePath,
+        method: "GET",
+        headers: {
+          "User-Agent": "DSMHelper/1.0",
+          Accept: "*/*",
+        },
+        body: null,
+      });
+      // DSM should return 200 with JSON {success:true} or {success:false, error:{code:...}} but not 404 HTML
+      const bodyStr = res.body.toString("utf-8", 0, Math.min(res.body.length, 2000));
+      if (res.statusCode === 200 && (bodyStr.includes('"success"') || bodyStr.includes("SYNO.API.Auth"))) {
+        return cand;
+      }
+      if (res.statusCode === 404) {
+        // This candidate's /webapi not found, try next
+        continue;
+      }
+      // For other status like 401/403, it still indicates DSM is there (auth required)
+      if (res.statusCode >= 200 && res.statusCode < 500 && res.statusCode !== 404) {
+        return cand;
+      }
+    } catch (e: any) {
+      // Network error (ETIMEDOUT, ECONNREFUSED) -> try next
+      if (e.code === "ETIMEDOUT" || e.code === "ECONNREFUSED" || e.code === "ENOTFOUND") continue;
+    }
+  }
+  // If none probed successfully, return first TCP-reachable or first candidate as fallback
+  return reachable[0] || candidates[0] || null;
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   return handleProxy(request, await params);
 }
@@ -220,20 +311,37 @@ async function handleProxy(request: NextRequest, resolvedParams: { path: string[
 
     let targetHost = rawHost;
     let targetPort = parseInt(rawPort, 10) || (isHttps ? 5001 : 5000);
+    let targetHttps = isHttps;
 
     // Auto-resolve QuickConnect ID
     const isQuickConnect =
       rawHost.toLowerCase().endsWith(".quickconnect.to") ||
       (!rawHost.includes(".") && !rawHost.includes(":") && rawHost.toLowerCase() !== "localhost");
 
+    // DDNS / reverse-proxy detection (myds.me, synology.me, custom domain)
+    const isDDNS = !isQuickConnect && (rawHost.includes(".") && !/^\d+\.\d+\.\d+\.\d+$/.test(rawHost) && rawHost !== "localhost");
+    // Heuristic: if host looks like DDNS/synology.me/myds.me or user provided custom port like 41533, treat as potential reverse proxy
+
     if (isQuickConnect) {
       const resolved = await resolveQuickConnect(rawHost);
       if (resolved) {
         targetHost = resolved.host;
         targetPort = resolved.port;
-        isHttps = resolved.isHttps;
+        targetHttps = resolved.isHttps;
+      }
+    } else if (isDDNS || targetPort === 41533 || targetPort === 5001 || targetPort === 5000) {
+      // Universal DDNS/reverse-proxy resolver: try multiple port/protocol combos
+      // For custom reverse proxy 41533, DSM may actually be on 5001/5000/443
+      const candidates = buildUniversalCandidates(rawHost, targetPort, targetHttps);
+      const working = await findWorkingCandidate(candidates, resolvedParams.path || []);
+      if (working) {
+        targetHost = working.host;
+        targetPort = working.port;
+        targetHttps = working.isHttps;
+        console.log(`[Universal] ${rawHost}:${rawPort} https=${isHttps} -> ${targetHost}:${targetPort} https=${targetHttps} via probe`);
       }
     }
+    isHttps = targetHttps;
 
     const pathSegments = resolvedParams.path || [];
     const targetPath = "/" + pathSegments.map((s) => encodeURIComponent(decodeURIComponent(s))).join("/");
@@ -292,39 +400,73 @@ async function handleProxy(request: NextRequest, resolvedParams: { path: string[
     }
 
     let result;
-    try {
-      result = await makeNodeRequest({
-        isHttps,
-        host: targetHost,
-        port: targetPort,
-        path: fullPath,
-        method: request.method,
-        headers,
-        body: requestBody,
-      });
-    } catch (initialErr: any) {
-      // Auto-fallback: If port 5001 times out or is refused on a DDNS/domain, retry on standard HTTPS port 443
-      if (
-        (initialErr.code === "ETIMEDOUT" || initialErr.code === "ECONNREFUSED") &&
-        isHttps &&
-        targetPort === 5001 &&
-        targetHost.includes(".")
-      ) {
-        headers["Origin"] = `https://${targetHost}`;
-        headers["Referer"] = `https://${targetHost}/`;
-        headers["Host"] = targetHost;
-        result = await makeNodeRequest({
-          isHttps: true,
-          host: targetHost,
-          port: 443,
+    let lastErr: any = null;
+    const tried = new Set<string>();
+    // Try primary target first, then universal candidates on failure (404, timeout, refused)
+    const allCandidates: Array<{ host: string; port: number; isHttps: boolean }> = [{ host: targetHost, port: targetPort, isHttps }];
+    // If universal candidates were computed, add them as fallbacks (deduped)
+    if ((isDDNS || targetPort === 41533 || rawPort === "41533") && !(isQuickConnect)) {
+      const uni = buildUniversalCandidates(rawHost, parseInt(rawPort, 10) || (isHttps ? 5001 : 5000), isHttps);
+      for (const u of uni) {
+        if (!allCandidates.some(c => c.host === u.host && c.port === u.port && c.isHttps === u.isHttps)) {
+          allCandidates.push(u);
+        }
+      }
+    }
+    let lastStatus404 = false;
+    for (const cand of allCandidates) {
+      const key = `${cand.host}:${cand.port}:${cand.isHttps}`;
+      if (tried.has(key)) continue;
+      tried.add(key);
+      const candHostWithPort = (cand.port === 443 && cand.isHttps) || (cand.port === 80 && !cand.isHttps) ? cand.host : `${cand.host}:${cand.port}`;
+      const candHeaders = {
+        ...headers,
+        Origin: `${cand.isHttps ? "https" : "http"}://${candHostWithPort}`,
+        Referer: `${cand.isHttps ? "https" : "http"}://${candHostWithPort}/`,
+        Host: candHostWithPort,
+      };
+      try {
+        const candResult = await makeNodeRequest({
+          isHttps: cand.isHttps,
+          host: cand.host,
+          port: cand.port,
           path: fullPath,
           method: request.method,
-          headers,
+          headers: candHeaders,
           body: requestBody,
         });
-      } else {
-        throw initialErr;
+        // If DSM returns 404 for /webapi, this candidate is wrong (e.g., 41533 reverse proxy without DSM) -> try next
+        if (candResult.statusCode === 404) {
+          const bodyPreview = candResult.body.toString("utf-8", 0, Math.min(candResult.body.length, 500));
+          // Only treat as retryable if body looks like nginx 404 html, not DSM JSON error
+          if (!bodyPreview.includes('"success"') && (bodyPreview.includes("<html") || bodyPreview.includes("404"))) {
+            console.warn(`[DSM Proxy] ${cand.host}:${cand.port} https=${cand.isHttps} returned 404 for ${fullPath}, trying next candidate`);
+            lastStatus404 = true;
+            lastErr = new Error(`DSM 404 on ${cand.host}:${cand.port}${fullPath}`);
+            (lastErr as any).code = "HTTP_404";
+            continue;
+          }
+        }
+        result = candResult;
+        // Update target to successful candidate for logging/headers
+        targetHost = cand.host;
+        targetPort = cand.port;
+        isHttps = cand.isHttps;
+        break;
+      } catch (e: any) {
+        lastErr = e;
+        // Retry on network errors
+        if (e.code === "ETIMEDOUT" || e.code === "ECONNREFUSED" || e.code === "ENOTFOUND" || e.code === "HTTP_404") {
+          continue;
+        }
+        throw e;
       }
+    }
+    if (!result) {
+      if (lastStatus404) {
+        throw new Error(`DSM API not found (404) on ${rawHost}:${rawPort}. Tried ${allCandidates.map(c=>`${c.host}:${c.port}${c.isHttps?" https":" http"}`).join(", ")}. Check if DSM is on 5000/5001 or reverse proxy forwards /webapi.`);
+      }
+      throw lastErr || new Error("All DSM candidates failed");
     }
 
     const responseHeaders = new Headers();

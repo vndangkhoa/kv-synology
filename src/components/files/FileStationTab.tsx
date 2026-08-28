@@ -6,6 +6,7 @@ import { dsmClient } from "@/lib/dsm/client";
 import { FileItem, ShareLink } from "@/lib/dsm/types";
 import { formatBytes, formatDate } from "@/lib/utils";
 import { FilePreviewModal } from "./FilePreviewModal";
+import ResponsiveModal from "@/components/common/ResponsiveModal";
 import {
   Folder,
   FolderPlus,
@@ -579,21 +580,8 @@ export const FileStationTab: React.FC = () => {
       )}
 
       {/* 1. New Folder Modal */}
-      {newFolderOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-sm shadow-2xl p-5 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                {t.files.newFolder}
-              </h3>
-              <button
-                onClick={() => setNewFolderOpen(false)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleCreateFolder} className="space-y-4">
+      <ResponsiveModal open={newFolderOpen} onClose={() => setNewFolderOpen(false)} maxWidth="sm" title={t.files.newFolder}>
+          <form onSubmit={handleCreateFolder} className="space-y-4">
               <input
                 type="text"
                 required
@@ -619,29 +607,10 @@ export const FileStationTab: React.FC = () => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </ResponsiveModal>
 
       {/* 2. Create Text File Modal (.yml, .env, .txt, .json, .sh...) */}
-      {newFileOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl p-5 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center space-x-2 text-emerald-500">
-                <FilePlus className="w-5 h-5" />
-                <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-                  Tạo tệp văn bản mới
-                </h3>
-              </div>
-              <button
-                onClick={() => setNewFileOpen(false)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
+      <ResponsiveModal open={newFileOpen} onClose={() => setNewFileOpen(false)} maxWidth="lg" title="Tạo tệp văn bản mới" icon={<FilePlus className="w-5 h-5" />}>
             <form onSubmit={handleCreateFile} className="space-y-3">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -697,25 +666,10 @@ export const FileStationTab: React.FC = () => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </ResponsiveModal>
 
       {/* 3. Rename File Modal */}
-      {renameItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-sm shadow-2xl p-5 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                {t.files.renameFile}
-              </h3>
-              <button
-                onClick={() => setRenameItem(null)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      <ResponsiveModal open={renameItem != null} onClose={() => setRenameItem(null)} maxWidth="sm" title={t.files.renameFile}>
             <form onSubmit={handleRename} className="space-y-4">
               <input
                 type="text"
@@ -741,29 +695,10 @@ export const FileStationTab: React.FC = () => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </ResponsiveModal>
 
       {/* 4. Public Share Link Modal */}
-      {shareModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center space-x-2 text-sky-500">
-                <Share2 className="w-5 h-5" />
-                <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-                  Chia sẻ liên kết công khai
-                </h3>
-              </div>
-              <button
-                onClick={() => setShareModalOpen(false)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
+      <ResponsiveModal open={shareModalOpen} onClose={() => setShareModalOpen(false)} maxWidth="md" title="Chia sẻ liên kết công khai" icon={<Share2 className="w-5 h-5" />}>
             {creatingShare ? (
               <div className="py-8 flex flex-col items-center justify-center space-y-2 text-slate-400 text-xs">
                 <Loader2 className="w-6 h-6 animate-spin text-sky-500" />
@@ -810,91 +745,77 @@ export const FileStationTab: React.FC = () => {
                 </div>
               </div>
             ) : null}
-          </div>
-        </div>
-      )}
+      </ResponsiveModal>
 
       {/* 5. Shared Links Manager Modal */}
-      {shareManagerOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl max-h-[85vh] shadow-2xl p-5 sm:p-6 space-y-4 flex flex-col">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 shrink-0">
-              <div className="flex items-center space-x-2 text-sky-500">
-                <LinkIcon className="w-5 h-5" />
-                <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-                  Danh sách liên kết đang chia sẻ ({activeShareLinks.length})
-                </h3>
-              </div>
-              <button
-                onClick={() => setShareManagerOpen(false)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto flex-1 divide-y divide-slate-100 dark:divide-slate-800">
-              {loadingShares ? (
-                <div className="py-12 flex items-center justify-center space-x-2 text-slate-400 text-xs">
-                  <Loader2 className="w-4 h-4 animate-spin text-sky-500" />
-                  <span>Đang tải danh sách liên kết chia sẻ...</span>
-                </div>
-              ) : activeShareLinks.length === 0 ? (
-                <div className="py-12 text-center text-slate-400 text-xs">
-                  Chưa có liên kết chia sẻ công khai nào được tạo.
-                </div>
-              ) : (
-                activeShareLinks.map((link) => (
-                  <div key={link.id} className="py-3 flex items-center justify-between gap-3 text-xs">
-                    <div className="min-w-0 flex-1 space-y-0.5">
-                      <p className="font-bold text-slate-900 dark:text-white truncate">
-                        {link.name || link.path}
-                      </p>
-                      <p className="text-slate-400 font-mono text-[11px] truncate">
-                        {link.url}
-                      </p>
-                      {link.date_expired && (
-                        <p className="text-[10px] text-amber-500">
-                          Hết hạn: {link.date_expired}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex items-center space-x-1.5 shrink-0">
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(link.url);
-                          showToast("Đã sao chép liên kết chia sẻ!");
-                        }}
-                        className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"
-                        title="Sao chép URL"
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteShare(link.id)}
-                        className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400"
-                        title="Thu hồi liên kết"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end shrink-0">
-              <button
-                onClick={() => setShareManagerOpen(false)}
-                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold"
-              >
-                Đóng
-              </button>
-            </div>
+      <ResponsiveModal
+        open={shareManagerOpen}
+        onClose={() => setShareManagerOpen(false)}
+        maxWidth="2xl"
+        title={`Danh sách liên kết đang chia sẻ (${activeShareLinks.length})`}
+        icon={<LinkIcon className="w-5 h-5" />}
+        footer={
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShareManagerOpen(false)}
+              className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold"
+            >
+              Đóng
+            </button>
           </div>
+        }
+      >
+        <div className="overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 max-h-[60vh]">
+          {loadingShares ? (
+            <div className="py-12 flex items-center justify-center space-x-2 text-slate-400 text-xs">
+              <Loader2 className="w-4 h-4 animate-spin text-sky-500" />
+              <span>Đang tải danh sách liên kết chia sẻ...</span>
+            </div>
+          ) : activeShareLinks.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-xs">
+              Chưa có liên kết chia sẻ công khai nào được tạo.
+            </div>
+          ) : (
+            activeShareLinks.map((link) => (
+              <div key={link.id} className="py-3 flex items-center justify-between gap-3 text-xs">
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <p className="font-bold text-slate-900 dark:text-white truncate">
+                    {link.name || link.path}
+                  </p>
+                  <p className="text-slate-400 font-mono text-[11px] truncate">
+                    {link.url}
+                  </p>
+                  {link.date_expired && (
+                    <p className="text-[10px] text-amber-500">
+                      Hết hạn: {link.date_expired}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-1.5 shrink-0">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(link.url);
+                      showToast("Đã sao chép liên kết chia sẻ!");
+                    }}
+                    className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"
+                    title="Sao chép URL"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteShare(link.id)}
+                    className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400"
+                    title="Thu hồi liên kết"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
-      )}
+      </ResponsiveModal>
 
       {/* 6. Preview & Code Editor Modal */}
       {previewFile && (

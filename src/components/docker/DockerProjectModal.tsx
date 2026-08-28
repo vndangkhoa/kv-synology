@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import ResponsiveModal from "@/components/common/ResponsiveModal";
 import { DockerProject } from "@/lib/dsm/types";
 import { dsmClient } from "@/lib/dsm/client";
 import {
@@ -211,7 +212,7 @@ services:
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-0 sm:p-4 animate-in fade-in duration-200">
+    <ResponsiveModal open={true} onClose={onClose} maxWidth="4xl" panelClassName="h-full sm:h-auto">
       <div
         className={`bg-white dark:bg-slate-900 border-0 sm:border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col transition-all ${
           isFullscreen
@@ -411,6 +412,6 @@ services:
           </div>
         </form>
       </div>
-    </div>
+    </ResponsiveModal>
   );
 };

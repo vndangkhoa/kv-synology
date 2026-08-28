@@ -4,12 +4,14 @@ import { DSMSession, SystemInfo, SystemUtilization, NotificationItem, AppNotifyI
 import { dsmClient } from "../dsm/client";
 import { clearPersistedSession } from "../sessionStorage";
 
-export type NavTab = "dashboard" | "monitor" | "files" | "docker" | "download" | "storage" | "packages" | "services" | "firewall" | "notifications" | "terminal" | "mcp" | "settings";
+export type NavTab = "dashboard" | "monitor" | "snmp" | "traffic" | "files" | "docker" | "download" | "storage" | "packages" | "services" | "firewall" | "notifications" | "terminal" | "mcp" | "settings";
 export type ThemeMode = "system" | "dark" | "light";
+export type ExperienceMode = "beginner" | "advance";
 
 interface AppState {
   language: Language;
   theme: ThemeMode;
+  experienceMode: ExperienceMode;
   activeTab: NavTab;
   session: DSMSession;
   systemInfo: SystemInfo | null;
@@ -17,6 +19,7 @@ interface AppState {
   utilizationHistory: SystemUtilization[];
   isLoginModalOpen: boolean;
   isPowerModalOpen: boolean;
+  isAiChatOpen: boolean;
   isMobileDrawerOpen: boolean;
   isSidebarCollapsed: boolean;
   powerModalType: "reboot" | "shutdown";
@@ -27,6 +30,7 @@ interface AppState {
   // Actions
   setLanguage: (lang: Language) => void;
   setTheme: (theme: ThemeMode) => void;
+  setExperienceMode: (mode: ExperienceMode) => void;
   setActiveTab: (tab: NavTab) => void;
   setSession: (session: DSMSession) => void;
   setSystemInfo: (info: SystemInfo) => void;
@@ -34,6 +38,8 @@ interface AppState {
   openLoginModal: (open: boolean) => void;
   openPowerModal: (type: "reboot" | "shutdown") => void;
   closePowerModal: () => void;
+  setAiChatOpen: (open: boolean) => void;
+  toggleAiChat: () => void;
   setMobileDrawerOpen: (open: boolean) => void;
   toggleSidebarCollapse: () => void;
   logout: () => void;
@@ -60,6 +66,7 @@ const applyThemeToDOM = (theme: ThemeMode) => {
 export const useAppStore = create<AppState>((set, get) => ({
   language: "vi",
   theme: "system",
+  experienceMode: "beginner",
   activeTab: "dashboard",
   session: {
     sid: "",
@@ -75,6 +82,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   utilizationHistory: [],
   isLoginModalOpen: false,
   isPowerModalOpen: false,
+  isAiChatOpen: false,
   isMobileDrawerOpen: false,
   isSidebarCollapsed: false,
   powerModalType: "reboot",
@@ -98,7 +106,24 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ theme });
   },
 
-  setActiveTab: (tab: NavTab) => set({ activeTab: tab, isMobileDrawerOpen: false }),
+  setExperienceMode: (mode: ExperienceMode) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("dsm_experience_mode", mode);
+    }
+    set({ experienceMode: mode });
+  },
+
+  setActiveTab: (tab: NavTab) => {
+    if (typeof window !== "undefined") {
+      // auto scroll to top on tab switch - handles both window and main scroll container
+      try {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" });
+        document.documentElement.scrollTo?.({ top: 0, behavior: "smooth" } as any);
+      } catch (_) {}
+    }
+    set({ activeTab: tab, isMobileDrawerOpen: false });
+  },
 
   setSession: (session: DSMSession) => set({ session }),
 
@@ -119,6 +144,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   openPowerModal: (type: "reboot" | "shutdown") => set({ isPowerModalOpen: true, powerModalType: type }),
 
   closePowerModal: () => set({ isPowerModalOpen: false }),
+
+  setAiChatOpen: (open: boolean) => set({ isAiChatOpen: open }),
+  toggleAiChat: () => set((s) => ({ isAiChatOpen: !s.isAiChatOpen })),
 
   setMobileDrawerOpen: (open: boolean) => set({ isMobileDrawerOpen: open }),
 

@@ -26,6 +26,8 @@ export const Header: React.FC = () => {
     setLanguage,
     theme,
     setTheme,
+    experienceMode,
+    setExperienceMode,
     session,
     utilization,
     openLoginModal,
@@ -84,16 +86,16 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20 gap-3">
+    <header className="h-14 sm:h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-2.5 sm:px-6 flex items-center justify-between sticky top-0 z-20 gap-1.5 sm:gap-3 w-full max-w-full overflow-x-hidden">
       {/* Left: Hamburger Sidebar Toggle + Full Title */}
-      <div className="flex items-center space-x-3 shrink-0">
+      <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0 min-w-0">
         {/* Mobile Hamburger Drawer Trigger */}
         <button
           onClick={() => setMobileDrawerOpen(true)}
-          className="md:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="md:hidden p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
           title="Mở menu"
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         {/* Desktop Sidebar Collapse Toggle */}
@@ -109,7 +111,7 @@ export const Header: React.FC = () => {
           )}
         </button>
 
-        <h2 className="text-sm sm:text-base md:text-lg font-bold text-slate-900 dark:text-white whitespace-nowrap">
+        <h2 className="text-xs sm:text-base md:text-lg font-bold text-slate-900 dark:text-white truncate max-w-[80px] xs:max-w-[110px] sm:max-w-none">
           {getTabTitle()}
         </h2>
 
@@ -148,7 +150,35 @@ export const Header: React.FC = () => {
       )}
 
       {/* Right Controls */}
-      <div className="flex items-center space-x-2 shrink-0">
+      <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
+        {/* Experience Mode Switcher (Beginner vs Advance) */}
+        <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-0.5 text-[10px] sm:text-[11px] font-bold shadow-xs">
+          <button
+            onClick={() => setExperienceMode("beginner")}
+            className={`px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+              experienceMode === "beginner"
+                ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-xs font-black"
+                : "text-slate-500 hover:text-slate-800 dark:hover:text-white"
+            }`}
+            title="Chế độ Cơ bản (Thân thiện, dễ dùng cho người mới)"
+          >
+            <span className={`w-2 h-2 rounded-full ${experienceMode === "beginner" ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`} />
+            <span className="hidden sm:inline">Cơ bản</span>
+          </button>
+          <button
+            onClick={() => setExperienceMode("advance")}
+            className={`px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+              experienceMode === "advance"
+                ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-xs font-black"
+                : "text-slate-500 hover:text-slate-800 dark:hover:text-white"
+            }`}
+            title="Chế độ Nâng cao (Đầy đủ thông số kỹ thuật, OID MIB, sockets)"
+          >
+            <span className="text-amber-500">⚡</span>
+            <span className="hidden sm:inline">Nâng cao</span>
+          </button>
+        </div>
+
         {/* Language Switcher (Desktop / Tablet) */}
         <div className="hidden sm:flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-0.5 text-xs font-bold">
           <button
@@ -178,7 +208,7 @@ export const Header: React.FC = () => {
         {/* 3-State Theme Button */}
         <button
           onClick={handleCycleTheme}
-          className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center"
+          className="p-1.5 sm:p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center"
           title={`Giao diện: ${theme === "system" ? "Hệ thống" : theme === "dark" ? "Tối" : "Sáng"}`}
         >
           {getThemeIcon()}
@@ -187,12 +217,12 @@ export const Header: React.FC = () => {
         {/* Notifications Bell */}
         <button
           onClick={() => setActiveTab("notifications")}
-          className="relative p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-slate-700 transition-colors"
+          className="relative p-1.5 sm:p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-slate-700 transition-colors"
           title={t.nav.notifications}
         >
           <Bell className="w-4 h-4" />
           {notifications.filter((n) => !n.read).length > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+            <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-rose-500 text-white text-[9px] sm:text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
               {notifications.filter((n) => !n.read).length > 9 ? "9+" : notifications.filter((n) => !n.read).length}
             </span>
           )}

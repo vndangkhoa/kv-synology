@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import ResponsiveModal from "@/components/common/ResponsiveModal";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { dsmClient } from "@/lib/dsm/client";
 import { DownloadTask } from "@/lib/dsm/types";
@@ -318,24 +319,8 @@ export const DownloadStationTab: React.FC = () => {
 
       {/* Add Download Task Modal */}
       {addTaskModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl p-5 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center space-x-2">
-                <DownloadCloud className="w-5 h-5 text-sky-500" />
-                <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-                  {t.download.addTask}
-                </h3>
-              </div>
-              <button
-                onClick={() => setAddTaskModalOpen(false)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddTask} className="space-y-4">
+        <ResponsiveModal open={addTaskModalOpen} onClose={() => setAddTaskModalOpen(false)} maxWidth="lg" title={t.download.addTask} icon={<DownloadCloud className="w-5 h-5" />}>
+          <form onSubmit={handleAddTask} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                   Liên kết tải (URL / Magnet Link)
@@ -367,8 +352,7 @@ export const DownloadStationTab: React.FC = () => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </ResponsiveModal>
       )}
     </div>
   );

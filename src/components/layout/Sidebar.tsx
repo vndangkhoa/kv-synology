@@ -5,6 +5,8 @@ import { useAppStore, NavTab } from "@/lib/store/useAppStore";
 import {
   LayoutDashboard,
   Activity,
+  Radio,
+  Globe,
   FolderOpen,
   Boxes,
   DownloadCloud,
@@ -22,6 +24,7 @@ import {
   Terminal,
   Bot,
   Shield,
+  Gauge,
 } from "lucide-react";
 
 export const Sidebar: React.FC = () => {
@@ -41,6 +44,8 @@ export const Sidebar: React.FC = () => {
   const navItems: { id: NavTab; label: string; icon: React.ReactNode }[] = [
     { id: "dashboard", label: t.nav.dashboard, icon: <LayoutDashboard className="w-5 h-5" /> },
     { id: "monitor", label: t.nav.resourceMonitor, icon: <Activity className="w-5 h-5" /> },
+    { id: "snmp", label: t.nav.snmp, icon: <Radio className="w-5 h-5" /> },
+    { id: "traffic", label: t.nav.traffic, icon: <Globe className="w-5 h-5" /> },
     { id: "files", label: t.nav.fileStation, icon: <FolderOpen className="w-5 h-5" /> },
     { id: "docker", label: t.nav.docker, icon: <Boxes className="w-5 h-5" /> },
     { id: "download", label: t.nav.downloadStation, icon: <DownloadCloud className="w-5 h-5" /> },

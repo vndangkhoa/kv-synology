@@ -43,6 +43,8 @@ import {
   Key,
 } from "lucide-react";
 
+import ResponsiveModal from "@/components/common/ResponsiveModal";
+
 export const FirewallManagerTab: React.FC = () => {
   const { session, t } = useAppStore();
 
@@ -324,32 +326,32 @@ export const FirewallManagerTab: React.FC = () => {
       )}
 
       {/* Top Banner & Metric Cards */}
-      <div className="bg-gradient-to-br from-slate-900 via-sky-950/40 to-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 text-white shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-br from-white via-slate-50 to-sky-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 sm:p-6 text-slate-900 dark:text-white shadow-sm relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-10">
           <div className="space-y-2">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2.5 rounded-2xl bg-sky-500/20 text-sky-400 border border-sky-500/30">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 shrink-0">
                 <Shield className="w-6 h-6" />
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-base sm:text-lg font-black tracking-tight">
-                    Tường lửa & Trung tâm Bảo mật Synology DSM
+                  <h3 className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                    Tường lửa &amp; Trung tâm Bảo mật Synology DSM
                   </h3>
                   {session.isConnected ? (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       Live WebAPI: {session.hostname || "192.168.31.71"} (Profile: {firewallConfig?.defaultProfile || "default"})
                     </span>
                   ) : (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/20">
                       Chế độ Demo
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-300 mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Lọc cổng truy cập trực tiếp trên NAS, kiểm soát dải IP nguồn, ngăn chặn DoS và tự động khóa IP brute-force.
                 </p>
               </div>
@@ -357,12 +359,12 @@ export const FirewallManagerTab: React.FC = () => {
           </div>
 
           {/* Master Firewall Switch */}
-          <div className="flex items-center gap-3 bg-white/10 dark:bg-slate-800/80 backdrop-blur-md p-3 rounded-2xl border border-white/15 shrink-0">
+          <div className="flex items-center gap-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs shrink-0">
             <div className="text-right">
-              <span className="text-xs font-bold block">Trạng thái Tường lửa:</span>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block">Trạng thái Tường lửa:</span>
               <span
                 className={`text-[11px] font-extrabold ${
-                  firewallConfig?.enabled ? "text-emerald-400" : "text-amber-400"
+                  firewallConfig?.enabled ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
                 }`}
               >
                 {firewallConfig?.enabled ? "● Đang kích hoạt (Bảo vệ)" : "○ Đã tắt (Không lọc)"}
@@ -370,8 +372,8 @@ export const FirewallManagerTab: React.FC = () => {
             </div>
             <button
               onClick={handleToggleMasterFirewall}
-              className={`w-12 h-6.5 rounded-full transition-colors relative flex items-center p-1 ${
-                firewallConfig?.enabled ? "bg-emerald-500" : "bg-slate-600"
+              className={`w-12 h-6.5 rounded-full transition-colors relative flex items-center p-1 cursor-pointer ${
+                firewallConfig?.enabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
               }`}
             >
               <span
@@ -384,39 +386,39 @@ export const FirewallManagerTab: React.FC = () => {
         </div>
 
         {/* 3 Metric Mini-Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 pt-4 border-t border-slate-800/80">
-          <div className="bg-slate-800/50 backdrop-blur-sm p-3.5 rounded-2xl border border-slate-700/60 flex items-center justify-between">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 pt-4 border-t border-slate-200/80 dark:border-slate-800">
+          <div className="bg-white dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between shadow-xs">
             <div>
-              <span className="text-[11px] text-slate-400 block font-medium">Quy tắc đang bật</span>
-              <span className="text-lg font-black text-white font-mono">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">Quy tắc đang bật</span>
+              <span className="text-lg font-black text-slate-900 dark:text-white font-mono">
                 {firewallConfig?.rules.filter((r) => r.enabled).length || 0} / {firewallConfig?.rules.length || 0}
               </span>
             </div>
-            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400">
+            <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400">
               <SlidersHorizontal className="w-4 h-4" />
             </div>
           </div>
 
-          <div className="bg-slate-800/50 backdrop-blur-sm p-3.5 rounded-2xl border border-slate-700/60 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between shadow-xs">
             <div>
-              <span className="text-[11px] text-slate-400 block font-medium">IP bị khóa tự động</span>
-              <span className="text-lg font-black text-amber-400 font-mono">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">IP bị khóa tự động</span>
+              <span className="text-lg font-black text-amber-600 dark:text-amber-400 font-mono">
                 {blockedIps.length} IP
               </span>
             </div>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
               <Lock className="w-4 h-4" />
             </div>
           </div>
 
-          <div className="bg-slate-800/50 backdrop-blur-sm p-3.5 rounded-2xl border border-slate-700/60 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between shadow-xs">
             <div>
-              <span className="text-[11px] text-slate-400 block font-medium">Bảo vệ DoS Attack</span>
-              <span className="text-lg font-black text-emerald-400 font-mono">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">Bảo vệ DoS Attack</span>
+              <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">
                 {dosEnabled ? "Đã kích hoạt" : "Chưa bật"}
               </span>
             </div>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <Zap className="w-4 h-4" />
             </div>
           </div>
@@ -953,31 +955,32 @@ export const FirewallManagerTab: React.FC = () => {
 
       {/* ==================== ADD / EDIT RULE MODAL ==================== */}
       {isRuleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-200 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden my-auto">
-            {/* Modal Header */}
-            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-sky-500/10 text-sky-500">
-                  <Shield className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                    {editingRule ? "Chỉnh sửa Quy tắc Tường lửa" : "Thêm Quy tắc Tường lửa Mới"}
-                  </h3>
-                  <p className="text-xs text-slate-400">Thiết lập bộ lọc cổng và địa chỉ IP trên Synology NAS</p>
-                </div>
-              </div>
+        <ResponsiveModal
+          open={isRuleModalOpen}
+          onClose={() => setIsRuleModalOpen(false)}
+          maxWidth="lg"
+          title={editingRule ? "Chỉnh sửa Quy tắc Tường lửa" : "Thêm Quy tắc Tường lửa Mới"}
+          icon={<Shield className="w-5 h-5" />}
+          footer={
+            <div className="flex items-center justify-end gap-2">
               <button
+                type="button"
                 onClick={() => setIsRuleModalOpen(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold"
               >
-                <X className="w-4 h-4" />
+                Hủy
+              </button>
+              <button
+                type="submit"
+                form="firewall-rule-form"
+                className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold shadow-sm"
+              >
+                {editingRule ? "Cập nhật Quy tắc" : "Thêm Quy tắc"}
               </button>
             </div>
-
-            {/* Modal Form */}
-            <form onSubmit={handleSaveRule} className="p-5 space-y-4 text-xs">
+          }
+        >
+          <form id="firewall-rule-form" onSubmit={handleSaveRule} className="space-y-4 text-xs">
               {/* Presets Selector */}
               <div className="space-y-1.5">
                 <label className="font-bold text-slate-700 dark:text-slate-300">
@@ -1060,7 +1063,7 @@ export const FirewallManagerTab: React.FC = () => {
                 <label className="font-bold text-slate-700 dark:text-slate-300">
                   Địa chỉ IP Nguồn (Source):
                 </label>
-                <div className="grid grid-cols-3 gap-2 mb-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
                   {[
                     { id: "all", label: "Tất cả IP" },
                     { id: "subnet", label: "Dải Subnet LAN" },
@@ -1127,26 +1130,8 @@ export const FirewallManagerTab: React.FC = () => {
                   </button>
                 </div>
               </div>
-
-              {/* Modal Footer */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsRuleModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold shadow-sm"
-                >
-                  {editingRule ? "Cập nhật Quy tắc" : "Thêm Quy tắc"}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
+        </ResponsiveModal>
       )}
     </div>
   );

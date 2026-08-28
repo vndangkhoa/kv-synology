@@ -41,7 +41,7 @@ import {
 type SortField = "name_asc" | "name_desc" | "status" | "cpu" | "ram" | "time_desc" | "time_asc";
 
 export const DockerTab: React.FC = () => {
-  const { session, t } = useAppStore();
+  const { session, experienceMode, t } = useAppStore();
 
   // Primary Sub-Tab
   const [subTab, setSubTab] = useState<"containers" | "projects" | "images">("containers");
@@ -324,6 +324,247 @@ export const DockerTab: React.FC = () => {
 
     return list;
   }, [projects, projectSearch, projectStatusFilter, projectSortBy]);
+
+  // ==========================================
+  // 🟢 DEDICATED BEGINNER MODE: APP CENTER (BOUND TO REAL DOCKER TELEMETRY)
+  // ==========================================
+  if (experienceMode === "beginner") {
+    const getAppMeta = (c: DockerContainerDetails) => {
+      const name = (c.name || "").toLowerCase();
+      const img = (c.image || "").toLowerCase();
+
+      let icon = "📦";
+      let displayName = c.name || "Docker Container";
+      let category = "Ứng dụng Docker";
+      let desc = `Image: ${c.image || "custom"}`;
+
+      if (name.includes("plex") || img.includes("plex")) {
+        icon = "🎬";
+        displayName = "Plex Media Server";
+        category = "Giải trí & Phim ảnh";
+        desc = "Thư viện phát phim, âm nhạc và video 4K tự lưu trữ";
+      } else if (name.includes("adguard") || img.includes("adguard")) {
+        icon = "🛡️";
+        displayName = "AdGuard Home";
+        category = "An ninh & Mạng";
+        desc = "Chặn quảng cáo và mã độc trên toàn bộ mạng WiFi";
+      } else if (name.includes("vaultwarden") || img.includes("vaultwarden") || name.includes("bitwarden")) {
+        icon = "🔐";
+        displayName = "Vaultwarden Hub";
+        category = "Bảo mật cá nhân";
+        desc = "Két lưu trữ mật khẩu gia đình an toàn tuyệt đối";
+      } else if (name.includes("qbittorrent") || img.includes("qbittorrent") || name.includes("transmission")) {
+        icon = "⚡";
+        displayName = "qBittorrent Hub";
+        category = "Tải file tự động";
+        desc = "Tải phim, tài liệu và dữ liệu lớn 24/7";
+      } else if (name.includes("nginx") || img.includes("nginx") || name.includes("npm")) {
+        icon = "🌐";
+        displayName = "Nginx Proxy Manager";
+        category = "Tên miền & SSL";
+        desc = "Quản lý tên miền riêng và chứng chỉ SSL Let's Encrypt";
+      } else if (name.includes("immich") || img.includes("immich")) {
+        icon = "📸";
+        displayName = "Immich Photo Hub";
+        category = "Quản lý Ảnh & Video";
+        desc = "Tự động sao lưu và nhận diện khuôn mặt ảnh gia đình";
+      } else if (name.includes("homeassistant") || name.includes("hass") || img.includes("homeassistant")) {
+        icon = "🏠";
+        displayName = "Home Assistant";
+        category = "Nhà Thông Minh";
+        desc = "Điều khiển thiết bị IoT và tự động hóa nhà thông minh";
+      } else if (name.includes("portainer") || img.includes("portainer")) {
+        icon = "🐳";
+        displayName = "Portainer CE";
+        category = "Quản lý Container";
+        desc = "Bảng điều khiển trực quan hóa Docker";
+      } else if (name.includes("postgres") || name.includes("mysql") || name.includes("mariadb") || name.includes("redis")) {
+        icon = "🗄️";
+        category = "Cơ sở dữ liệu";
+        desc = "Dịch vụ Database lưu trữ dữ liệu các ứng dụng";
+      }
+
+      // Find host port
+      let webPort: string | null = null;
+      if (c.portBindings && c.portBindings.length > 0) {
+        webPort = c.portBindings[0].hostPort;
+      } else if (c.ports && c.ports.length > 0) {
+        const first = c.ports[0];
+        const match = first.match(/(\d+):/);
+        if (match) webPort = match[1];
+        else webPort = first.split("/")[0];
+      }
+
+      return { icon, displayName, category, desc, webPort };
+    };
+
+    return (
+      <div className="space-y-4 sm:space-y-5 animate-in fade-in duration-200">
+        {/* Beginner App Center Banner */}
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-sky-500/30 bg-gradient-to-br from-white via-sky-50/40 to-indigo-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/20 p-4 sm:p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="p-3 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-500 text-white shadow-md shadow-sky-500/20 shrink-0">
+                <Boxes className="w-6 h-6 sm:w-7 sm:h-7" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-base sm:text-xl font-black text-slate-900 dark:text-white">
+                    Trung Tâm Ứng Dụng NAS (App Center)
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    {containers.length} Ứng dụng Thực Tế trên NAS
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Đồng bộ trực tiếp từ Synology DSM Container Manager — mở giao diện Web 1-chạm hoặc khởi chạy an toàn.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={fetchAll}
+              disabled={loading}
+              className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/80 shadow-xs flex items-center gap-2 shrink-0 cursor-pointer self-start sm:self-auto"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-sky-500" : ""}`} />
+              <span>{loading ? "Đang nạp..." : "Làm mới ứng dụng"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Real Containers Grid */}
+        {containers.length === 0 ? (
+          <div className="p-8 sm:p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="w-14 h-14 rounded-3xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+              <Boxes className="w-7 h-7" />
+            </div>
+            <h4 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
+              Chưa có Container nào trên thiết bị NAS
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+              Hệ thống chưa tìm thấy ứng dụng Docker nào đang chạy. Bạn có thể mở chế độ Nâng cao để tạo container mới từ Docker Hub.
+            </p>
+            <button
+              onClick={() => useAppStore.getState().setExperienceMode("advance")}
+              className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs transition-colors cursor-pointer"
+            >
+              Tạo Container Mới (Nâng cao ⚡)
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+            {containers.map((c) => {
+              const meta = getAppMeta(c);
+              const isRunning = c.status === "running";
+
+              return (
+                <div
+                  key={c.id || c.name}
+                  className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-sm flex flex-col justify-between space-y-4 hover:border-sky-500/40 hover:shadow-md transition-all group"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl sm:text-3xl p-2 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 shadow-xs">
+                          {meta.icon}
+                        </span>
+                        <div>
+                          <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors truncate max-w-[170px] sm:max-w-[200px]">
+                            {meta.displayName}
+                          </h3>
+                          <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wider">
+                            {meta.category}
+                          </span>
+                        </div>
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${
+                          isRunning
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"
+                        }`}
+                      >
+                        {isRunning ? "🟢 Đang chạy" : "⚪ Đã dừng"}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2">
+                      {meta.desc}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                      <span>Cổng: <strong className="text-slate-700 dark:text-slate-200">{meta.webPort ? `:${meta.webPort}` : "Host"}</strong></span>
+                      <span>RAM: <strong className="text-indigo-600 dark:text-indigo-400">{c.memoryUsage || "0 MB"}</strong></span>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      {meta.webPort && isRunning ? (
+                        <a
+                          href={`http://${session.hostname || "192.168.1.52"}:${meta.webPort}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 font-bold text-xs transition-all shadow flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Mở Web UI</span>
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedContainer(c);
+                            useAppStore.getState().setExperienceMode("advance");
+                          }}
+                          className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Sliders className="w-3.5 h-3.5" />
+                          <span>Chi tiết</span>
+                        </button>
+                      )}
+
+                      {/* 1-Click Action: Start or Restart */}
+                      <button
+                        onClick={() => requestContainerAction(c, isRunning ? "restart" : "start")}
+                        className={`p-2 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${
+                          isRunning
+                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20"
+                            : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+                        }`}
+                        title={isRunning ? "Khởi động lại" : "Khởi chạy"}
+                      >
+                        {isRunning ? <RotateCw className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Switch to Advance Hint */}
+        <div className="p-4 rounded-2xl sm:rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div>
+            <span className="font-bold text-slate-900 dark:text-white">💡 Bạn là Quản trị viên muốn tạo Compose Stacks, kéo Image từ Docker Hub hoặc xem Terminal?</span>
+            <p className="text-slate-500 dark:text-slate-400 mt-0.5">Chế độ Nâng cao cung cấp toàn bộ công cụ quản lý Container, Stacks và Volume chi tiết.</p>
+          </div>
+          <button
+            onClick={() => useAppStore.getState().setExperienceMode("advance")}
+            className="px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs shrink-0 transition-colors cursor-pointer self-start sm:self-center"
+          >
+            Mở Trình Quản Lý Docker Chuyên Sâu ⚡
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // ⚡ ADVANCE MODE: FULL DOCKER MANAGEMENT
+  // ==========================================
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-200">

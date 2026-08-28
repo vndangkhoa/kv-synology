@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import ResponsiveModal from "@/components/common/ResponsiveModal";
 import { DockerContainerDetails, DockerPortBinding, DockerVolumeMount, DockerEnvVar } from "@/lib/dsm/types";
 import { dsmClient } from "@/lib/dsm/client";
 import {
@@ -119,8 +120,8 @@ export const DockerCreateModal: React.FC<DockerCreateModalProps> = ({ onClose, o
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-3 sm:p-4 animate-in fade-in duration-200 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden my-auto flex flex-col max-h-[92vh]">
+    <ResponsiveModal open={true} onClose={onClose} maxWidth="2xl" noPadding>
+      <div className="flex flex-col w-full max-h-[85vh]">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -372,6 +373,6 @@ export const DockerCreateModal: React.FC<DockerCreateModalProps> = ({ onClose, o
           </div>
         </form>
       </div>
-    </div>
+    </ResponsiveModal>
   );
 };

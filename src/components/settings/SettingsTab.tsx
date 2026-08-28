@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { useAppStore, ThemeMode } from "@/lib/store/useAppStore";
-import { PowerModal } from "./PowerModal";
 import { dsmClient } from "@/lib/dsm/client";
 import {
   loadPersistedSession,
@@ -46,6 +45,8 @@ export const SettingsTab: React.FC = () => {
     setLanguage,
     theme,
     setTheme,
+    experienceMode,
+    setExperienceMode,
     session,
     setActiveTab,
     openPowerModal,
@@ -63,6 +64,8 @@ export const SettingsTab: React.FC = () => {
   const [terminalSaving, setTerminalSaving] = useState(false);
   const [sshPortInput, setSshPortInput] = useState("22");
   const [terminalFeedback, setTerminalFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const isBeginner = experienceMode === "beginner";
 
   const refreshPersistInfo = () => {
     const p = loadPersistedSession();
@@ -189,7 +192,7 @@ export const SettingsTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-5 animate-in fade-in duration-200 w-full">
+    <div className={`${isBeginner ? "space-y-2 sm:space-y-3" : "space-y-4 sm:space-y-5"} animate-in fade-in duration-200 w-full`}>
       {/* Toast Feedback */}
       {(saveFeedback || terminalFeedback) && (
         <div
@@ -215,23 +218,26 @@ export const SettingsTab: React.FC = () => {
         </div>
       )}
 
-      {/* Header Banner */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 sm:p-3 rounded-2xl bg-sky-500/10 text-sky-500 shrink-0">
-            <SlidersHorizontal className="w-5 h-5 sm:w-6 sm:h-6" />
+      {/* Header Banner - ultra compact on mobile */}
+      <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "rounded-lg sm:rounded-xl p-2 sm:p-3" : "rounded-2xl sm:rounded-3xl p-4 sm:p-5"} border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between ${isBeginner ? "gap-1.5 sm:gap-2" : "gap-3"}`}>
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          <div className={`${isBeginner ? "p-1.5 sm:p-2 rounded-lg sm:rounded-xl" : "p-2.5 sm:p-3 rounded-2xl"} bg-sky-500/10 text-sky-500 shrink-0`}>
+            <SlidersHorizontal className={`${isBeginner ? "w-4 h-4 sm:w-5 sm:h-5" : "w-5 h-5 sm:w-6 sm:h-6"}`} />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className={`${isBeginner ? "text-sm" : "text-base sm:text-lg"} font-bold text-slate-900 dark:text-white`}>
                 {t.settings.title}
               </h2>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
                 {session.isConnected ? (session.sid === "mock_sid" ? "Chế độ Demo" : "Đã kết nối") : "Chưa kết nối"}
               </span>
+              {isBeginner && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">🟢 Cơ bản</span>
+              )}
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Cấu hình tài khoản, giao diện, SSH, kiểm soát nguồn và tích hợp API / MCP
+            <p className={`${isBeginner ? "text-[11px]" : "text-xs"} text-slate-500 dark:text-slate-400 mt-0.5`}>
+              {isBeginner ? "Tài khoản, giao diện và nguồn — gọn nhẹ cho người mới." : "Cấu hình tài khoản, giao diện, SSH, kiểm soát nguồn và tích hợp API / MCP"}
             </p>
           </div>
         </div>
@@ -257,12 +263,12 @@ export const SettingsTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Responsive Settings Grid (Minimal & Dense 2 or 3 Columns) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+      {/* Responsive Settings Grid - compact for beginner & mobile */}
+      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${isBeginner ? "gap-2 sm:gap-3" : "gap-3.5 sm:gap-4"}`}>
         {/* CARD 1: Connection & Session */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-sm space-y-3.5 flex flex-col justify-between">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+        <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "rounded-lg sm:rounded-xl p-2 sm:p-3 shadow-sm space-y-2 sm:space-y-3" : "rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5"} border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between`}>
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between pb-1.5 sm:pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 <Server className="w-4 h-4 text-sky-500" />
                 Phiên kết nối & Thiết bị
@@ -322,9 +328,9 @@ export const SettingsTab: React.FC = () => {
         </div>
 
         {/* CARD 2: Appearance & Localization */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-sm space-y-3.5 flex flex-col justify-between">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+        <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "rounded-lg sm:rounded-xl p-2 sm:p-3 shadow-sm space-y-2 sm:space-y-3" : "rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5"} border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between`}>
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between pb-1.5 sm:pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 <Globe className="w-4 h-4 text-indigo-500" />
                 Giao diện & Ngôn ngữ
@@ -389,6 +395,41 @@ export const SettingsTab: React.FC = () => {
                 })}
               </div>
             </div>
+
+            {/* Experience Mode Toggle: Beginner vs Advance */}
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block">
+                Chế độ Trải nghiệm (Experience Mode)
+              </label>
+              <div className="grid grid-cols-2 gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl text-xs">
+                <button
+                  onClick={() => setExperienceMode("beginner")}
+                  className={`py-1.5 px-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    experienceMode === "beginner"
+                      ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${experienceMode === "beginner" ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`} />
+                  <span>🟢 Cơ bản (Người mới)</span>
+                </button>
+                <button
+                  onClick={() => setExperienceMode("advance")}
+                  className={`py-1.5 px-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    experienceMode === "advance"
+                      ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm"
+                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <span>⚡ Nâng cao (Pro)</span>
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                {experienceMode === "beginner"
+                  ? "Chế độ Cơ bản tinh gọn các chỉ số, ẩn các bảng OID/socket phức tạp, phù hợp người mới dùng."
+                  : "Chế độ Nâng cao mở khóa toàn bộ biểu đồ chi tiết per-core, socket TCP, OID MIB và terminal."}
+              </p>
+            </div>
           </div>
 
           <div className="pt-2 text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-800">
@@ -397,9 +438,9 @@ export const SettingsTab: React.FC = () => {
         </div>
 
         {/* CARD 3: Power & Lifecycle Management */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-sm space-y-3.5 flex flex-col justify-between">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+        <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "rounded-lg sm:rounded-xl p-2 sm:p-3 shadow-sm space-y-2 sm:space-y-3" : "rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5"} border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between`}>
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between pb-1.5 sm:pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 <Power className="w-4 h-4 text-rose-500" />
                 Kiểm soát Nguồn thiết bị
@@ -433,10 +474,27 @@ export const SettingsTab: React.FC = () => {
           </div>
         </div>
 
+        {/* Beginner toggle for advanced cards - mobile ultra compact */}
+        {isBeginner && !showAdvancedSettings && (
+          <div className="col-span-1 md:col-span-2 lg:col-span-3 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-sky-50/60 dark:bg-sky-950/20 border border-sky-200/60 dark:border-sky-800/60 flex items-center justify-between gap-2 sm:gap-3 text-[11px] sm:text-xs">
+            <span className="text-slate-600 dark:text-slate-300">
+              🔧 <strong>4 cài đặt nâng cao</strong> (SSH, AI &amp; MCP, PWA, Tường lửa) đang được gọn bớt cho người mới.
+            </span>
+            <button
+              onClick={() => setShowAdvancedSettings(true)}
+              className="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs shrink-0 cursor-pointer"
+            >
+              Hiển thị thêm
+            </button>
+          </div>
+        )}
+
+        {(!isBeginner || showAdvancedSettings) && (
+          <>
         {/* CARD 4: Terminal & SSH Port Management */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-sm space-y-3.5 flex flex-col justify-between">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+        <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "rounded-lg sm:rounded-xl p-2 sm:p-3 shadow-sm space-y-2 sm:space-y-3" : "rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5"} border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between`}>
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between pb-1.5 sm:pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 <Terminal className="w-4 h-4 text-emerald-500" />
                 Cấu hình Terminal SSH
@@ -485,9 +543,9 @@ export const SettingsTab: React.FC = () => {
         </div>
 
         {/* CARD 5: AI & MCP Integration */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-sm space-y-3.5 flex flex-col justify-between">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+        <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "rounded-lg sm:rounded-xl p-2 sm:p-3 shadow-sm space-y-2 sm:space-y-3" : "rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5"} border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between`}>
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between pb-1.5 sm:pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 <Bot className="w-4 h-4 text-sky-500" />
                 Tích hợp AI & MCP Server
@@ -515,9 +573,9 @@ export const SettingsTab: React.FC = () => {
         </div>
 
         {/* CARD 6: PWA & Client App */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-sm space-y-3.5 flex flex-col justify-between">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+        <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "rounded-lg sm:rounded-xl p-2 sm:p-3 shadow-sm space-y-2 sm:space-y-3" : "rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5"} border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between`}>
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between pb-1.5 sm:pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 <Smartphone className="w-4 h-4 text-indigo-500" />
                 Ứng dụng Web PWA
@@ -555,9 +613,9 @@ export const SettingsTab: React.FC = () => {
         </div>
 
         {/* CARD 7: Firewall & Security */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-sm space-y-3.5 flex flex-col justify-between">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+        <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "rounded-lg sm:rounded-xl p-2 sm:p-3 shadow-sm space-y-2 sm:space-y-3" : "rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5"} border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between`}>
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between pb-1.5 sm:pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 <Shield className="w-4 h-4 text-emerald-500" />
                 Tường lửa & Bảo mật DSM
@@ -583,9 +641,19 @@ export const SettingsTab: React.FC = () => {
             </button>
           </div>
         </div>
+          </>
+        )}
+        {isBeginner && showAdvancedSettings && (
+          <div className="col-span-1 md:col-span-2 lg:col-span-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center">
+            <button
+              onClick={() => setShowAdvancedSettings(false)}
+              className="text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 cursor-pointer"
+            >
+              Thu gọn cài đặt nâng cao ↑
+            </button>
+          </div>
+        )}
       </div>
-
-      <PowerModal />
     </div>
   );
 };
