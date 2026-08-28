@@ -13,6 +13,11 @@
     --foreground: #f1f5f9;
   }
 
+  .gemini {
+    --background: #131314;
+    --foreground: #e3e3e3;
+  }
+
   /* Universal Scrollbar Removal - Clean modern look with full scrollability */
   *,
   *::before,
@@ -60,3 +65,185 @@ body::-webkit-scrollbar {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
 }
+
+/* =========================================================================
+   GOOGLE GEMINI MOBILE THEME (Android / iOS Replicated Visual Language)
+   ========================================================================= */
+
+/* 1. Mobile Palette & Surface Elevation */
+html.gemini body {
+  background-color: #131314 !important;
+  color: #e3e3e3 !important;
+}
+
+/* Solid edge-to-edge application background */
+html.gemini .bg-slate-950,
+html.gemini .dark\:bg-slate-950,
+html.gemini .bg-slate-50,
+html.gemini .dark\:bg-slate-50 {
+  background-color: #131314 !important;
+}
+
+/* Active Overlay Surfaces (#1E1F20) - Cards, Header, Modals, Drawer, Bottom Sheets */
+html.gemini .bg-white,
+html.gemini .dark\:bg-slate-900,
+html.gemini .bg-white\/80,
+html.gemini .dark\:bg-slate-900\/80,
+html.gemini .bg-white\/90,
+html.gemini .dark\:bg-slate-900\/90,
+html.gemini .bg-white\/95,
+html.gemini .dark\:bg-slate-900\/95,
+html.gemini header,
+html.gemini nav {
+  background-color: #1e1f20 !important;
+}
+
+/* Inner tiles / secondary surfaces (#282A2C) */
+html.gemini .bg-slate-100,
+html.gemini .dark\:bg-slate-800,
+html.gemini .bg-slate-100\/90,
+html.gemini .dark\:bg-slate-800\/80,
+html.gemini .bg-slate-100\/80,
+html.gemini .dark\:bg-slate-800\/90,
+html.gemini .bg-slate-50\/70,
+html.gemini .dark\:bg-slate-900\/60,
+html.gemini .bg-slate-50\/80,
+html.gemini .dark\:bg-slate-800\/50,
+html.gemini .bg-slate-50\/30,
+html.gemini .dark\:bg-slate-950\/20 {
+  background-color: #282a2c !important;
+}
+
+/* Tertiary highlight surfaces (#37393B) */
+html.gemini .bg-slate-200,
+html.gemini .dark\:bg-slate-700,
+html.gemini .bg-slate-200\/80,
+html.gemini .dark\:bg-slate-700\/70 {
+  background-color: #37393b !important;
+}
+
+/* Zero sharp borders & subtle background contrast */
+html.gemini .border-slate-200,
+html.gemini .dark\:border-slate-800,
+html.gemini .border-slate-100,
+html.gemini .dark\:border-slate-700,
+html.gemini .border-slate-200\/80,
+html.gemini .dark\:border-slate-700\/60,
+html.gemini .border-slate-200\/70,
+html.gemini .dark\:border-slate-700\/70,
+html.gemini .border-slate-200\/60,
+html.gemini .dark\:border-slate-700\/50 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Text Colors */
+html.gemini .text-slate-900,
+html.gemini .dark\:text-white {
+  color: #f1f3f4 !important;
+}
+
+html.gemini .text-slate-600,
+html.gemini .dark\:text-slate-300,
+html.gemini .text-slate-500,
+html.gemini .dark\:text-slate-400 {
+  color: #9aa0a6 !important;
+}
+
+/* Google Gemini Blue & Gradient Highlights */
+html.gemini .bg-sky-600,
+html.gemini .bg-sky-500 {
+  background-color: #4285f4 !important;
+  color: #ffffff !important;
+}
+
+html.gemini .text-sky-600,
+html.gemini .dark\:text-sky-400,
+html.gemini .text-sky-500 {
+  color: #8ab4f8 !important;
+}
+
+/* 4. Touch & Interaction Guidelines - Haptic Emulation */
+html.gemini button,
+html.gemini [role="button"],
+html.gemini .cursor-pointer {
+  transition: transform 100ms cubic-bezier(0.2, 0.0, 0, 1.0), background-color 150ms ease, box-shadow 150ms ease;
+}
+
+html.gemini button:active,
+html.gemini [role="button"]:active,
+html.gemini .cursor-pointer:active {
+  transform: scale(0.96) !important;
+}
+
+/* 2. Signature Mobile Animations & Visual FX */
+
+/* A. Ambient Sparkle & Thinking Glow Animation */
+@keyframes gemini-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes gemini-pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
+}
+
+.gemini-ambient-glow {
+  position: relative;
+}
+
+.gemini-ambient-glow::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  background: conic-gradient(from 0deg, #4285f4, #9b51e0, #d9657b, #4285f4);
+  filter: blur(18px);
+  opacity: 0.7;
+  z-index: -1;
+  animation: gemini-rotate 6s linear infinite, gemini-pulse 2.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* B. Streaming Response Text Reveal */
+@keyframes gemini-stream-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gemini-stream-reveal {
+  animation: gemini-stream-in 150ms cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+/* C. Material Expressive Spring cubic-bezier (0.2, 0.0, 0, 1.0) */
+.gemini-spring-sheet {
+  animation: gemini-slide-up 300ms cubic-bezier(0.2, 0.0, 0, 1.0) forwards;
+}
+
+@keyframes gemini-slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+

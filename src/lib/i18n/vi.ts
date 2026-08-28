@@ -238,6 +238,7 @@ export const vi = {
     theme: "Chế độ giao diện",
     themeDark: "Giao diện tối (Dark Mode)",
     themeLight: "Giao diện sáng (Light Mode)",
+    themeGemini: "Google Gemini Dark (AI Glow)",
     themeSystem: "Theo hệ thống",
     connectionSettings: "Thông tin kết nối hiện tại",
     powerControls: "Điều khiển nguồn NAS",

@@ -5,7 +5,7 @@ import { dsmClient } from "../dsm/client";
 import { clearPersistedSession } from "../sessionStorage";
 
 export type NavTab = "dashboard" | "monitor" | "snmp" | "traffic" | "files" | "docker" | "download" | "storage" | "packages" | "services" | "firewall" | "notifications" | "terminal" | "mcp" | "settings";
-export type ThemeMode = "system" | "dark" | "light";
+export type ThemeMode = "system" | "dark" | "light" | "gemini";
 export type ExperienceMode = "beginner" | "advance";
 
 interface AppState {
@@ -54,12 +54,19 @@ const applyThemeToDOM = (theme: ThemeMode) => {
   const root = document.documentElement;
   const isDark =
     theme === "dark" ||
+    theme === "gemini" ||
     (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   if (isDark) {
     root.classList.add("dark");
   } else {
     root.classList.remove("dark");
+  }
+
+  if (theme === "gemini") {
+    root.classList.add("gemini");
+  } else {
+    root.classList.remove("gemini");
   }
 };
 

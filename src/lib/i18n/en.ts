@@ -238,6 +238,7 @@ export const en = {
     theme: "Theme Mode",
     themeDark: "Dark Mode",
     themeLight: "Light Mode",
+    themeGemini: "Google Gemini Dark (AI Glow)",
     themeSystem: "System Default",
     connectionSettings: "Active Connection",
     powerControls: "NAS Power Controls",

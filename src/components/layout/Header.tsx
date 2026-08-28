@@ -8,6 +8,7 @@ import {
   Sun,
   Moon,
   Laptop,
+  Sparkles,
   Power,
   Cpu,
   ArrowDownCircle,
@@ -46,6 +47,10 @@ export const Header: React.FC = () => {
         return t.nav.dashboard;
       case "monitor":
         return t.nav.resourceMonitor;
+      case "snmp":
+        return t.nav.snmp;
+      case "traffic":
+        return t.nav.traffic;
       case "files":
         return t.nav.fileStation;
       case "docker":
@@ -75,13 +80,15 @@ export const Header: React.FC = () => {
 
   const handleCycleTheme = () => {
     if (theme === "system") setTheme("dark");
-    else if (theme === "dark") setTheme("light");
+    else if (theme === "dark") setTheme("gemini");
+    else if (theme === "gemini") setTheme("light");
     else setTheme("system");
   };
 
   const getThemeIcon = () => {
     if (theme === "system") return <Laptop className="w-4 h-4 text-sky-500" />;
     if (theme === "dark") return <Moon className="w-4 h-4 text-indigo-400" />;
+    if (theme === "gemini") return <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />;
     return <Sun className="w-4 h-4 text-amber-500" />;
   };
 
@@ -111,12 +118,12 @@ export const Header: React.FC = () => {
           )}
         </button>
 
-        <h2 className="text-xs sm:text-base md:text-lg font-bold text-slate-900 dark:text-white truncate max-w-[80px] xs:max-w-[110px] sm:max-w-none">
+        <h2 className="text-xs sm:text-base md:text-lg font-bold text-slate-900 dark:text-white truncate max-w-[130px] xs:max-w-[180px] sm:max-w-none">
           {getTabTitle()}
         </h2>
 
-        {/* Multi-NAS Switcher */}
-        <div className="hidden sm:block">
+        {/* Multi-NAS Switcher (Desktop view) */}
+        <div className="hidden md:block">
           <NasSwitcherDropdown />
         </div>
       </div>
@@ -205,11 +212,11 @@ export const Header: React.FC = () => {
           </button>
         </div>
 
-        {/* 3-State Theme Button */}
+        {/* 4-State Theme Button */}
         <button
           onClick={handleCycleTheme}
           className="p-1.5 sm:p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center"
-          title={`Giao diện: ${theme === "system" ? "Hệ thống" : theme === "dark" ? "Tối" : "Sáng"}`}
+          title={`Giao diện: ${theme === "system" ? "Hệ thống" : theme === "dark" ? "Tối" : theme === "gemini" ? "Google Gemini (AI Dark)" : "Sáng"}`}
         >
           {getThemeIcon()}
         </button>
@@ -232,23 +239,18 @@ export const Header: React.FC = () => {
         {session.isConnected && (
           <button
             onClick={() => openPowerModal("reboot")}
-            className="hidden sm:flex p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+            className="hidden sm:flex p-1.5 sm:p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
             title={t.settings.powerControls}
           >
             <Power className="w-4 h-4" />
           </button>
         )}
 
-        {/* Mobile Multi-NAS Switcher Trigger */}
-        <div className="sm:hidden">
-          <NasSwitcherDropdown />
-        </div>
-
-        {/* Connect Button */}
+        {/* Connect Button (When Disconnected) */}
         {!session.isConnected && (
           <button
             onClick={() => openLoginModal(true)}
-            className="hidden sm:flex px-3 py-1.5 text-xs font-bold rounded-xl bg-sky-600 hover:bg-sky-500 text-white shadow-sm transition-all shrink-0"
+            className="px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs font-bold rounded-xl bg-sky-600 hover:bg-sky-500 text-white shadow-sm transition-all shrink-0"
           >
             {t.common.connect}
           </button>

@@ -349,42 +349,40 @@ export const SnmpTab: React.FC = () => {
   }
 
   // Compact header/stat sizing for beginner vs advance
-  const headerCompact = isBeginner;
   return (
-    <div className={`${isBeginner ? "space-y-2.5 sm:space-y-3" : "space-y-4 sm:space-y-5"} animate-in fade-in duration-200 w-full`}>
-      {/* Top Header & Mode Switcher - ultra compact on mobile for beginner */}
-      <div className={`flex flex-col sm:flex-row sm:items-center justify-between ${isBeginner ? "gap-1.5 sm:gap-2" : "gap-3"}`}>
-        <div>
-          <h2 className={`${isBeginner ? "text-base" : "text-lg sm:text-xl"} font-black text-slate-900 dark:text-white flex items-center gap-2`}>
-            <div className={`${isBeginner ? "p-1.5 rounded-lg" : "p-2 rounded-xl"} bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20`}>
-              <Gauge className={`${isBeginner ? "w-4 h-4" : "w-5 h-5"}`} />
+    <div className="space-y-3 sm:space-y-4 animate-in fade-in duration-200 w-full">
+      {/* Top Header & Mode Switcher - compact & responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 shrink-0">
+              <Gauge className="w-4 h-4" />
             </div>
-            Giám sát SNMP &amp; PRTG Hub
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+              Giám sát SNMP &amp; PRTG Hub
+            </h2>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap shrink-0">
               Live Sensor
             </span>
             {isBeginner && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-900 dark:bg-white text-white dark:text-slate-900">🟢 Cơ bản</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-900 dark:bg-white text-white dark:text-slate-900 whitespace-nowrap shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Cơ bản
+              </span>
             )}
-          </h2>
-          {!isBeginner && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Giám sát trực tiếp thông số phần cứng NAS, Switch, Router và UPS qua giao thức SNMP v1/v2c/v3 không cần dựng server PRTG/Zabbix riêng.
-            </p>
-          )}
-          {isBeginner && (
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-              Theo dõi trạng thái thiết bị &amp; cảm biến chính — chi tiết OID ẩn bớt cho người mới.
-            </p>
-          )}
+          </div>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+            {isBeginner
+              ? "Theo dõi trạng thái thiết bị & cảm biến chính — chi tiết OID ẩn bớt cho người mới."
+              : "Giám sát trực tiếp thông số phần cứng NAS, Switch, Router và UPS qua SNMP v1/v2c/v3."}
+          </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap shrink-0">
           {/* 3 View Mode Switcher */}
-          <div className="flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60 shadow-xs">
+          <div className="flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60 shadow-xs">
             <button
               onClick={() => setViewMode("compact")}
-              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+              className={`px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all ${
                 viewMode === "compact"
                   ? "bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 shadow-xs"
                   : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
@@ -394,7 +392,7 @@ export const SnmpTab: React.FC = () => {
             </button>
             <button
               onClick={() => setViewMode("normal")}
-              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+              className={`px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all ${
                 viewMode === "normal"
                   ? "bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 shadow-xs"
                   : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
@@ -402,40 +400,40 @@ export const SnmpTab: React.FC = () => {
             >
               Thường
             </button>
-              <button
-                onClick={() => setViewMode("full")}
-                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-                  viewMode === "full"
-                    ? "bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 shadow-xs"
-                    : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
-                } ${isBeginner ? "opacity-60" : ""}`}
-                title={isBeginner ? "Chế độ đầy đủ — khả dụng ở Nâng cao" : "Đầy đủ"}
-              >
-                Đầy đủ
-              </button>
+            <button
+              onClick={() => setViewMode("full")}
+              className={`px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all ${
+                viewMode === "full"
+                  ? "bg-white dark:bg-slate-900 text-sky-600 dark:text-sky-400 shadow-xs"
+                  : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
+              } ${isBeginner ? "opacity-60" : ""}`}
+              title={isBeginner ? "Chế độ đầy đủ — khả dụng ở Nâng cao" : "Đầy đủ"}
+            >
+              Đầy đủ
+            </button>
           </div>
 
           <button
             onClick={handleLanDiscovery}
             disabled={discovering}
-            className={`flex items-center gap-1.5 ${isBeginner ? "px-2.5 py-1.5 text-[11px] rounded-lg" : "px-3 py-2 text-xs rounded-xl"} bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition-all shadow-xs`}
+            className="flex items-center gap-1 px-2.5 py-1 text-[11px] sm:text-xs rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition-all shadow-xs shrink-0"
             title="Dò tìm thiết bị mạng trong dải LAN"
           >
             <Activity className={`w-3.5 h-3.5 ${discovering ? "animate-spin text-sky-500" : "text-sky-500"}`} />
-            <span>{discovering ? (isBeginner ? "Đang dò..." : "Đang dò tìm...") : (isBeginner ? "Quét LAN" : "Quét mạng LAN")}</span>
+            <span>{discovering ? "Đang dò..." : "Quét LAN"}</span>
           </button>
           <button
             onClick={() => setDeviceModal({ open: true, editing: null })}
-            className={`flex items-center gap-1.5 ${isBeginner ? "px-3 py-1.5 text-xs" : "px-3.5 py-2 text-xs sm:text-sm"} rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold shadow-sm transition-all`}
+            className="flex items-center gap-1 px-2.5 py-1 text-[11px] sm:text-xs rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold shadow-sm transition-all shrink-0"
           >
-            <Plus className="w-4 h-4" />
-            <span>{isBeginner ? "Thêm thiết bị" : "Thêm thiết bị SNMP"}</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Thêm thiết bị</span>
           </button>
         </div>
       </div>
 
       {discoveryMsg && (
-        <div className="p-3 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-700 dark:text-sky-300 text-xs font-medium flex items-center justify-between animate-in slide-in-from-top duration-200">
+        <div className="p-2.5 sm:p-3 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-700 dark:text-sky-300 text-xs font-medium flex items-center justify-between animate-in slide-in-from-top duration-200">
           <div className="flex items-center gap-2">
             <Radio className="w-4 h-4 text-sky-500 animate-pulse shrink-0" />
             <span>{discoveryMsg}</span>
@@ -444,56 +442,57 @@ export const SnmpTab: React.FC = () => {
         </div>
       )}
 
-      <div className={`grid grid-cols-2 lg:grid-cols-4 ${isBeginner ? "gap-2 sm:gap-2.5" : "gap-3"}`}>
-        <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "p-2.5 sm:p-3 rounded-lg sm:rounded-xl" : "p-4 rounded-2xl sm:rounded-3xl"} border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between`}>
+      {/* 4 Stat Summary Cards - Compact */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+        <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-[10px] font-semibold text-slate-400 block uppercase">Thiết bị giám sát</span>
             <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className={`${isBeginner ? "text-base sm:text-lg" : "text-xl sm:text-2xl"} font-black text-slate-900 dark:text-white font-mono`}>{devices.length}</span>
-              <span className="text-[11px] font-bold text-emerald-500 font-mono">100% Online</span>
+              <span className="text-base sm:text-xl font-black text-slate-900 dark:text-white font-mono">{devices.length}</span>
+              <span className="text-[10px] sm:text-[11px] font-bold text-emerald-500 font-mono">100% Online</span>
             </div>
           </div>
-          <div className={`${isBeginner ? "p-1.5 sm:p-2 rounded-lg sm:rounded-xl" : "p-2.5 rounded-2xl"} bg-sky-500/10 text-sky-500 border border-sky-500/20`}>
-            <Server className={`${isBeginner ? "w-3.5 h-3.5 sm:w-4 sm:h-4" : "w-5 h-5"}`} />
+          <div className="p-1.5 sm:p-2 rounded-lg bg-sky-500/10 text-sky-500 border border-sky-500/20 shrink-0">
+            <Server className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
         </div>
 
-        <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "p-2.5 sm:p-3 rounded-lg sm:rounded-xl" : "p-4 rounded-2xl sm:rounded-3xl"} border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between`}>
+        <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-[10px] font-semibold text-slate-400 block uppercase">Cảm biến hoạt động</span>
             <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className={`${isBeginner ? "text-base sm:text-lg" : "text-xl sm:text-2xl"} font-black text-emerald-600 dark:text-emerald-400 font-mono`}>{upSensorsCount}</span>
-              <span className="text-[11px] font-semibold text-slate-400 font-mono">/ {totalSensorsCount} sensor</span>
+              <span className="text-base sm:text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono">{upSensorsCount}</span>
+              <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 font-mono">/ {totalSensorsCount}</span>
             </div>
           </div>
-          <div className={`${isBeginner ? "p-1.5 sm:p-2 rounded-lg sm:rounded-xl" : "p-2.5 rounded-2xl"} bg-emerald-500/10 text-emerald-500 border border-emerald-500/20`}>
-            <Activity className={`${isBeginner ? "w-3.5 h-3.5 sm:w-4 sm:h-4" : "w-5 h-5"}`} />
+          <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
+            <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
         </div>
 
-        <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "p-2.5 sm:p-3 rounded-lg sm:rounded-xl" : "p-4 rounded-2xl sm:rounded-3xl"} border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between`}>
+        <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-[10px] font-semibold text-slate-400 block uppercase">Độ trễ Ping TB</span>
             <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className={`${isBeginner ? "text-base sm:text-lg" : "text-xl sm:text-2xl"} font-black text-sky-600 dark:text-sky-400 font-mono`}>1.0</span>
-              <span className="text-[11px] font-bold text-slate-400">ms (Cực nhanh)</span>
+              <span className="text-base sm:text-xl font-black text-sky-600 dark:text-sky-400 font-mono">1.0</span>
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400">ms</span>
             </div>
           </div>
-          <div className={`${isBeginner ? "p-1.5 sm:p-2 rounded-lg sm:rounded-xl" : "p-2.5 rounded-2xl"} bg-indigo-500/10 text-indigo-500 border border-indigo-500/20`}>
-            <Radio className={`${isBeginner ? "w-3.5 h-3.5 sm:w-4 sm:h-4" : "w-5 h-5"}`} />
+          <div className="p-1.5 sm:p-2 rounded-lg bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 shrink-0">
+            <Radio className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
         </div>
 
-        <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "p-2.5 sm:p-3 rounded-lg sm:rounded-xl" : "p-4 rounded-2xl sm:rounded-3xl"} border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between`}>
+        <div className="bg-white dark:bg-slate-900 p-2.5 sm:p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-[10px] font-semibold text-slate-400 block uppercase">Tần suất Polling</span>
             <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className={`${isBeginner ? "text-base sm:text-lg" : "text-xl sm:text-2xl"} font-black text-purple-600 dark:text-purple-400 font-mono`}>3.0</span>
-              <span className="text-[11px] font-bold text-slate-400">giây / chu kỳ</span>
+              <span className="text-base sm:text-xl font-black text-purple-600 dark:text-purple-400 font-mono">3.0</span>
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400">giây</span>
             </div>
           </div>
-          <div className={`${isBeginner ? "p-1.5 sm:p-2 rounded-lg sm:rounded-xl" : "p-2.5 rounded-2xl"} bg-purple-500/10 text-purple-500 border border-purple-500/20`}>
-            <Clock className={`${isBeginner ? "w-3.5 h-3.5 sm:w-4 sm:h-4" : "w-5 h-5"}`} />
+          <div className="p-1.5 sm:p-2 rounded-lg bg-purple-500/10 text-purple-500 border border-purple-500/20 shrink-0">
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
         </div>
       </div>
@@ -523,58 +522,58 @@ export const SnmpTab: React.FC = () => {
                 key={device.id}
                 className={`bg-white dark:bg-slate-900 ${isBeginner ? "rounded-lg sm:rounded-xl" : "rounded-xl sm:rounded-2xl"} border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden`}
               >
-                <div className={`flex flex-col sm:flex-row sm:items-center justify-between ${isBeginner ? "gap-2 sm:gap-3 p-2.5 sm:p-4" : "gap-3 p-3 sm:p-5"} border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60`}>
-                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                    <div className={`${isBeginner ? "p-2 sm:p-2.5 rounded-lg sm:rounded-xl" : "p-2.5 sm:p-3 rounded-xl sm:rounded-2xl"} bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 shrink-0`}>
-                      <Server className={`${isBeginner ? "w-4 h-4 sm:w-5 sm:h-5" : "w-5 h-5"}`} />
+                <div className={`flex flex-col sm:flex-row sm:items-center justify-between ${isBeginner ? "gap-2 sm:gap-3 p-2.5 sm:p-3.5" : "gap-3 p-3 sm:p-4"} border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60`}>
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div className={`${isBeginner ? "p-1.5 sm:p-2 rounded-lg" : "p-2 sm:p-2.5 rounded-xl"} bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 shrink-0`}>
+                      <Server className={`${isBeginner ? "w-4 h-4" : "w-4 h-4 sm:w-5 sm:h-5"}`} />
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-black text-sm sm:text-base text-slate-900 dark:text-white truncate">
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                        <h3 className="font-black text-xs sm:text-sm md:text-base text-slate-900 dark:text-white truncate">
                           {device.name}
                         </h3>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 whitespace-nowrap shrink-0 inline-flex items-center">
                           SNMP {device.credentials?.version?.toUpperCase() || "V2C"}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 whitespace-nowrap shrink-0 inline-flex items-center">
                           Community: {device.credentials?.community || "public"}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 font-mono mt-0.5 flex items-center gap-2">
+                      <p className="text-[10px] sm:text-[11px] text-slate-400 font-mono mt-0.5 flex items-center gap-1.5 sm:gap-2 flex-wrap">
                         <span>Host: <strong>{device.host}:{device.port}</strong></span>
                         <span>•</span>
                         <span>Chu kỳ: {device.pollIntervalSec || 3}s</span>
                         <span>•</span>
-                        <span>{device.sensors?.length || 0} cảm biến đang đo</span>
+                        <span>{device.sensors?.length || 0} cảm biến</span>
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 self-end sm:self-center">
                     <span
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-bold border whitespace-nowrap shrink-0 ${
                         isOnline
                           ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
                           : "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
                       }`}
                     >
-                      <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
-                      {isOnline ? "Đang hoạt động (Online)" : "Mất kết nối"}
+                      <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
+                      {isOnline ? "Online" : "Offline"}
                     </span>
 
                     <button
                       onClick={() => setDeviceModal({ open: true, editing: device })}
-                      className="p-2 rounded-xl text-slate-400 hover:text-sky-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-sky-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                       title={t.snmp.editDevice}
                     >
-                      <Pencil className="w-4 h-4" />
+                      <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteDevice(device)}
-                      className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
                       title={t.snmp.deleteConfirm}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
                   </div>
                 </div>

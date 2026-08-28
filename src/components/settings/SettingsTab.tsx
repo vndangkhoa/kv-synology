@@ -29,6 +29,7 @@ import {
   Smartphone,
   Terminal,
   Bot,
+  Sparkles,
   SlidersHorizontal,
   Check,
   ExternalLink,
@@ -342,30 +343,51 @@ export const SettingsTab: React.FC = () => {
               <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block">
                 Chủ đề hiển thị (Theme)
               </label>
-              <div className="grid grid-cols-3 gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl text-xs">
                 {[
                   { id: "system", label: "Hệ thống", icon: Laptop },
                   { id: "light", label: "Sáng", icon: Sun },
-                  { id: "dark", label: "Tối", icon: Moon },
+                  { id: "dark", label: "Tối (Slate)", icon: Moon },
+                  { id: "gemini", label: "Gemini AI", icon: Sparkles, badge: "Glow" },
                 ].map((tOpt) => {
                   const Icon = tOpt.icon;
                   const isSel = theme === tOpt.id;
+                  const isGemini = tOpt.id === "gemini";
                   return (
                     <button
                       key={tOpt.id}
                       onClick={() => setTheme(tOpt.id as ThemeMode)}
-                      className={`py-1.5 px-2 rounded-lg font-bold flex items-center justify-center gap-1 transition-all ${
+                      className={`py-2 px-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all relative ${
                         isSel
-                          ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm"
+                          ? isGemini
+                            ? "bg-gradient-to-r from-blue-600 via-purple-600 to-rose-500 text-white shadow-md font-black"
+                            : "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm font-black"
                           : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                       }`}
                     >
-                      <Icon className="w-3.5 h-3.5" />
+                      <Icon className={`w-3.5 h-3.5 ${isGemini && isSel ? "animate-spin" : ""}`} style={{ animationDuration: "8s" }} />
                       <span>{tOpt.label}</span>
+                      {tOpt.badge && !isSel && (
+                        <span className="px-1 py-0.2 rounded text-[8.5px] font-extrabold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
+                          {tOpt.badge}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </div>
+
+              {theme === "gemini" && (
+                <div className="mt-2 p-2.5 rounded-xl bg-[#1E1F20] border border-white/10 text-[11px] text-slate-300 flex items-center gap-2 animate-in fade-in duration-200">
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-blue-500 via-purple-500 to-rose-500 flex items-center justify-center text-white shrink-0 shadow-xs">
+                    <Sparkles className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="leading-tight min-w-0">
+                    <span className="font-bold text-white block">Google Gemini Mobile Dark</span>
+                    <span className="text-[10px] text-slate-400">#131314 OLED background • #1E1F20 surfaces • Ambient Thinking Glow</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Language Toggle */}
