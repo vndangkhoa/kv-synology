@@ -67,19 +67,19 @@ export async function resolveQuickConnect(serverId) {
             const relayPort = parsed.service?.relay_port || null;
             const relayDn = parsed.service?.relay_dn || null;
             const candidates = [];
-            if (lanIp)
-                candidates.push({ host: lanIp, port, isHttps: true });
-            if (smartDnsLan)
-                candidates.push({ host: smartDnsLan, port, isHttps: true });
             if (ddns)
                 candidates.push({ host: ddns, port, isHttps: true });
             if (smartDns)
                 candidates.push({ host: smartDns, port: 443, isHttps: true });
             if (smartDnsExt)
                 candidates.push({ host: smartDnsExt, port: 443, isHttps: true });
+            candidates.push({ host: `${cleanId}.direct.quickconnect.to`, port, isHttps: true });
+            if (lanIp)
+                candidates.push({ host: lanIp, port, isHttps: true });
+            if (smartDnsLan)
+                candidates.push({ host: smartDnsLan, port, isHttps: true });
             if (wanIp)
                 candidates.push({ host: wanIp, port, isHttps: true });
-            candidates.push({ host: `${cleanId}.direct.quickconnect.to`, port, isHttps: true });
             if (relayDn && relayPort)
                 candidates.push({ host: relayDn, port: relayPort, isHttps: true });
             if (relayIp && relayPort)
@@ -95,6 +95,8 @@ export async function resolveQuickConnect(serverId) {
                     target = { host: relayDn, port: relayPort, isHttps: true };
                 else if (relayIp && relayPort)
                     target = { host: relayIp, port: relayPort, isHttps: true };
+                else if (ddns)
+                    target = { host: ddns, port, isHttps: true };
                 else
                     target = candidates[0] || null;
             }

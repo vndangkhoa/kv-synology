@@ -17,6 +17,7 @@ const httpAgent = new http.Agent({
 
 // Cache resolved QuickConnect IDs for 10 minutes
 const quickConnectCache = new Map<string, { host: string; port: number; isHttps: boolean; expires: number }>();
+const quickConnectCandidatesMap = new Map<string, Array<{ host: string; port: number; isHttps: boolean }>>();
 
 async function fetchServerInfo(cleanId: string, controlHost: string, portalId = "dsm_portal_https"): Promise<any> {
   const payload = JSON.stringify({
@@ -55,7 +56,7 @@ async function fetchServerInfo(cleanId: string, controlHost: string, portalId = 
   return JSON.parse(raw);
 }
 
-async function verifyDsmCandidate(c: { host: string; port: number; isHttps: boolean }, timeout = 1500): Promise<boolean> {
+async function verifyDsmCandidate(c: { host: string; port: number; isHttps: boolean }, timeout = 1800): Promise<boolean> {
   try {
     const res = await makeNodeRequest({
       isHttps: c.isHttps,
@@ -148,22 +149,24 @@ async function resolveQuickConnect(
           }
         };
 
-        // 1. High Priority: Specific DSM Ports (5001, 5000, userPort) on LAN IPs & DDNS
+        // Standard ports to try
         const standardPorts = Array.from(new Set([userPort, dsmHttpsPort, 5001, dsmHttpPort, 5000, dsmExtPort].filter(Boolean))) as number[];
         
         for (const p of standardPorts) {
           const isH = p === 5001 || p === dsmHttpsPort || (userHttps ?? true);
-          for (const ip of allLanIps) addCand(ip, p, isH);
-          if (lanIp) addCand(lanIp, p, isH);
-          if (smartDnsLan) addCand(smartDnsLan, p, isH);
+          // Global / DDNS domains first (avoids getting stuck on unreachable private subnet IPs)
           if (ddns) addCand(ddns, p, isH);
           if (smartDns) addCand(smartDns, p, isH);
           if (smartDnsExt) addCand(smartDnsExt, p, isH);
           addCand(`${cleanId}.direct.quickconnect.to`, p, isH);
+          // LAN IPs
+          for (const ip of allLanIps) addCand(ip, p, isH);
+          if (lanIp) addCand(lanIp, p, isH);
+          if (smartDnsLan) addCand(smartDnsLan, p, isH);
           if (wanIp) addCand(wanIp, p, isH);
         }
 
-        // 2. Low Priority: Standard Web Ports (443, 80)
+        // Web ports (443, 80)
         for (const p of [443, 80]) {
           const isH = p === 443;
           if (ddns) addCand(ddns, p, isH);
@@ -171,29 +174,26 @@ async function resolveQuickConnect(
           if (wanIp) addCand(wanIp, p, isH);
         }
 
-        // 3. Relay fallbacks
+        // Relay fallbacks
         if (relayDn && relayPort) addCand(relayDn, relayPort, true);
         if (relayIp && relayPort) addCand(relayIp, relayPort, true);
 
-        // Concurrently probe candidates for genuine DSM API response
-        let verifiedTarget: Candidate | null = null;
-        for (let i = 0; i < candidates.length; i += 6) {
-          const batch = candidates.slice(i, i + 6);
-          const probeResults = await Promise.all(
-            batch.map(async (cand) => {
-              const ok = await verifyDsmCandidate(cand, 1800);
-              return ok ? cand : null;
-            })
-          );
-          const valid = probeResults.filter(Boolean) as Candidate[];
-          if (valid.length > 0) {
-            verifiedTarget = valid[0];
-            break;
-          }
-        }
+        // Store all candidate routes for fallback during actual proxy requests
+        quickConnectCandidatesMap.set(cacheKey, candidates);
+        quickConnectCandidatesMap.set(cleanId, candidates);
+
+        // Concurrently probe all candidates for genuine DSM API response
+        const probeResults = await Promise.all(
+          candidates.map(async (cand) => {
+            const ok = await verifyDsmCandidate(cand, 1800);
+            return ok ? cand : null;
+          })
+        );
+        const valid = probeResults.filter(Boolean) as Candidate[];
+        let verifiedTarget: Candidate | null = valid[0] || null;
 
         if (!verifiedTarget) {
-          // If direct probes didn't reply in time, pick first TCP-reachable or relay fallback
+          // If direct DSM API probe didn't reply in time, test TCP reachability
           const tcpProbes = await Promise.all(
             candidates.slice(0, 10).map(async (cand) => {
               const ok = await testHostConnection(cand.host, cand.port, 1000);
@@ -201,7 +201,20 @@ async function resolveQuickConnect(
             })
           );
           const tcpOk = tcpProbes.filter(Boolean) as Candidate[];
-          verifiedTarget = tcpOk[0] || (relayDn && relayPort ? { host: relayDn, port: relayPort, isHttps: true } : candidates[0]) || null;
+          verifiedTarget = tcpOk[0] || null;
+        }
+
+        if (!verifiedTarget) {
+          // If no probes succeeded, prefer globally reachable DDNS / Relay / SmartDNS instead of unreachable private LAN IP
+          const publicFallback = candidates.find(
+            (c) =>
+              c.host.includes(".") &&
+              !/^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(c.host)
+          );
+          verifiedTarget =
+            publicFallback ||
+            (relayDn && relayPort ? { host: relayDn, port: relayPort, isHttps: true } : candidates[0]) ||
+            null;
         }
 
         if (verifiedTarget) {
@@ -457,10 +470,19 @@ async function handleProxy(request: NextRequest, resolvedParams: { path: string[
     let result;
     let lastErr: any = null;
     const tried = new Set<string>();
-    // Try primary target first, then universal candidates on failure (404, timeout, refused)
+    // Try primary target first, then fallback candidates on failure
     const allCandidates: Array<{ host: string; port: number; isHttps: boolean }> = [{ host: targetHost, port: targetPort, isHttps }];
-    // If universal candidates were computed, add them as fallbacks (deduped)
-    if ((isDDNS || targetPort === 41533 || rawPort === "41533") && !(isQuickConnect)) {
+    
+    // If QuickConnect was resolved, add all discovered candidates as fallback routes
+    if (isQuickConnect) {
+      const cleanId = rawHost.replace(/\.quickconnect\.to$/i, "").trim().toLowerCase();
+      const qcList = quickConnectCandidatesMap.get(cleanId) || [];
+      for (const c of qcList) {
+        if (!allCandidates.some(existing => existing.host === c.host && existing.port === c.port && existing.isHttps === c.isHttps)) {
+          allCandidates.push(c);
+        }
+      }
+    } else if (isDDNS || targetPort === 41533 || rawPort === "41533") {
       const uni = buildUniversalCandidates(rawHost, parseInt(rawPort, 10) || (isHttps ? 5001 : 5000), isHttps);
       for (const u of uni) {
         if (!allCandidates.some(c => c.host === u.host && c.port === u.port && c.isHttps === u.isHttps)) {
@@ -503,15 +525,42 @@ async function handleProxy(request: NextRequest, resolvedParams: { path: string[
           }
         }
         result = candResult;
-        // Update target to successful candidate for logging/headers
+        // Update target to successful candidate for logging/headers and refresh cache
         targetHost = cand.host;
         targetPort = cand.port;
         isHttps = cand.isHttps;
+        if (isQuickConnect) {
+          const cleanId = rawHost.replace(/\.quickconnect\.to$/i, "").trim().toLowerCase();
+          quickConnectCache.set(cleanId, {
+            host: targetHost,
+            port: targetPort,
+            isHttps,
+            expires: Date.now() + 10 * 60 * 1000,
+          });
+        }
         break;
       } catch (e: any) {
         lastErr = e;
-        // Retry on network errors
-        if (e.code === "ETIMEDOUT" || e.code === "ECONNREFUSED" || e.code === "ENOTFOUND" || e.code === "HTTP_404") {
+        // Retry on network errors and unreachable subnets
+        const isRetryable =
+          e.code === "ETIMEDOUT" ||
+          e.code === "ECONNREFUSED" ||
+          e.code === "ENOTFOUND" ||
+          e.code === "EHOSTUNREACH" ||
+          e.code === "ENETUNREACH" ||
+          e.code === "ECONNRESET" ||
+          e.code === "EADDRNOTAVAIL" ||
+          e.code === "EPIPE" ||
+          e.code === "EAI_AGAIN" ||
+          e.code === "ECONNABORTED" ||
+          e.code === "HTTP_404" ||
+          e.message?.includes("EHOSTUNREACH") ||
+          e.message?.includes("ENETUNREACH") ||
+          e.message?.includes("ECONNREFUSED") ||
+          e.message?.includes("ETIMEDOUT");
+
+        if (isRetryable) {
+          console.warn(`[DSM Proxy] Candidate ${cand.host}:${cand.port} failed (${e.code || e.message}), trying next candidate...`);
           continue;
         }
         throw e;
