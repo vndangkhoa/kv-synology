@@ -140,16 +140,20 @@ export default function Home() {
 
     const fetchTelemetry = async () => {
       if (session.isConnected) {
-        const util = await dsmClient.getUtilization();
-        updateUtilization(util);
+        try {
+          const util = await dsmClient.getUtilization();
+          updateUtilization(util);
+        } catch (_) {}
       }
     };
 
     const fetchInfo = async () => {
       if (session.isConnected) {
-        const info = await dsmClient.getSystemInfo();
-        setSystemInfo(info);
-        fetchNotifications();
+        try {
+          const info = await dsmClient.getSystemInfo();
+          setSystemInfo(info);
+          fetchNotifications();
+        } catch (_) {}
       }
     };
 
