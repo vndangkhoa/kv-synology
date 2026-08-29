@@ -9,7 +9,8 @@ WORKDIR /app
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-audit --no-fund
 
 # --- builder: build Next.js ---
 FROM base AS builder
