@@ -411,7 +411,7 @@ const AI_SCENARIOS = [
 ];
 
 export const McpDocsTab: React.FC = () => {
-  const { session, language, setAiChatOpen } = useAppStore();
+  const { session, language, setAiChatOpen, t } = useAppStore();
   const [activeSubTab, setActiveSubTab] = useState<"quickstart" | "tools" | "scenarios" | "api" | "export">("quickstart");
   const [selectedClient, setSelectedClient] = useState<"claude" | "cursor" | "windsurf" | "python" | "curl">("claude");
   const [toolSearch, setToolSearch] = useState("");
@@ -435,25 +435,25 @@ export const McpDocsTab: React.FC = () => {
 
   // Filtered tools
   const filteredTools = useMemo(() => {
-    return MCP_TOOLS.filter((t) => {
-      const matchCat = selectedCategory === "all" || t.category === selectedCategory;
+    return MCP_TOOLS.filter((item) => {
+      const matchCat = selectedCategory === "all" || item.category === selectedCategory;
       const matchSearch =
-        t.name.toLowerCase().includes(toolSearch.toLowerCase()) ||
-        t.descriptionVi.toLowerCase().includes(toolSearch.toLowerCase()) ||
-        t.descriptionEn.toLowerCase().includes(toolSearch.toLowerCase()) ||
-        t.dsmApi.toLowerCase().includes(toolSearch.toLowerCase());
+        item.name.toLowerCase().includes(toolSearch.toLowerCase()) ||
+        item.descriptionVi.toLowerCase().includes(toolSearch.toLowerCase()) ||
+        item.descriptionEn.toLowerCase().includes(toolSearch.toLowerCase()) ||
+        item.dsmApi.toLowerCase().includes(toolSearch.toLowerCase());
       return matchCat && matchSearch;
     });
   }, [toolSearch, selectedCategory]);
 
   // Config snippet generation
   const generatedConfig = useMemo(() => {
-    const absPath = "/path/to/kv-synology/mcp/dist/index.js";
+    const absPath = "/mnt/data/Package Center/kv-synology/bin/mcp-server.js";
     if (selectedClient === "claude") {
       return JSON.stringify(
         {
           mcpServers: {
-            "kv-synology": {
+            "synology-dsm": {
               command: "node",
               args: [absPath],
               env: {
@@ -470,7 +470,26 @@ export const McpDocsTab: React.FC = () => {
         2
       );
     }
-    if (selectedClient === "cursor" || selectedClient === "windsurf") {
+    if (selectedClient === "cursor") {
+      return JSON.stringify(
+        {
+          "synology-dsm": {
+            command: "node",
+            args: [absPath],
+            env: {
+              DSM_HOST: cfgHost,
+              DSM_PORT: cfgPort,
+              DSM_USER: cfgUser,
+              DSM_PASS: cfgPass,
+              DSM_HTTPS: cfgHttps ? "true" : "false",
+            },
+          },
+        },
+        null,
+        2
+      );
+    }
+    if (selectedClient === "windsurf") {
       return JSON.stringify(
         {
           mcpServers: {
@@ -492,10 +511,11 @@ export const McpDocsTab: React.FC = () => {
       );
     }
     if (selectedClient === "python") {
-      return `from mcp import ClientSession, StdioServerParameters
+      return `# Python MCP Client (mcp library)
+import asyncio
+from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-# Parameters to launch KV Synology MCP server
 server_params = StdioServerParameters(
     command="node",
     args=["${absPath}"],
@@ -562,17 +582,17 @@ curl -X POST "http://localhost:8088/api/dsm/entry.cgi" \\
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
-                  Tài liệu API & MCP Server cho AI Agent
+                  {t.mcp.title}
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
                   Model Context Protocol v1.0
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  42 Tools Sẵn Sàng
+                  {MCP_TOOLS.length} Tools Ready
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-3xl leading-relaxed">
-                Hướng dẫn tích hợp AI Agents (Claude Desktop, Cursor, VS Code, Roo Code, Python Agent SDK) điều khiển trực tiếp Synology DSM qua 42+ công cụ MCP và WebAPI.
+                {t.mcp.subtitle}
               </p>
             </div>
           </div>
@@ -584,12 +604,12 @@ curl -X POST "http://localhost:8088/api/dsm/entry.cgi" \\
             {copiedKey === "export-full-top" ? (
               <>
                 <Check className="w-4 h-4 text-emerald-500" />
-                <span>Đã sao chép Context!</span>
+                <span>{t.mcp.copied}</span>
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>Sao chép Prompt cho AI</span>
+                <span>{t.mcp.copyConfig}</span>
               </>
             )}
           </button>
@@ -598,11 +618,11 @@ curl -X POST "http://localhost:8088/api/dsm/entry.cgi" \\
         {/* Sub-tabs Navigation: Horizontally Swipeable on Mobile, Wrap on Desktop */}
         <div className="flex items-center gap-1.5 pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-slate-200/60 dark:border-slate-800/80 overflow-x-auto no-scrollbar scrollbar-none flex-nowrap pb-1">
           {[
-            { id: "quickstart", label: "⚡ Kết nối MCP", icon: Zap },
-            { id: "tools", label: `🛠️ 42 Tools (${MCP_TOOLS.length})`, icon: SlidersHorizontal },
-            { id: "scenarios", label: "💬 Kịch bản Mẫu", icon: Workflow },
-            { id: "api", label: "🌐 WebAPI Architecture", icon: Globe },
-            { id: "export", label: "📋 Markdown Context", icon: FileText },
+            { id: "quickstart", label: t.mcp.overviewTab, icon: Zap },
+            { id: "tools", label: t.mcp.toolsTab, icon: SlidersHorizontal },
+            { id: "scenarios", label: t.mcp.guideTab, icon: Workflow },
+            { id: "api", label: "WebAPI", icon: Globe },
+            { id: "export", label: "Markdown Context", icon: FileText },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeSubTab === tab.id;

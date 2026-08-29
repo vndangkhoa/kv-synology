@@ -65,6 +65,8 @@ export const Header: React.FC = () => {
         return t.nav.services;
       case "firewall":
         return t.nav.firewall;
+      case "permissions":
+        return t.nav.permissions;
       case "notifications":
         return t.nav.notifications;
       case "terminal":

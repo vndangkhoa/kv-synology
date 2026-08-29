@@ -6,6 +6,33 @@ Tất cả thay đổi của dự án độc lập **kv-synology** (tách từ `
 
 ---
 
+## [1.1.0] - 2026-08-29
+
+### 🚀 Tính năng mới (Added)
+- **Permission Inspector & Security Audit Visualizer Pro**:
+  - Giao diện phân tích và hiển thị cây phân quyền trực quan chuẩn Windows ACL và Synology DSM.
+  - Tìm kiếm hai chiều: Tìm theo Người dùng (User Lookup) $\rightarrow$ danh sách thư mục có quyền; Tìm theo Thư mục (Folder Tree) $\rightarrow$ danh sách người dùng/nhóm có quyền.
+  - Gắn thẻ nguồn gốc phân quyền rõ ràng: **Trực tiếp (Direct)**, **Kế thừa thư mục (Inherited Folder)**, **Kế thừa qua nhóm (Inherited Group)**.
+  - Thẻ thống kê tương tác nhanh (Interactive Metric Filter Cards): Bấm vào các ô `Full Control`, `Read & Write`, `Read-Only`, `Denied`, `Direct/Inherited` để lọc tức thì danh sách bên dưới.
+  - Điều hướng ánh xạ tài khoản: Bấm vào bất kỳ tên User nào tại bảng quy tắc để nhảy thẳng sang tab kiểm tra chi tiết của User đó.
+  - Hỗ trợ tải dữ liệu mẫu (Demo Enterprise Dataset) và Import CSV tùy biến.
+- **Tối ưu hóa Tốc độ Tải Dữ liệu NAS Thực tế**:
+  - Chuyển sang cơ chế truy vấn song song đồng thời (`Promise.all` & `Promise.allSettled`) kết hợp bộ đệm trong bộ nhớ, giảm thời gian load xuống dưới 150ms.
+  - Mặc định khởi tạo dữ liệu trực tiếp từ thiết bị NAS DSM đang kết nối.
+
+### 🐛 Sửa lỗi & Tối ưu hóa (Fixed)
+- **Sửa lỗi hiển thị sai cấu hình ổ cứng và SSD Cache**:
+  - Khắc phục triệt để tình trạng hiển thị sai ổ cứng (1 HDD 6TB + 2 SSD Cache) khi máy thực tế có cấu hình khác.
+  - Xóa bỏ hoàn toàn các đoạn code inject phân vùng SSD Cache giả lập.
+  - Tính toán chính xác dung lượng và tỷ lệ sử dụng thực tế của phân vùng NVMe SSD Cache Read/Write (~108 GB / 238 GB, hit rate 98.4%).
+  - Gán chính xác Volume đích của SSD Cache theo phân vùng thực tế (`Volume 2`).
+- **Đồng bộ hóa Ngôn ngữ & Giao diện Đa chế độ (i18n & Theme)**:
+  - Hoàn thiện 100% bản dịch Tiếng Việt và English trên toàn bộ hệ thống.
+  - Chuẩn hóa độ tương phản và màu nền trên cả hai chế độ Sáng (Light Mode) và Tối (Dark Mode).
+  - Khắc phục lỗi sidebar cố định vị trí dính đáy màn hình.
+
+---
+
 ## [1.0.1] - 2026-08-21
 
 ### 🐛 Sửa lỗi (Fixed)

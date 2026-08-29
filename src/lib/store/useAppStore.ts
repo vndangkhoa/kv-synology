@@ -4,7 +4,7 @@ import { DSMSession, SystemInfo, SystemUtilization, NotificationItem, AppNotifyI
 import { dsmClient } from "../dsm/client";
 import { clearPersistedSession } from "../sessionStorage";
 
-export type NavTab = "dashboard" | "monitor" | "snmp" | "traffic" | "files" | "docker" | "download" | "storage" | "packages" | "services" | "firewall" | "notifications" | "terminal" | "mcp" | "settings";
+export type NavTab = "dashboard" | "monitor" | "snmp" | "traffic" | "files" | "docker" | "download" | "storage" | "packages" | "services" | "firewall" | "permissions" | "notifications" | "terminal" | "mcp" | "settings";
 export type ThemeMode = "system" | "light" | "gemini" | "dark";
 export type ExperienceMode = "beginner" | "advance";
 
@@ -13,6 +13,7 @@ interface AppState {
   theme: ThemeMode;
   experienceMode: ExperienceMode;
   activeTab: NavTab;
+  permissionInspectPath?: string;
   session: DSMSession;
   systemInfo: SystemInfo | null;
   utilization: SystemUtilization | null;
@@ -37,6 +38,7 @@ interface AppState {
   setTheme: (theme: ThemeMode) => void;
   setExperienceMode: (mode: ExperienceMode) => void;
   setActiveTab: (tab: NavTab) => void;
+  setPermissionInspectPath: (path?: string) => void;
   setSession: (session: DSMSession) => void;
   setSystemInfo: (info: SystemInfo) => void;
   updateUtilization: (util: SystemUtilization) => void;
@@ -150,6 +152,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     set({ activeTab: tab, isMobileDrawerOpen: false });
   },
+
+  setPermissionInspectPath: (path?: string) => set({ permissionInspectPath: path }),
 
   setSession: (session: DSMSession) => set({ session }),
 

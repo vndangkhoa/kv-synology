@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 
 export const NetworkTrafficTab: React.FC = () => {
-  const { session, utilization, language } = useAppStore();
+  const { session, utilization, language, t } = useAppStore();
 
   const [connections, setConnections] = useState<NetworkConnectionItem[]>([]);
   const [summary, setSummary] = useState<TrafficSummary | null>(null);
@@ -106,7 +106,7 @@ export const NetworkTrafficTab: React.FC = () => {
   const handleBlockIpDirect = async (ip: string) => {
     try {
       await dsmClient.addBlockedIp(ip);
-      setBlockedFeedback(`Đã chặn IP ${ip} vào Tường lửa DSM thành công!`);
+      setBlockedFeedback(`Đã chặn IP ${ip} thành công!`);
       setTimeout(() => setBlockedFeedback(null), 4000);
       fetchConnections();
     } catch (e: any) {
@@ -118,24 +118,23 @@ export const NetworkTrafficTab: React.FC = () => {
   // Filtered connections list
   const filteredConnections = useMemo(() => {
     return connections.filter((conn) => {
-      const matchesSearch =
-        conn.remoteAddress.toLowerCase().includes(search.toLowerCase()) ||
-        conn.localAddress.toLowerCase().includes(search.toLowerCase()) ||
-        conn.geo.isp.toLowerCase().includes(search.toLowerCase()) ||
-        conn.geo.countryName.toLowerCase().includes(search.toLowerCase()) ||
-        conn.processName.toLowerCase().includes(search.toLowerCase()) ||
-        String(conn.remotePort).includes(search) ||
-        String(conn.localPort).includes(search);
+      const q = search.toLowerCase();
+      const matchSearch =
+        !search ||
+        conn.remoteAddress.toLowerCase().includes(q) ||
+        conn.geo.countryName?.toLowerCase().includes(q) ||
+        (conn.geo.city && conn.geo.city.toLowerCase().includes(q)) ||
+        conn.geo.isp?.toLowerCase().includes(q) ||
+        conn.processName?.toLowerCase().includes(q) ||
+        String(conn.remotePort).includes(q) ||
+        conn.protocol?.toLowerCase().includes(q);
 
-      if (!matchesSearch) return false;
+      if (!matchSearch) return false;
 
-      if (directionFilter === "outbound") return conn.direction === "outbound";
-      if (directionFilter === "inbound") return conn.direction === "inbound";
-      if (directionFilter === "local") return conn.direction === "local";
+      if (directionFilter === "all") return true;
       if (directionFilter === "foreign") return !conn.geo.isPrivate && conn.geo.countryCode !== "VN";
       if (directionFilter === "suspicious") return conn.geo.trustLevel === "suspicious";
-
-      return true;
+      return conn.direction === directionFilter;
     });
   }, [connections, search, directionFilter]);
 
@@ -144,7 +143,7 @@ export const NetworkTrafficTab: React.FC = () => {
   const liveOutboundSpeed = utilization?.networkTxBytes ?? summary?.currentOutboundSpeed ?? 0;
 
   return (
-    <div className="space-y-4 sm:space-y-5 animate-in fade-in duration-200">
+    <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-200">
       {/* Toast Feedback */}
       {blockedFeedback && (
         <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center justify-between animate-in slide-in-from-top duration-200">
@@ -167,14 +166,14 @@ export const NetworkTrafficTab: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                Giám sát Lưu lượng &amp; Luồng Dữ liệu NAS
+                {t.traffic.title}
               </h2>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
-                IP Geo &amp; ISP Watchdog
+                IP Geo &amp; Watchdog
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Nắm trọn dữ liệu từ NAS đang chạy đi đâu, nhận diện cờ Quốc gia và Nhà mạng ISP sở hữu
+              {t.traffic.subtitle}
             </p>
           </div>
         </div>
@@ -183,12 +182,12 @@ export const NetworkTrafficTab: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2">
           <div className="px-3 py-1.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold font-mono flex items-center gap-1.5">
             <ArrowDownCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-            <span>Nhận: {formatSpeed(liveInboundSpeed)}</span>
+            <span>{t.traffic.downloadBandwidth}: {formatSpeed(liveInboundSpeed)}</span>
           </div>
 
           <div className="px-3 py-1.5 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 text-xs font-bold font-mono flex items-center gap-1.5">
             <ArrowUpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-            <span>Gửi đi: {formatSpeed(liveOutboundSpeed)}</span>
+            <span>{t.traffic.uploadBandwidth}: {formatSpeed(liveOutboundSpeed)}</span>
           </div>
 
           <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl text-[11px] font-semibold">
@@ -223,7 +222,7 @@ export const NetworkTrafficTab: React.FC = () => {
               }`}
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>Sơ đồ Luồng</span>
+              <span>{t.traffic.dataFlowView}</span>
             </button>
             <button
               onClick={() => setVisualizerMode("bars")}
@@ -234,14 +233,14 @@ export const NetworkTrafficTab: React.FC = () => {
               }`}
             >
               <Activity className="w-3.5 h-3.5" />
-              <span>Phân bổ</span>
+              <span>Distribution</span>
             </button>
           </div>
 
           <button
             onClick={fetchConnections}
             className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-colors"
-            title="Làm mới ngay"
+            title={t.common.refresh}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-sky-500" : ""}`} />
           </button>
@@ -249,10 +248,10 @@ export const NetworkTrafficTab: React.FC = () => {
           <button
             onClick={handleExportCsv}
             className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1 transition-colors"
-            title="Xuất danh sách kết nối ra CSV"
+            title="CSV Export"
           >
             <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Xuất CSV</span>
+            <span className="hidden sm:inline">CSV</span>
           </button>
         </div>
       </div>

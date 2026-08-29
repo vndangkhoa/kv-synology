@@ -338,7 +338,7 @@ export const FirewallManagerTab: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white">
-                    Tường lửa &amp; Trung tâm Bảo mật Synology DSM
+                    {t.firewall.title}
                   </h3>
                   {session.isConnected ? (
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
@@ -347,12 +347,12 @@ export const FirewallManagerTab: React.FC = () => {
                     </span>
                   ) : (
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/20">
-                      Chế độ Demo
+                      Demo Mode
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Lọc cổng truy cập trực tiếp trên NAS, kiểm soát dải IP nguồn, ngăn chặn DoS và tự động khóa IP brute-force.
+                  {t.firewall.subtitle}
                 </p>
               </div>
             </div>
@@ -361,13 +361,13 @@ export const FirewallManagerTab: React.FC = () => {
           {/* Master Firewall Switch */}
           <div className="flex items-center gap-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-3 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xs shrink-0">
             <div className="text-right">
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block">Trạng thái Tường lửa:</span>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block">{t.firewall.enableFirewall}:</span>
               <span
                 className={`text-[11px] font-extrabold ${
                   firewallConfig?.enabled ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
                 }`}
               >
-                {firewallConfig?.enabled ? "● Đang kích hoạt (Bảo vệ)" : "○ Đã tắt (Không lọc)"}
+                {firewallConfig?.enabled ? `● ${t.firewall.statusEnabled}` : `○ ${t.firewall.statusDisabled}`}
               </span>
             </div>
             <button
@@ -389,7 +389,7 @@ export const FirewallManagerTab: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 pt-4 border-t border-slate-200/80 dark:border-slate-800">
           <div className="bg-white dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between shadow-xs">
             <div>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">Quy tắc đang bật</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">{t.firewall.rulesTab}</span>
               <span className="text-lg font-black text-slate-900 dark:text-white font-mono">
                 {firewallConfig?.rules.filter((r) => r.enabled).length || 0} / {firewallConfig?.rules.length || 0}
               </span>
@@ -401,7 +401,7 @@ export const FirewallManagerTab: React.FC = () => {
 
           <div className="bg-white dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between shadow-xs">
             <div>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">IP bị khóa tự động</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">{t.firewall.blockCount}</span>
               <span className="text-lg font-black text-amber-600 dark:text-amber-400 font-mono">
                 {blockedIps.length} IP
               </span>
@@ -413,9 +413,9 @@ export const FirewallManagerTab: React.FC = () => {
 
           <div className="bg-white dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between shadow-xs">
             <div>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">Bảo vệ DoS Attack</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">{t.firewall.dosTab}</span>
               <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                {dosEnabled ? "Đã kích hoạt" : "Chưa bật"}
+                {dosEnabled ? t.firewall.statusEnabled : t.firewall.statusDisabled}
               </span>
             </div>
             <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
@@ -437,7 +437,7 @@ export const FirewallManagerTab: React.FC = () => {
             }`}
           >
             <Shield className="w-3.5 h-3.5" />
-            <span>Quy tắc Tường lửa ({firewallConfig?.rules.length || 0})</span>
+            <span>{t.firewall.rulesTab} ({firewallConfig?.rules.length || 0})</span>
           </button>
 
           <button
@@ -449,7 +449,7 @@ export const FirewallManagerTab: React.FC = () => {
             }`}
           >
             <Lock className="w-3.5 h-3.5" />
-            <span>Tự động khóa IP ({blockedIps.length})</span>
+            <span>{t.firewall.autoBlockTab} ({blockedIps.length})</span>
           </button>
 
           <button
@@ -461,7 +461,7 @@ export const FirewallManagerTab: React.FC = () => {
             }`}
           >
             <Zap className="w-3.5 h-3.5" />
-            <span>Chống DoS & An ninh</span>
+            <span>{t.firewall.dosTab}</span>
           </button>
         </div>
 
@@ -472,17 +472,17 @@ export const FirewallManagerTab: React.FC = () => {
               className="px-3.5 py-2 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 shrink-0"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Thêm Quy tắc</span>
+              <span>{t.firewall.addRule}</span>
             </button>
           )}
 
           <button
             onClick={loadData}
             className="px-3 py-2 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5"
-            title="Đồng bộ lại từ Synology NAS"
+            title={t.common.refresh}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-sky-500" : ""}`} />
-            <span className="hidden sm:inline">Đồng bộ từ NAS</span>
+            <span className="hidden sm:inline">{t.common.refresh}</span>
           </button>
         </div>
       </div>

@@ -38,45 +38,8 @@ export const StorageManagerTab: React.FC = () => {
   }, [session.isConnected]);
 
   const activeVols = useMemo(() => {
-    const list = volumes.length > 0 ? [...volumes] : [...mockStorageVolumes];
-    const hasSsd = list.some(
-      (v) =>
-        v.id.includes("2") ||
-        v.id.includes("ssd") ||
-        v.name.toLowerCase().includes("ssd") ||
-        v.name.toLowerCase().includes("nvme")
-    );
-    if (!hasSsd) {
-      list.push({
-        id: "ssd_cache_1",
-        name: "SSD Cache 1 (NVMe M.2 Read-Write Cache)",
-        path: "/cache1 (Gắn kết Volume 1)",
-        fsType: "NVMe SSD Cache (Read/Write)",
-        totalBytes: 960000000000,
-        usedBytes: 310000000000,
-        freeBytes: 650000000000,
-        status: "normal",
-        isCache: true,
-        cacheType: "read_write",
-        targetVolume: "Volume 1",
-        hitRate: 98.4,
-        drives: [
-          {
-            slot: 5,
-            slotName: "Khe M.2-1",
-            model: "Samsung 970 EVO Plus 1TB NVMe M.2",
-            serial: "S4EVNF0M",
-            status: "normal",
-            temp: 42,
-            size: 1000000000000,
-            health: "100% Tuổi thọ (Tốt)",
-            driveType: "NVMe",
-          },
-        ],
-      });
-    }
-    return list;
-  }, [volumes]);
+    return volumes.length > 0 ? volumes : (session.isConnected ? [] : mockStorageVolumes);
+  }, [volumes, session.isConnected]);
 
   const totalCapacity = activeVols.reduce((acc, v) => acc + (v.totalBytes || 0), 0);
   const totalUsed = activeVols.reduce((acc, v) => acc + (v.usedBytes || 0), 0);

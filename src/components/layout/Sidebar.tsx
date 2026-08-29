@@ -24,6 +24,7 @@ import {
   Terminal,
   Bot,
   Shield,
+  ShieldCheck,
   Gauge,
 } from "lucide-react";
 
@@ -49,6 +50,7 @@ export const Sidebar: React.FC = () => {
     { id: "snmp", label: t.nav.snmp, icon: <Radio className="w-5 h-5" /> },
     { id: "traffic", label: t.nav.traffic, icon: <Globe className="w-5 h-5" /> },
     { id: "files", label: t.nav.fileStation, icon: <FolderOpen className="w-5 h-5" /> },
+    { id: "permissions", label: t.nav.permissions, icon: <ShieldCheck className="w-5 h-5" /> },
     { id: "docker", label: t.nav.docker, icon: <Boxes className="w-5 h-5" /> },
     { id: "download", label: t.nav.downloadStation, icon: <DownloadCloud className="w-5 h-5" /> },
     { id: "storage", label: t.nav.storageManager, icon: <HardDrive className="w-5 h-5" /> },
@@ -62,9 +64,9 @@ export const Sidebar: React.FC = () => {
   ];
 
   const renderContent = (collapsed = false) => (
-    <div className="flex flex-col justify-between h-full">
-      {/* Top Header & Navigation */}
-      <div>
+    <div className="flex flex-col h-full overflow-hidden select-none">
+      {/* 1. Fixed Top Header & Server Status */}
+      <div className="shrink-0">
         {/* Brand Header */}
         <div className={`p-4 border-b border-slate-200 dark:border-slate-800 flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
           <div className="flex items-center space-x-3 overflow-hidden">
@@ -93,14 +95,14 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* Server Status Badge */}
-        <div className="p-3">
+        <div className="p-2.5">
           <div
             onClick={() => {
               if (!session.isConnected) openLoginModal(true);
               setMobileDrawerOpen(false);
             }}
             title={session.isConnected ? session.hostname : "Chưa kết nối"}
-            className={`flex items-center ${collapsed ? "justify-center p-2.5" : "justify-between p-2.5"} rounded-xl border text-xs cursor-pointer transition-all ${
+            className={`flex items-center ${collapsed ? "justify-center p-2" : "justify-between p-2.5"} rounded-xl border text-xs cursor-pointer transition-all ${
               session.isConnected
                 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
                 : "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500"
@@ -110,7 +112,7 @@ export const Sidebar: React.FC = () => {
               <span
                 className={`w-2.5 h-2.5 rounded-full shrink-0 ${
                   session.isConnected
-                    ? "bg-emerald-500"
+                    ? "bg-emerald-500 animate-pulse"
                     : "bg-slate-400"
                 }`}
               />
@@ -129,37 +131,39 @@ export const Sidebar: React.FC = () => {
             )}
           </div>
         </div>
-
-        {/* Navigation Menu */}
-        <nav className="px-2.5 space-y-1 mt-1">
-          {navItems.map((item) => {
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  setMobileDrawerOpen(false);
-                }}
-                title={collapsed ? item.label : undefined}
-                className={`w-full flex items-center ${collapsed ? "justify-center px-2 py-3" : "space-x-3 px-3.5 py-3"} rounded-2xl text-sm font-medium transition-all ${
-                  isActive
-                    ? "bg-sky-500 text-white shadow-md shadow-sky-500/25 font-bold"
-                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60"
-                }`}
-              >
-                <span className={`shrink-0 ${isActive ? "text-white" : "text-slate-500 dark:text-slate-400"}`}>
-                  {item.icon}
-                </span>
-                {!collapsed && <span className="truncate">{item.label}</span>}
-              </button>
-            );
-          })}
-        </nav>
       </div>
 
-      {/* Footer Profile, Language & Logout */}
-      <div className="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
+      {/* 2. Scrollable Navigation Menu (Takes available height, scrolls smoothly) */}
+      <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-2.5 py-1 space-y-1 overscroll-contain">
+        {navItems.map((item) => {
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                setActiveTab(item.id);
+                setMobileDrawerOpen(false);
+              }}
+              title={collapsed ? item.label : undefined}
+              className={`w-full flex items-center ${
+                collapsed ? "justify-center px-2 py-2.5" : "space-x-3 px-3 py-2.5"
+              } rounded-xl text-sm font-medium transition-all ${
+                isActive
+                  ? "bg-sky-500 text-white shadow-md shadow-sky-500/25 font-bold"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+              }`}
+            >
+              <span className={`shrink-0 ${isActive ? "text-white" : "text-slate-500 dark:text-slate-400"}`}>
+                {item.icon}
+              </span>
+              {!collapsed && <span className="truncate">{item.label}</span>}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* 3. Fixed Footer Profile, Language & Logout */}
+      <div className="shrink-0 p-3 border-t border-slate-200 dark:border-slate-800 space-y-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm">
         {session.isConnected ? (
           <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
             <div className="flex items-center space-x-2.5 overflow-hidden">
@@ -197,7 +201,7 @@ export const Sidebar: React.FC = () => {
               setMobileDrawerOpen(false);
             }}
             title={t.common.connect}
-            className={`w-full flex items-center justify-center ${collapsed ? "p-3" : "space-x-2 py-3 px-4"} bg-sky-600 hover:bg-sky-500 text-white rounded-2xl text-xs font-bold shadow-lg shadow-sky-600/20 transition-all`}
+            className={`w-full flex items-center justify-center ${collapsed ? "p-2.5" : "space-x-2 py-2.5 px-4"} bg-sky-600 hover:bg-sky-500 text-white rounded-2xl text-xs font-bold shadow-lg shadow-sky-600/20 transition-all`}
           >
             <LogIn className="w-4 h-4 shrink-0" />
             {!collapsed && <span>{t.common.connect} NAS</span>}
@@ -234,9 +238,9 @@ export const Sidebar: React.FC = () => {
 
   return (
     <>
-      {/* Desktop Sidebar (Full or Collapsed Rail) */}
+      {/* Desktop Sidebar (Fixed / Sticky in position, stays in place when main content scrolls) */}
       <aside
-        className={`hidden md:flex bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-col justify-between shrink-0 h-screen sticky top-0 transition-all duration-300 z-20 ${
+        className={`hidden md:flex bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-col shrink-0 h-screen sticky top-0 transition-all duration-300 z-30 overflow-hidden ${
           isSidebarCollapsed ? "w-20" : "w-64"
         }`}
       >
@@ -253,7 +257,7 @@ export const Sidebar: React.FC = () => {
           />
 
           {/* Drawer Panel */}
-          <div className="relative w-72 max-w-[80vw] bg-white dark:bg-slate-900 h-full shadow-2xl border-r border-slate-200 dark:border-slate-800 z-10 animate-in slide-in-from-left duration-200 flex flex-col justify-between">
+          <div className="relative w-72 max-w-[80vw] bg-white dark:bg-slate-900 h-full shadow-2xl border-r border-slate-200 dark:border-slate-800 z-10 animate-in slide-in-from-left duration-200 flex flex-col overflow-hidden">
             {renderContent(false)}
           </div>
         </div>

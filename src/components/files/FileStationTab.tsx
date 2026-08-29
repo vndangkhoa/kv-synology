@@ -35,10 +35,11 @@ import {
   Loader2,
   CheckCircle2,
   Link as LinkIcon,
+  ShieldCheck,
 } from "lucide-react";
 
 export const FileStationTab: React.FC = () => {
-  const { t } = useAppStore();
+  const { t, setActiveTab, setPermissionInspectPath } = useAppStore();
   const [currentPath, setCurrentPath] = useState<string>("/");
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -345,6 +346,19 @@ export const FileStationTab: React.FC = () => {
               <span className="hidden md:inline">{t.files.newFolder}</span>
             </button>
 
+            {/* Inspect Permissions Button */}
+            <button
+              onClick={() => {
+                setPermissionInspectPath(currentPath);
+                setActiveTab("permissions");
+              }}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 text-xs font-semibold transition-colors flex items-center space-x-1"
+              title="Kiểm tra phân quyền thư mục này (Permission Inspector)"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-sky-500" />
+              <span className="hidden sm:inline">Kiểm tra quyền</span>
+            </button>
+
             {/* Shared Links Manager */}
             <button
               onClick={handleOpenShareManager}
@@ -516,6 +530,18 @@ export const FileStationTab: React.FC = () => {
 
                       <td className="px-4 py-3.5 text-right">
                         <div className="flex items-center justify-end space-x-1 opacity-80 group-hover:opacity-100">
+                          {file.isdir && (
+                            <button
+                              onClick={() => {
+                                setPermissionInspectPath(file.path);
+                                setActiveTab("permissions");
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                              title="Kiểm tra phân quyền thư mục này (Permission Inspector)"
+                            >
+                              <ShieldCheck className="w-4 h-4 text-sky-500" />
+                            </button>
+                          )}
                           <button
                             onClick={() => handleOpenShare(file)}
                             className="p-1.5 text-slate-400 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-lg transition-colors"

@@ -91,39 +91,8 @@ export const OverviewTab: React.FC = () => {
   const ramUsedMB = utilization?.memoryUsedMB ?? (ramTotalMB ? Math.round((ram/100)*ramTotalMB) : 0);
   const ramFreeMB = Math.max(0, ramTotalMB - ramUsedMB);
   const displayVolumes = useMemo(() => {
-    const list = volumes.length > 0 ? [...volumes] : [...mockStorageVolumes];
-    const hasSsd = list.some(
-      (v) =>
-        v.id.includes("2") ||
-        v.id.includes("ssd") ||
-        v.name.toLowerCase().includes("ssd") ||
-        v.name.toLowerCase().includes("nvme")
-    );
-    if (!hasSsd) {
-      list.push({
-        id: "volume_2",
-        name: "Volume 2 (NVMe Storage Pool)",
-        path: "/volume2",
-        fsType: "BTRFS (NVMe SSD)",
-        totalBytes: 960000000000,
-        usedBytes: 310000000000,
-        freeBytes: 650000000000,
-        status: "normal",
-        drives: [
-          {
-            slot: 5,
-            model: "Samsung 970 EVO Plus 1TB NVMe M.2",
-            serial: "S4EVNF0M",
-            status: "normal",
-            temp: 42,
-            size: 1000000000000,
-            health: "100% Tuổi thọ (Tốt)",
-          },
-        ],
-      });
-    }
-    return list;
-  }, [volumes]);
+    return volumes.length > 0 ? volumes : (session.isConnected ? [] : mockStorageVolumes);
+  }, [volumes, session.isConnected]);
 
   const totalDiskBytes = displayVolumes.reduce((a,v)=>a+(v.totalBytes||0),0);
   const usedDiskBytes = displayVolumes.reduce((a,v)=>a+(v.usedBytes||0),0);
@@ -597,7 +566,7 @@ export const OverviewTab: React.FC = () => {
                               <span className="font-semibold">{vol.fsType}</span>
                               <span>•</span>
                               <span>{vol.drives.length} ổ gắn kết</span>
-                              {isSsdCache && <span className="text-amber-500 font-semibold">(Tăng tốc truy xuất I/O Volume 1)</span>}
+                              {isSsdCache && <span className="text-amber-500 font-semibold">(Tăng tốc truy xuất I/O {vol.targetVolume || "Volume 2"})</span>}
                             </div>
                           </div>
                           <span className="text-xs font-mono font-bold shrink-0 text-slate-900 dark:text-white">

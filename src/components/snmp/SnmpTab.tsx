@@ -848,17 +848,19 @@ export const SnmpTab: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
-                  Phân Vùng Btrfs &amp; SSD NVMe Cache M.2
+                  {activeVols.some((v) => v.isCache) ? "Phân Vùng Btrfs & SSD NVMe Cache M.2" : "Phân Vùng Lưu Trữ (Storage Volumes)"}
                 </h3>
                 <p className="text-[11px] text-slate-400">
-                  {activeVols.filter((v) => !v.isCache).length || 1} Storage Pool •{" "}
-                  {activeVols.reduce((acc, v) => acc + (v.drives?.length || 0), 0) || 4} Ổ đĩa vật lý (HDD &amp; NVMe) • Trạng thái: Bình thường (Healthy)
+                  {activeVols.filter((v) => !v.isCache).length} Phân vùng (Volume) •{" "}
+                  {activeVols.reduce((acc, v) => acc + (v.drives?.length || 0), 0)} Ổ đĩa vật lý • Trạng thái: Bình thường (Healthy)
                 </p>
               </div>
             </div>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 self-start sm:self-center shrink-0">
-              Cache Hit: {(activeVols.find((v) => v.isCache)?.hitRate ?? 98.4).toFixed(1)}%
-            </span>
+            {activeVols.some((v) => v.isCache) && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 self-start sm:self-center shrink-0">
+                Cache Hit: {(activeVols.find((v) => v.isCache)?.hitRate ?? 98.0).toFixed(1)}%
+              </span>
+            )}
           </div>
 
           <div className="space-y-3 pt-1">

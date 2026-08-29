@@ -21,6 +21,7 @@ import { StorageManagerTab } from "@/components/storage/StorageManagerTab";
 import { PackageCenterTab } from "@/components/packages/PackageCenterTab";
 import { ServicesTab } from "@/components/services/ServicesTab";
 import { FirewallManagerTab } from "@/components/security/FirewallManagerTab";
+import { PermissionInspectorTab } from "@/components/permissions/PermissionInspectorTab";
 import { NotificationsTab } from "@/components/notifications/NotificationsTab";
 import { TerminalTab } from "@/components/terminal/TerminalTab";
 import { McpDocsTab } from "@/components/mcp/McpDocsTab";
@@ -198,6 +199,8 @@ export default function Home() {
         return <ServicesTab />;
       case "firewall":
         return <FirewallManagerTab />;
+      case "permissions":
+        return <PermissionInspectorTab />;
       case "notifications":
         return <NotificationsTab />;
       case "terminal":
@@ -212,16 +215,16 @@ export default function Home() {
   };
 
   return (
-    <div suppressHydrationWarning className="flex min-h-screen w-full max-w-full overflow-x-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased selection:bg-sky-500 selection:text-white transition-colors">
+    <div suppressHydrationWarning className="flex h-screen w-full max-w-full overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased selection:bg-sky-500 selection:text-white transition-colors">
       {/* Sidebar (Desktop + Mobile Slide-over Drawer) */}
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 w-full max-w-full overflow-x-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <Header />
         <NasTabBar />
 
-        <main className="flex-1 p-2.5 sm:p-4 lg:p-5 w-full max-w-full overflow-y-auto overflow-x-hidden pb-24 md:pb-6">
+        <main className="flex-1 min-h-0 p-2.5 sm:p-4 lg:p-5 w-full max-w-full overflow-y-auto overflow-x-hidden pb-24 md:pb-6">
           <div className="w-full max-w-[1720px] mx-auto min-w-0">
             {renderActiveContent()}
           </div>

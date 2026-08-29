@@ -392,3 +392,105 @@ export interface BlockedIpItem {
   country?: string;
 }
 
+// ==================== PERMISSIONS & ACCESS CONTROL (ADVANCE) ====================
+export type PermissionLevel = "full_control" | "read_write" | "read_only" | "deny" | "custom" | "no_access";
+
+export type InheritanceType = "direct" | "inherited_folder" | "inherited_group" | "owner";
+
+export interface AclRights {
+  read: boolean;
+  write: boolean;
+  execute: boolean;
+  append: boolean;
+  delete: boolean;
+  deleteChild: boolean;
+  readAttr: boolean;
+  writeAttr: boolean;
+  readPerm: boolean;
+  writePerm: boolean;
+  takeOwner: boolean;
+}
+
+export interface DsmUser {
+  name: string;
+  uid: number;
+  description?: string;
+  email?: string;
+  groups: string[];
+  status: "active" | "disabled" | "expired";
+  isAdmin?: boolean;
+  avatarUrl?: string;
+}
+
+export interface DsmGroup {
+  name: string;
+  gid: number;
+  description?: string;
+  members: string[];
+}
+
+export interface UserFolderAccess {
+  path: string;
+  name: string;
+  volume: string;
+  isdir: boolean;
+  level: PermissionLevel;
+  inheritance: InheritanceType;
+  inheritedFrom?: string;
+  rights: AclRights;
+  isOwner?: boolean;
+  explanation?: string;
+}
+
+export interface FolderUserAccess {
+  targetName: string;
+  isGroup: boolean;
+  displayName?: string;
+  avatarUrl?: string;
+  userGroups?: string[];
+  level: PermissionLevel;
+  inheritance: InheritanceType;
+  inheritedFrom?: string;
+  rights: AclRights;
+  isOwner?: boolean;
+  explanation?: string;
+  ruleOriginPath?: string;
+}
+
+export interface FolderAclInfo {
+  path: string;
+  realPath?: string;
+  owner: string;
+  group: string;
+  posixPerm: string;
+  isAclMode: boolean;
+  isInheritEnabled: boolean;
+  parentPath?: string;
+  directRulesCount: number;
+  inheritedRulesCount: number;
+  accessList: FolderUserAccess[];
+}
+
+export interface PermissionMatrixCell {
+  level: PermissionLevel;
+  inheritance: InheritanceType;
+  inheritedFrom?: string;
+  isOwner?: boolean;
+}
+
+export interface PermissionMatrixData {
+  users: DsmUser[];
+  folders: { path: string; name: string; volume: string }[];
+  matrix: Record<string, Record<string, PermissionMatrixCell>>;
+}
+
+export interface SecurityAuditItem {
+  id: string;
+  severity: "critical" | "warning" | "info";
+  title: string;
+  description: string;
+  affectedPath?: string;
+  affectedUsers?: string[];
+  recommendation: string;
+}
+
