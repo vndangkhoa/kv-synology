@@ -79,7 +79,7 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="h-14 sm:h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-2.5 sm:px-6 flex items-center justify-between sticky top-0 z-20 gap-1.5 sm:gap-3 w-full max-w-full overflow-x-hidden">
+    <header className="h-14 sm:h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-2.5 sm:px-6 flex items-center justify-between sticky top-0 z-40 gap-1.5 sm:gap-3 w-full max-w-full">
       {/* Left: Hamburger Sidebar Toggle + Full Title */}
       <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0 min-w-0">
         {/* Mobile Hamburger Drawer Trigger */}

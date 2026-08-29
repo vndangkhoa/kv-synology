@@ -66,9 +66,12 @@ const AI_PROVIDERS: Array<{
     desc: "Mô hình thế hệ mới từ Google DeepMind với khả năng suy luận nhanh, ngữ cảnh rộng và hỗ trợ Tiếng Việt xuất sắc.",
     defaultModel: "gemini-2.0-flash",
     models: [
-      { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash (Nhanh & Thông minh)", desc: "Mô hình mới nhất, độ trễ cực thấp, tối ưu cho DSM" },
-      { id: "gemini-1.5-flash", label: "Gemini 1.5 Flash (Tiêu chuẩn)", desc: "Cân bằng tốc độ và độ chính xác" },
-      { id: "gemini-1.5-pro", label: "Gemini 1.5 Pro (Suy luận sâu)", desc: "Khả năng phân tích hệ thống và mã nguồn chuyên sâu" },
+      { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash (Thế hệ mới nhất - Siêu tốc)", desc: "Mô hình mới nhất, độ trễ cực thấp, tối ưu cho DSM" },
+      { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro (Suy luận sâu nâng cao)", desc: "Mô hình suy luận mạnh mẽ giải quyết tác vụ phức tạp" },
+      { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash (Nhanh & Thông minh - Khuyên dùng)", desc: "Cân bằng hoàn hảo giữa tốc độ, trí tuệ và độ chính xác" },
+      { id: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite (Tiết kiệm tài nguyên)", desc: "Độ trễ thấp nhất, tối ưu cho phản hồi nhanh" },
+      { id: "gemini-1.5-flash", label: "Gemini 1.5 Flash (Tiêu chuẩn)", desc: "Tốc độ ổn định cho các tác vụ hàng ngày" },
+      { id: "gemini-1.5-pro", label: "Gemini 1.5 Pro (Ngữ cảnh 2M Tokens)", desc: "Khả năng phân tích hệ thống và tài liệu kỹ thuật dài" },
     ],
     apiKeyPlaceholder: "AIzaSy...",
     docsUrl: "https://aistudio.google.com/app/apikey",
@@ -79,37 +82,49 @@ const AI_PROVIDERS: Array<{
     name: "OpenRouter",
     badge: "Đa mô hình",
     icon: "🌐",
-    desc: "Cổng kết nối AI toàn năng hỗ trợ mọi mô hình hàng đầu (Claude 3.5, GPT-4o, DeepSeek-V3, Llama 3.3, Gemini 2.0) chỉ với 1 API Key duy nhất.",
-    defaultModel: "anthropic/claude-3.5-sonnet",
+    desc: "Cổng kết nối AI toàn năng hỗ trợ mọi mô hình hàng đầu (Claude 3.7, Claude 3.5, GPT-4o, DeepSeek-V3, Llama 3.3, Gemini 2.0) chỉ với 1 API Key duy nhất.",
+    defaultModel: "anthropic/claude-3.7-sonnet",
     models: [
-      { id: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet (anthropic/claude-3.5-sonnet)", desc: "Khả năng phân tích hệ thống và lập luận kỹ thuật tốt nhất" },
+      { id: "anthropic/claude-3.7-sonnet", label: "Claude 3.7 Sonnet (anthropic/claude-3.7-sonnet)", desc: "Mô hình lập luận Hybrid hàng đầu thế giới của Anthropic" },
+      { id: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet (anthropic/claude-3.5-sonnet)", desc: "Khả năng phân tích hệ thống và lập luận kỹ thuật chuẩn xác" },
+      { id: "anthropic/claude-3.5-haiku", label: "Claude 3.5 Haiku (anthropic/claude-3.5-haiku)", desc: "Mô hình siêu tốc độ, chi phí thấp" },
+      { id: "deepseek/deepseek-chat", label: "DeepSeek V3 (deepseek/deepseek-chat)", desc: "Mô hình tổng quát 671B tham số hiệu năng cao" },
+      { id: "deepseek/deepseek-r1", label: "DeepSeek R1 (deepseek/deepseek-r1)", desc: "Mô hình chuỗi suy luận sâu giải quyết lỗi khó" },
       { id: "openai/gpt-4o", label: "GPT-4o (openai/gpt-4o)", desc: "Mô hình đa phương thức hàng đầu OpenAI" },
-      { id: "deepseek/deepseek-chat", label: "DeepSeek V3 (deepseek/deepseek-chat)", desc: "Mô hình hiệu năng cao, chi phí siêu rẻ" },
-      { id: "deepseek/deepseek-r1", label: "DeepSeek R1 (deepseek/deepseek-r1)", desc: "Mô hình lý luận sâu giải quyết lỗi phức tạp" },
-      { id: "meta-llama/llama-3.3-70b-instruct", label: "Llama 3.3 70B (meta-llama/llama-3.3-70b-instruct)", desc: "Mô hình mã nguồn mở thế hệ mới nhất của Meta" },
-      { id: "google/gemini-2.0-flash-exp:free", label: "Gemini 2.0 Flash (Free Tier)", desc: "Bản thử nghiệm miễn phí tốc độ cao" },
-      { id: "qwen/qwen-2.5-72b-instruct", label: "Qwen 2.5 72B (qwen/qwen-2.5-72b-instruct)", desc: "Mô hình tiếng Việt và đa ngữ mạnh mẽ từ Alibaba" },
+      { id: "openai/gpt-4o-mini", label: "GPT-4o Mini (openai/gpt-4o-mini)", desc: "Mô hình nhỏ gọn, phản hồi tức thì" },
+      { id: "openai/o3-mini", label: "o3-mini (openai/o3-mini)", desc: "Mô hình lý luận nhanh mới nhất của OpenAI" },
+      { id: "meta-llama/llama-3.3-70b-instruct", label: "Llama 3.3 70B (meta-llama/llama-3.3-70b-instruct)", desc: "Mã nguồn mở thế hệ mới của Meta" },
+      { id: "qwen/qwen-2.5-72b-instruct", label: "Qwen 2.5 72B (qwen/qwen-2.5-72b-instruct)", desc: "Mô hình tiếng Việt và đa ngữ xuất sắc từ Alibaba" },
+      { id: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash (google/gemini-2.0-flash-001)", desc: "Mô hình Google Flash qua OpenRouter" },
     ],
     apiKeyPlaceholder: "sk-or-v1-...",
     docsUrl: "https://openrouter.ai/keys",
     keyName: "OpenRouter API Key",
   },
+  /*
   {
     id: "opencode",
     name: "OpenCode API",
-    badge: "Local / Zen",
+    badge: "Workspace / Zen",
     icon: "🧩",
     desc: "Môi trường thực thi mã và suy luận OpenCode chuyên dụng cho việc quản trị máy chủ, điều khiển NAS qua MCP và tự động hóa.",
-    defaultModel: "opencode-interpreter",
+    defaultModel: "opencode/zen-1",
     models: [
+      { id: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5 (anthropic/claude-sonnet-4-5 - Khuyên dùng)", desc: "Mô hình cấu hình chính thức trong opencode.json" },
+      { id: "opencode/zen-1", label: "OpenCode Zen-1 (Code & Script)", desc: "Mô hình lý luận và code chính thức của OpenCode" },
       { id: "opencode-interpreter", label: "OpenCode Interpreter (Tự động hóa DSM)", desc: "Tối ưu cho việc thực thi lệnh quản trị và điều khiển NAS" },
-      { id: "opencode/zen-1", label: "OpenCode Zen-1 (Code & Script)", desc: "Chuyên sâu viết script bash, cron và docker-compose" },
-      { id: "opencode-llama", label: "OpenCode Llama (Local Agent)", desc: "Chạy cục bộ qua OpenCode server" },
+      { id: "anthropic/claude-3.7-sonnet", label: "Claude 3.7 Sonnet (qua OpenCode)", desc: "Mô hình lập luận Hybrid hàng đầu thế giới" },
+      { id: "deepseek/deepseek-r1", label: "DeepSeek R1 (qua OpenCode)", desc: "Mô hình chuỗi suy luận sâu giải quyết lỗi phức tạp" },
+      { id: "deepseek/deepseek-chat", label: "DeepSeek V3 (qua OpenCode)", desc: "Mô hình tổng quát đa nhiệm mạnh mẽ" },
+      { id: "openai/gpt-4o", label: "GPT-4o (qua OpenCode)", desc: "Mô hình đa phương thức flagship của OpenAI" },
+      { id: "openai/o3-mini", label: "o3-mini (qua OpenCode)", desc: "Mô hình lý luận nhanh thế hệ mới" },
+      { id: "meta-llama/llama-3.3-70b-instruct", label: "Llama 3.3 70B (qua OpenCode)", desc: "Mô hình mã nguồn mở thế hệ mới của Meta" },
     ],
-    apiKeyPlaceholder: "opencode-... (hoặc bỏ trống nếu chạy local)",
-    docsUrl: "https://github.com/opencode-ai",
-    keyName: "OpenCode API Key / Token",
+    apiKeyPlaceholder: "opencode-... (Lấy tại https://opencode.ai/workspace)",
+    docsUrl: "https://opencode.ai/workspace",
+    keyName: "OpenCode API Key / Workspace Token",
   },
+  */
   {
     id: "deepseek",
     name: "DeepSeek AI",
@@ -118,8 +133,8 @@ const AI_PROVIDERS: Array<{
     desc: "Mô hình mã nguồn mở thế hệ mới DeepSeek-V3 và DeepSeek-R1 với năng lực toán học, code và suy luận logic vượt trội.",
     defaultModel: "deepseek-chat",
     models: [
-      { id: "deepseek-chat", label: "DeepSeek-V3 (deepseek-chat)", desc: "Mô hình tổng quát đa nhiệm mạnh mẽ và tốc độ cao" },
-      { id: "deepseek-reasoner", label: "DeepSeek-R1 (deepseek-reasoner)", desc: "Mô hình chuỗi suy luận sâu (Reasoning Chain) chuyên biệt" },
+      { id: "deepseek-chat", label: "DeepSeek-V3 (deepseek-chat - Khuyên dùng)", desc: "Mô hình tổng quát đa nhiệm mạnh mẽ và tốc độ cao" },
+      { id: "deepseek-reasoner", label: "DeepSeek-R1 (deepseek-reasoner - Suy luận sâu)", desc: "Mô hình chuỗi suy luận sâu (Reasoning Chain) chuyên biệt" },
     ],
     apiKeyPlaceholder: "sk-...",
     docsUrl: "https://platform.deepseek.com/",
@@ -130,11 +145,13 @@ const AI_PROVIDERS: Array<{
     name: "Anthropic Claude",
     badge: "Chính xác cao",
     icon: "🧠",
-    desc: "Dòng mô hình Claude 3.5 Sonnet hàng đầu thế giới về hiểu ngữ cảnh kỹ thuật, chẩn đoán an ninh và hỗ trợ quản trị hệ thống.",
-    defaultModel: "claude-3-5-sonnet-latest",
+    desc: "Dòng mô hình Claude 3.7 và 3.5 Sonnet hàng đầu thế giới về hiểu ngữ cảnh kỹ thuật, chẩn đoán an ninh và hỗ trợ quản trị hệ thống.",
+    defaultModel: "claude-3-7-sonnet-latest",
     models: [
+      { id: "claude-3-7-sonnet-latest", label: "Claude 3.7 Sonnet (Mới nhất - Khuyên dùng)", desc: "Mô hình thế hệ mới nhất với năng lực lập luận hybrid vượt trội" },
       { id: "claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet (Đỉnh cao)", desc: "Khả năng lập luận và giải quyết sự cố DSM chuẩn xác nhất" },
       { id: "claude-3-5-haiku-latest", label: "Claude 3.5 Haiku (Siêu tốc)", desc: "Phản hồi tức thì, chi phí siêu rẻ" },
+      { id: "claude-3-opus-latest", label: "Claude 3 Opus (Phân tích chuyên sâu)", desc: "Khả năng xử lý tác vụ tư duy phức tạp" },
     ],
     apiKeyPlaceholder: "sk-ant-...",
     docsUrl: "https://console.anthropic.com/",
@@ -148,9 +165,11 @@ const AI_PROVIDERS: Array<{
     desc: "Mô hình GPT-4o và GPT-4o-mini tiên tiến của OpenAI với kho tri thức rộng lớn và tính ổn định cao.",
     defaultModel: "gpt-4o-mini",
     models: [
-      { id: "gpt-4o-mini", label: "GPT-4o Mini (Nhanh & Nhẹ)", desc: "Hiệu năng ấn tượng, chi phí tối thiểu cho DSM" },
+      { id: "gpt-4o-mini", label: "GPT-4o Mini (Nhanh & Nhẹ - Khuyên dùng)", desc: "Hiệu năng ấn tượng, chi phí tối thiểu cho DSM" },
       { id: "gpt-4o", label: "GPT-4o (Toàn năng Flagship)", desc: "Mô hình mạnh nhất của OpenAI" },
-      { id: "o3-mini", label: "o3-mini (Suy luận chuyên sâu)", desc: "Mô hình lý luận logic mới" },
+      { id: "o3-mini", label: "o3-mini (Suy luận nhanh)", desc: "Mô hình lý luận logic mới tốc độ cao" },
+      { id: "o1", label: "o1 (Lý luận chuyên sâu)", desc: "Mô hình suy luận sâu cho các bài toán phức tạp" },
+      { id: "gpt-4-turbo", label: "GPT-4 Turbo", desc: "Mô hình GPT-4 kinh điển ổn định" },
     ],
     apiKeyPlaceholder: "sk-proj-...",
     docsUrl: "https://platform.openai.com/api-keys",
@@ -219,6 +238,9 @@ export const SettingsTab: React.FC = () => {
   const [testStatus, setTestStatus] = useState<Record<string, { loading: boolean; success?: boolean; text?: string }>>({});
   const [customModelInput, setCustomModelInput] = useState<string>("");
   const [customBaseUrlInput, setCustomBaseUrlInput] = useState<string>("");
+  const [dynamicModels, setDynamicModels] = useState<Record<string, Array<{ id: string; label: string; desc: string }>>>({});
+  const [fetchingModels, setFetchingModels] = useState<Record<string, boolean>>({});
+  const [fetchModelMsg, setFetchModelMsg] = useState<Record<string, string>>({});
 
   // WebLLM Downloader State
   const [selectedAiModel, setSelectedAiModel] = useState<string>("Qwen2.5-0.5B-Instruct-q4f32_1-MLC");
@@ -226,6 +248,46 @@ export const SettingsTab: React.FC = () => {
   const [aiDownloadText, setAiDownloadText] = useState<string>("");
   const [isAiDownloading, setIsAiDownloading] = useState<boolean>(false);
   const [aiDownloadSuccess, setAiDownloadSuccess] = useState<boolean>(false);
+
+  const handleFetchLiveModels = async (provider: AiProviderType) => {
+    const key = aiApiKeys[provider] || "";
+    const baseUrl = aiCustomBaseUrls[provider] || "";
+
+    setFetchingModels((prev) => ({ ...prev, [provider]: true }));
+    setFetchModelMsg((prev) => ({ ...prev, [provider]: "Đang tải danh sách mô hình từ API..." }));
+
+    try {
+      const res = await fetch("/api/ai/models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider,
+          apiKey: key,
+          customBaseUrl: baseUrl,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.models) && data.models.length > 0) {
+        setDynamicModels((prev) => ({ ...prev, [provider]: data.models }));
+        setFetchModelMsg((prev) => ({
+          ...prev,
+          [provider]: data.message || `Đã tải thành công ${data.models.length} mô hình!`,
+        }));
+      } else {
+        setFetchModelMsg((prev) => ({
+          ...prev,
+          [provider]: data.error || "Không thể tải danh sách mô hình từ API.",
+        }));
+      }
+    } catch (e: any) {
+      setFetchModelMsg((prev) => ({
+        ...prev,
+        [provider]: `Lỗi: ${e.message}`,
+      }));
+    } finally {
+      setFetchingModels((prev) => ({ ...prev, [provider]: false }));
+    }
+  };
 
   useEffect(() => {
     if (aiProvider) setActiveAiTab(aiProvider);
@@ -839,17 +901,36 @@ export const SettingsTab: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Model Selector Dropdown */}
+                      {/* Model Selector Dropdown & Live Fetch */}
                       <div>
-                        <label className="text-[10px] font-bold uppercase text-slate-400 mb-1 block">
-                          Mô hình AI (Model)
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] font-bold uppercase text-slate-400">
+                            Mô hình AI (Model)
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => handleFetchLiveModels(currentP.id)}
+                            disabled={fetchingModels[currentP.id]}
+                            className="text-[10px] text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-bold flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            title="Lấy danh sách mô hình trực tiếp từ máy chủ API"
+                          >
+                            <RotateCw className={`w-3 h-3 ${fetchingModels[currentP.id] ? "animate-spin" : ""}`} />
+                            <span>{fetchingModels[currentP.id] ? "Đang tải..." : "Fetch Live Models"}</span>
+                          </button>
+                        </div>
+
+                        {fetchModelMsg[currentP.id] && (
+                          <p className="text-[10px] text-purple-600 dark:text-purple-400 mb-1 leading-tight font-medium">
+                            {fetchModelMsg[currentP.id]}
+                          </p>
+                        )}
+
                         <select
                           value={currentModel}
                           onChange={(e) => setAiModel(currentP.id, e.target.value)}
                           className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                         >
-                          {currentP.models.map((m) => (
+                          {(dynamicModels[currentP.id] || currentP.models).map((m) => (
                             <option key={m.id} value={m.id}>
                               {m.label}
                             </option>

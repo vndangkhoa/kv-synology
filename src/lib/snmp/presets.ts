@@ -91,4 +91,35 @@ export const IF_MIB = {
 export const UCD_MEM = {
   memTotalReal: "1.3.6.1.4.1.2021.4.5.0",
   memAvailReal: "1.3.6.1.4.1.2021.4.6.0",
+  memTotalFree: "1.3.6.1.4.1.2021.4.11.0",
+  memShared: "1.3.6.1.4.1.2021.4.13.0",
+  memBuffer: "1.3.6.1.4.1.2021.4.14.0",
+  memCached: "1.3.6.1.4.1.2021.4.15.0",
 };
+
+// SYNOLOGY Enterprise MIB OIDs (.1.3.6.1.4.1.6574)
+export const SYNO_MIB = {
+  enterprise: "1.3.6.1.4.1.6574",
+  systemStatus: "1.3.6.1.4.1.6574.1.1.0",
+  temperature: "1.3.6.1.4.1.6574.1.2.0",
+  powerStatus: "1.3.6.1.4.1.6574.1.3.0",
+  systemFanStatus: "1.3.6.1.4.1.6574.1.4.1.0",
+  cpuFanStatus: "1.3.6.1.4.1.6574.1.4.2.0",
+  modelName: "1.3.6.1.4.1.6574.1.5.1.0",
+  serialNumber: "1.3.6.1.4.1.6574.1.5.2.0",
+  version: "1.3.6.1.4.1.6574.1.5.3.0",
+  upgradeAvailable: "1.3.6.1.4.1.6574.1.5.4.0",
+  diskTable: "1.3.6.1.4.1.6574.2.1.1",
+  diskStatus: "1.3.6.1.4.1.6574.2.1.1.5",
+  diskTemp: "1.3.6.1.4.1.6574.2.1.1.6",
+  raidTable: "1.3.6.1.4.1.6574.3.1.1",
+  raidName: "1.3.6.1.4.1.6574.3.1.1.2",
+  raidStatus: "1.3.6.1.4.1.6574.3.1.1.3",
+  raidFreeSize: "1.3.6.1.4.1.6574.3.1.1.4",
+  raidTotalSize: "1.3.6.1.4.1.6574.3.1.1.5",
+  upsModel: "1.3.6.1.4.1.6574.4.1.1.0",
+  upsStatus: "1.3.6.1.4.1.6574.4.2.1.0",
+  upsBatteryCharge: "1.3.6.1.4.1.6574.4.3.1.1.0",
+  upsBatteryRuntime: "1.3.6.1.4.1.6574.4.3.6.1.0",
+};
+

@@ -853,94 +853,321 @@ export const ServicesTab: React.FC = () => {
 
       {/* Package Services Section */}
       {showPackages && filteredPackages.length > 0 && (categoryFilter === "all" || categoryFilter === "application") && (
-        <div className="space-y-3 pt-2">
-          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-sky-500/10 text-sky-500">
-              <Package className="w-4 h-4" />
-            </span>
-            Dịch vụ ứng dụng (Gói Package) <span className="text-xs font-normal text-slate-400">({filteredPackages.length})</span>
-          </h3>
+        gridMode === "list" ? (
+          /* List / Table Mode for Packages */
+          <div className="space-y-3 pt-2">
+            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-sky-500/10 text-sky-500">
+                <Package className="w-4 h-4" />
+              </span>
+              Dịch vụ ứng dụng (Gói Package) <span className="text-xs font-normal text-slate-400">({filteredPackages.length})</span>
+            </h3>
 
-          <div className={getGridClasses()}>
-            {filteredPackages.map((pkg) => {
-              const isRunning = pkg.status === "running";
-              const isLoading = togglingId === pkg.id;
-              const isCompact = gridMode === "grid-4";
-
-              return (
-                <div
-                  key={pkg.id}
-                  className={`bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between ${
-                    isCompact ? "p-3.5 sm:p-4" : "p-4 sm:p-5"
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-2.5 mb-2.5">
-                      <div className="flex items-center gap-2.5 min-w-0">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+              {/* Mobile card list (< md) */}
+              <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/80">
+                {filteredPackages.map((pkg) => {
+                  const isRunning = pkg.status === "running";
+                  const isLoading = togglingId === pkg.id;
+                  return (
+                    <div
+                      key={pkg.id}
+                      className="p-3.5 flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div
-                          className={`rounded-2xl bg-sky-500/10 text-sky-500 flex items-center justify-center shrink-0 ${
-                            isCompact ? "w-9 h-9" : "w-10 h-10"
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                            isRunning
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-400"
                           }`}
                         >
-                          <Package className="w-5 h-5" />
+                          <Package className="w-4 h-4" />
                         </div>
-                        <div className="min-w-0">
-                          <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-xs text-slate-900 dark:text-white truncate">
                             {pkg.name}
-                          </h4>
-                          <p className="text-[11px] text-slate-400 truncate">
-                            v{pkg.version} • {pkg.maintainer}
                           </p>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                isRunning
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                                  : "bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200/80 dark:border-slate-700"
+                              }`}
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  isRunning ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+                                }`}
+                              />
+                              {isRunning ? "Đang chạy" : "Đã dừng"}
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-medium">
+                              v{pkg.version}
+                            </span>
+                            <span className="text-[10px] text-slate-400 truncate">
+                              {pkg.maintainer}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 shrink-0 ${
-                          isRunning
-                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200/80 dark:border-slate-700"
-                        }`}
-                      >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            isRunning ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
-                          }`}
-                        />
-                        {isRunning ? "Đang chạy" : "Đã dừng"}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed mb-3 min-h-[30px]">
-                      {pkg.description}
-                    </p>
-                  </div>
 
-                  <div className="flex items-center justify-end pt-2.5 border-t border-slate-100 dark:border-slate-800/80">
-                    <button
-                      onClick={() => handlePackageToggle(pkg)}
-                      disabled={isLoading}
-                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 ${
-                        isRunning
-                          ? "bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20"
-                          : "bg-sky-600 hover:bg-sky-500 text-white shadow-sm"
-                      }`}
-                    >
-                      {isRunning ? (
-                        <>
-                          <Square className="w-3.5 h-3.5" />
-                          {isLoading ? "Đang dừng..." : "Tắt"}
-                        </>
-                      ) : (
-                        <>
-                          <Play className="w-3.5 h-3.5" />
-                          {isLoading ? "Đang bật..." : "Bật"}
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={isRunning}
+                          onChange={() => handlePackageToggle(pkg)}
+                          disabled={isLoading}
+                          className="sr-only peer"
+                        />
+                        <div
+                          className={`w-10 h-5 rounded-full peer transition-all ${
+                            isRunning ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"
+                          } peer-focus:ring-2 peer-focus:ring-sky-500/20 ${
+                            isLoading ? "opacity-50" : ""
+                          }`}
+                        >
+                          <div
+                            className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform mt-0.5 ml-0.5 ${
+                              isRunning ? "translate-x-5" : "translate-x-0"
+                            } flex items-center justify-center`}
+                          >
+                            {isLoading && (
+                              <RefreshCw className="w-2.5 h-2.5 animate-spin text-slate-500" />
+                            )}
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop table (>= md) */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold border-b border-slate-100 dark:border-slate-800">
+                    <tr>
+                      <th className="px-4 py-3.5">Gói ứng dụng</th>
+                      <th className="px-4 py-3.5">Nhà phát triển</th>
+                      <th className="px-4 py-3.5">Phiên bản / ID</th>
+                      <th className="px-4 py-3.5">Mô tả</th>
+                      <th className="px-4 py-3.5">Trạng thái</th>
+                      <th className="px-4 py-3.5 text-right">Bật / Tắt</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                    {filteredPackages.map((pkg) => {
+                      const isRunning = pkg.status === "running";
+                      const isLoading = togglingId === pkg.id;
+                      return (
+                        <tr
+                          key={pkg.id}
+                          className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
+                        >
+                          <td className="px-4 py-3.5">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                                  isRunning
+                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                                }`}
+                              >
+                                <Package className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <p className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                                  {pkg.name}
+                                </p>
+                                <p className="text-[10px] text-slate-400 font-mono">
+                                  {pkg.id}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-medium">
+                              {pkg.maintainer || "Synology Inc."}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 font-mono font-bold text-slate-700 dark:text-slate-300">
+                            v{pkg.version}
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 max-w-xs truncate" title={pkg.description}>
+                            {pkg.description}
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                isRunning
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                                  : "bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200/80 dark:border-slate-700"
+                              }`}
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  isRunning ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+                                }`}
+                              />
+                              {isRunning ? "Đang chạy" : "Đã dừng"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5 text-right">
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={isRunning}
+                                onChange={() => handlePackageToggle(pkg)}
+                                disabled={isLoading}
+                                className="sr-only peer"
+                              />
+                              <div
+                                className={`w-10 h-5 rounded-full peer transition-all ${
+                                  isRunning ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"
+                                } peer-focus:ring-2 peer-focus:ring-sky-500/20 ${
+                                  isLoading ? "opacity-50" : ""
+                                }`}
+                              >
+                                <div
+                                  className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform mt-0.5 ml-0.5 ${
+                                    isRunning ? "translate-x-5" : "translate-x-0"
+                                  } flex items-center justify-center`}
+                                >
+                                  {isLoading && (
+                                    <RefreshCw className="w-2.5 h-2.5 animate-spin text-slate-500" />
+                                  )}
+                                </div>
+                              </div>
+                            </label>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Grid Modes for Packages (3-col, 4-col, 2-col) */
+          <div className="space-y-3 pt-2">
+            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-sky-500/10 text-sky-500">
+                <Package className="w-4 h-4" />
+              </span>
+              Dịch vụ ứng dụng (Gói Package) <span className="text-xs font-normal text-slate-400">({filteredPackages.length})</span>
+            </h3>
+
+            <div className={getGridClasses()}>
+              {filteredPackages.map((pkg) => {
+                const isRunning = pkg.status === "running";
+                const isLoading = togglingId === pkg.id;
+                const isCompact = gridMode === "grid-4";
+
+                return (
+                  <div
+                    key={pkg.id}
+                    className={`bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between ${
+                      isCompact ? "p-3.5 sm:p-4" : "p-4 sm:p-5"
+                    }`}
+                  >
+                    <div>
+                      {/* Card Header */}
+                      <div className="flex items-start justify-between gap-2.5 mb-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div
+                            className={`rounded-2xl flex items-center justify-center shrink-0 ${
+                              isCompact ? "w-9 h-9" : "w-10 h-10 sm:w-11 sm:h-11"
+                            } ${
+                              isRunning
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                            }`}
+                          >
+                            <Package className="w-5 h-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <h4
+                              className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate"
+                              title={pkg.name}
+                            >
+                              {pkg.name}
+                            </h4>
+                            <p className="text-[10px] text-slate-400 truncate flex items-center gap-1">
+                              <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">
+                                v{pkg.version}
+                              </span>
+                              <span>• {pkg.maintainer}</span>
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 shrink-0 ${
+                            isRunning
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200/80 dark:border-slate-700"
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isRunning ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+                            }`}
+                          />
+                          {isRunning ? "Đang chạy" : "Đã dừng"}
+                        </span>
+                      </div>
+
+                      {/* Description */}
+                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed mb-3 min-h-[32px]">
+                        {pkg.description}
+                      </p>
+                    </div>
+
+                    {/* Card Footer Toggle - Same design & alignment as system service cards */}
+                    <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 dark:border-slate-800/80 gap-2">
+                      <div className="text-[11px] text-slate-400 flex items-center gap-1 font-mono truncate max-w-[150px]">
+                        <Package className="w-3 h-3 text-sky-500 shrink-0" />
+                        <span className="truncate">{pkg.id}</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isRunning}
+                          onChange={() => handlePackageToggle(pkg)}
+                          disabled={isLoading}
+                          className="sr-only peer"
+                        />
+                        <div
+                          className={`w-11 h-6 rounded-full peer transition-all ${
+                            isRunning ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"
+                          } peer-focus:ring-2 peer-focus:ring-sky-500/20 ${
+                            isLoading ? "opacity-50" : ""
+                          }`}
+                        >
+                          <div
+                            className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform mt-0.5 ml-0.5 ${
+                              isRunning ? "translate-x-5" : "translate-x-0"
+                            } flex items-center justify-center`}
+                          >
+                            {isLoading ? (
+                              <RefreshCw className="w-3 h-3 animate-spin text-slate-500" />
+                            ) : isRunning ? (
+                              <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                            ) : (
+                              <XCircle className="w-3 h-3 text-slate-400" />
+                            )}
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )
       )}
 
       {filteredServices.length === 0 && filteredPackages.length === 0 && !loading && (

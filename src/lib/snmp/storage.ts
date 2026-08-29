@@ -10,7 +10,7 @@ export function createDefaultSynologyDevice(hostname?: string, model?: string): 
   return {
     id: "device_synology_master",
     name: `Synology NAS (${model || "DS920+"})`,
-    host: "127.0.0.1",
+    host: hostname || "127.0.0.1",
     port: 161,
     online: true,
     credentials: {
@@ -82,14 +82,14 @@ export function getSnmpDevices(fallbackHostname?: string, fallbackModel?: string
       saveSnmpDevices([defaultDevice]);
       return [defaultDevice];
     }
-    // strip runtime fields and normalize localhost for default master device
+    // strip runtime fields and preserve user host or fallback
     const list = parsed.map((d: SnmpDevice) => {
-      const isMaster = d.id === "device_synology_master" || d.name?.includes("Synology");
-      const host = isMaster ? "127.0.0.1" : d.host || "127.0.0.1";
+      const isMaster = d.id === "device_synology_master";
+      const host = d.host || (isMaster && fallbackHostname ? fallbackHostname : "127.0.0.1");
       return {
         ...d,
         host,
-        online: isMaster ? true : (d.online ?? true),
+        online: d.online ?? true,
         lastError: undefined,
         lastPoll: undefined,
         sensors: (d.sensors || []).map((s) => ({

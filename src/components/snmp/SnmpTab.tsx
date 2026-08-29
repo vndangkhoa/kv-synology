@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
 import {
   SnmpDevice,
@@ -15,6 +15,9 @@ import {
   genId,
 } from "@/lib/snmp/storage";
 import { querySnmp } from "@/lib/snmp/client";
+import { dsmClient } from "@/lib/dsm/client";
+import { mockStorageVolumes } from "@/lib/dsm/mockData";
+import { StorageVolume } from "@/lib/dsm/types";
 import { Sparkline, DualSparkline } from "@/components/common/Sparkline";
 import { ResponsiveModal } from "@/components/common/ResponsiveModal";
 import { SnmpDeviceModal } from "./SnmpDeviceModal";
@@ -97,6 +100,7 @@ export const SnmpTab: React.FC = () => {
   const { t, session, systemInfo, utilization, experienceMode, setExperienceMode } = useAppStore();
   const [devices, setDevices] = useState<SnmpDevice[]>([]);
   const [readings, setReadings] = useState<ReadingsMap>({});
+  const [volumes, setVolumes] = useState<StorageVolume[]>([]);
   const [viewMode, setViewMode] = useState<"compact" | "normal" | "full">("normal");
   const isBeginner = experienceMode === "beginner";
   const [deviceModal, setDeviceModal] = useState<{ open: boolean; editing: SnmpDevice | null }>({
@@ -109,9 +113,22 @@ export const SnmpTab: React.FC = () => {
   const devicesRef = useRef<SnmpDevice[]>([]);
   const readingsRef = useRef<ReadingsMap>({});
 
+  const activeVols = useMemo(() => {
+    return volumes.length > 0 ? volumes : mockStorageVolumes;
+  }, [volumes]);
+
   useEffect(() => {
     setDevices(getSnmpDevices(session?.hostname, systemInfo?.model));
   }, [session?.hostname, systemInfo?.model]);
+
+  useEffect(() => {
+    dsmClient
+      .getStorageVolumes()
+      .then((vols) => {
+        if (vols && vols.length > 0) setVolumes(vols);
+      })
+      .catch(() => {});
+  }, [session?.isConnected]);
 
   useEffect(() => {
     devicesRef.current = devices;
@@ -137,9 +154,9 @@ export const SnmpTab: React.FC = () => {
       };
 
       if (isMaster) {
-        // Sync master sensors 100% with real live telemetry from DSM store
+        // Use real SNMP reading if available, otherwise sync with real DSM telemetry
         if (sensor.kind === "cpu") {
-          const cpuVal = utilization?.cpuPercent ?? result.value ?? 3;
+          const cpuVal = result.value != null ? result.value : (utilization?.cpuPercent ?? 3);
           rt.value = cpuVal;
           rt.status = "up";
           rt.history = [...(prev?.history || []), cpuVal].slice(-HISTORY_CAP);
@@ -147,7 +164,7 @@ export const SnmpTab: React.FC = () => {
           return rt;
         }
         if (sensor.kind === "memory") {
-          const memVal = utilization?.memoryPercent ?? result.value ?? 5;
+          const memVal = result.value != null ? result.value : (utilization?.memoryPercent ?? 5);
           rt.value = memVal;
           rt.status = "up";
           rt.history = [...(prev?.history || []), memVal].slice(-HISTORY_CAP);
@@ -155,23 +172,38 @@ export const SnmpTab: React.FC = () => {
           return rt;
         }
         if (sensor.kind === "traffic") {
-          const inRate = Math.max(0, (utilization?.networkRxBytes ?? 1890) / 1024);
-          const outRate = Math.max(0, (utilization?.networkTxBytes ?? 3290) / 1024);
+          let inRate = 0;
+          let outRate = 0;
+          if (result.extra?.inRaw != null && prev?.lastInRaw != null && prev?.lastTs) {
+            const dt = (now - prev.lastTs) / 1000;
+            if (dt > 0) {
+              inRate = Math.max(0, (result.extra.inRaw - prev.lastInRaw) / dt) / 1024;
+              outRate = Math.max(0, ((result.extra.outRaw || 0) - (prev.lastOutRaw || 0)) / dt) / 1024;
+            }
+          } else {
+            inRate = Math.max(0, (utilization?.networkRxBytes ?? 1890) / 1024);
+            outRate = Math.max(0, (utilization?.networkTxBytes ?? 3290) / 1024);
+          }
           rt.value = inRate + outRate;
           rt.status = "up";
           rt.inHistory = [...(prev?.inHistory || []), inRate].slice(-HISTORY_CAP);
           rt.outHistory = [...(prev?.outHistory || []), outRate].slice(-HISTORY_CAP);
+          rt.lastInRaw = result.extra?.inRaw ?? prev?.lastInRaw;
+          rt.lastOutRaw = result.extra?.outRaw ?? prev?.lastOutRaw;
           rt.lastTs = now;
           return rt;
         }
         if (sensor.kind === "uptime") {
-          rt.value = systemInfo?.uptime ?? 846200;
+          rt.value = result.value != null ? result.value : (systemInfo?.uptime ?? 846200);
           rt.status = "up";
           rt.lastTs = now;
           return rt;
         }
         if (sensor.kind === "disk") {
-          rt.value = 52.0;
+          const fallbackDisk = activeVols.length > 0
+            ? Math.round(((activeVols[0].usedBytes || 0) / (activeVols[0].totalBytes || 1)) * 100)
+            : 48;
+          rt.value = result.value != null ? result.value : fallbackDisk;
           rt.status = "up";
           rt.lastTs = now;
           return rt;
@@ -210,7 +242,7 @@ export const SnmpTab: React.FC = () => {
       }
       return rt;
     },
-    [utilization, systemInfo]
+    [utilization, systemInfo, volumes]
   );
 
   const pollDevice = useCallback(
@@ -748,7 +780,7 @@ export const SnmpTab: React.FC = () => {
                   Cổng Mạng Vật Lý (Hardware Interfaces MIB)
                 </h3>
                 <p className="text-[11px] text-slate-400">
-                  Thông số liên kết trực tiếp trên bo mạch NAS Synology {systemInfo?.model || "DS920+"}
+                  Thông số liên kết trực tiếp trên bo mạch NAS Synology {systemInfo?.model || session?.model || "DS920+"}
                 </p>
               </div>
             </div>
@@ -770,7 +802,7 @@ export const SnmpTab: React.FC = () => {
                     </span>
                   </div>
                   <div className="text-[11px] font-mono text-slate-400">
-                    IP: {session?.hostname || "192.168.31.71"} • MTU: 1500 • MAC: 00:11:32:A4:E1:5C
+                    IP: {session?.hostname || (typeof window !== "undefined" ? window.location.hostname : "192.168.31.71")} • MTU: 1500 • MAC: 00:11:32:A4:E1:5C
                   </div>
                 </div>
               </div>
@@ -819,48 +851,59 @@ export const SnmpTab: React.FC = () => {
                   Phân Vùng Btrfs &amp; SSD NVMe Cache M.2
                 </h3>
                 <p className="text-[11px] text-slate-400">
-                  3 Storage Pools • 14 Ổ đĩa vật lý • Trạng thái: Bình thường (Healthy)
+                  {activeVols.filter((v) => !v.isCache).length || 1} Storage Pool •{" "}
+                  {activeVols.reduce((acc, v) => acc + (v.drives?.length || 0), 0) || 4} Ổ đĩa vật lý (HDD &amp; NVMe) • Trạng thái: Bình thường (Healthy)
                 </p>
               </div>
             </div>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 self-start sm:self-center shrink-0">
-              Cache Hit: 98.4%
+              Cache Hit: {(activeVols.find((v) => v.isCache)?.hitRate ?? 98.4).toFixed(1)}%
             </span>
           </div>
 
           <div className="space-y-3 pt-1">
-            {/* Volume 1 */}
-            <div className="space-y-1">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-mono gap-0.5">
-                <span className="font-bold text-slate-800 dark:text-slate-200">Volume 1 (SHR - Btrfs)</span>
-                <span className="text-slate-500">1.80 TB / 3.47 TB (52%)</span>
-              </div>
-              <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-sky-500 rounded-full" style={{ width: "52%" }} />
-              </div>
-            </div>
+            {activeVols.map((v, idx) => {
+              const total = v.totalBytes || 1;
+              const used = v.usedBytes || 0;
+              const pct = Math.min(100, Math.max(0, Math.round((used / total) * 100)));
+              const isCache = v.isCache;
+              const colorCls = isCache ? "bg-purple-500" : idx === 0 ? "bg-sky-500" : "bg-emerald-500";
+              const driveSummary = v.drives && v.drives.length > 0
+                ? v.drives.map((d) => `${d.slotName || `Khay ${d.slot}`}: ${d.model?.split(" ")[0] || d.driveType} (${d.temp ? `${d.temp}°C` : formatBytes(d.size)})`).join(" • ")
+                : null;
 
-            {/* Volume 2 */}
-            <div className="space-y-1">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-mono gap-0.5">
-                <span className="font-bold text-slate-800 dark:text-slate-200">Volume 2 (Storage Pool 2)</span>
-                <span className="text-slate-500">136 GB / 3.41 TB (4%)</span>
-              </div>
-              <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 rounded-full" style={{ width: "4%" }} />
-              </div>
-            </div>
-
-            {/* Volume 3 */}
-            <div className="space-y-1">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-mono gap-0.5">
-                <span className="font-bold text-slate-800 dark:text-slate-200">Volume 3 (SSD High-Speed)</span>
-                <span className="text-slate-500">67 GB / 960 GB (7%)</span>
-              </div>
-              <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 rounded-full" style={{ width: "7%" }} />
-              </div>
-            </div>
+              return (
+                <div key={v.id || idx} className="space-y-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-mono gap-0.5">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      {isCache && (
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                          SSD Cache
+                        </span>
+                      )}
+                      <span>{v.name}</span>
+                      <span className="text-[10px] font-normal text-slate-400">
+                        ({v.fsType || "Btrfs"})
+                      </span>
+                    </span>
+                    <span className="text-slate-500">
+                      {formatBytes(used)} / {formatBytes(total)} ({pct}%)
+                    </span>
+                  </div>
+                  <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${colorCls} rounded-full transition-all duration-500`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  {driveSummary && (
+                    <div className="text-[10px] text-slate-400 font-mono truncate">
+                      {driveSummary}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -912,7 +955,7 @@ export const SnmpTab: React.FC = () => {
               unit: "%",
               oid: ".1.3.6.1.4.1.2021.4.6.0",
               mib: "UCD-SNMP-MIB",
-              val: `${utilization?.memoryPercent ?? 5} %`,
+              val: `${utilization?.memoryPercent ?? 5} % (~${(((utilization?.memoryUsedMB || systemInfo?.ramUsed || 1843)) / 1024).toFixed(1)} GB / ${(((utilization?.memoryTotalMB || systemInfo?.ramTotal || 16384)) / 1024).toFixed(0)} GB)`,
               status: "Dồi dào",
               badgeColor: "text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
             },
@@ -921,7 +964,7 @@ export const SnmpTab: React.FC = () => {
               unit: "RPM",
               oid: ".1.3.6.1.4.1.6574.1.4.1",
               mib: "SYNOLOGY-SYSTEM-MIB",
-              val: "1 (1850 RPM)",
+              val: "1 (Hoạt động tốt - 1850 RPM)",
               status: "Tốt",
               badgeColor: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
             },
@@ -930,7 +973,7 @@ export const SnmpTab: React.FC = () => {
               unit: "Status",
               oid: ".1.3.6.1.4.1.6574.3.1.1.3",
               mib: "SYNOLOGY-RAID-MIB",
-              val: "1 (Normal)",
+              val: `1 (Normal / ${activeVols[0]?.status === "normal" ? "Khỏe mạnh" : activeVols[0]?.status || "Bình thường"})`,
               status: "Khỏe mạnh",
               badgeColor: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
             },
@@ -988,7 +1031,9 @@ export const SnmpTab: React.FC = () => {
                 <td className="py-2.5 px-3 font-sans font-bold text-slate-900 dark:text-white whitespace-nowrap">Bộ Nhớ RAM Đã Dùng (%)</td>
                 <td className="py-2.5 px-3 text-sky-600 dark:text-sky-400 font-bold select-all whitespace-nowrap">.1.3.6.1.4.1.2021.4.6.0</td>
                 <td className="py-2.5 px-3 text-slate-500 whitespace-nowrap">UCD-SNMP-MIB</td>
-                <td className="py-2.5 px-3 font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">{utilization?.memoryPercent ?? 5} % (~1.8 GB / 16 GB)</td>
+                <td className="py-2.5 px-3 font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
+                  {utilization?.memoryPercent ?? 5} % (~{(((utilization?.memoryUsedMB || systemInfo?.ramUsed || 1843)) / 1024).toFixed(1)} GB / {(((utilization?.memoryTotalMB || systemInfo?.ramTotal || 16384)) / 1024).toFixed(0)} GB)
+                </td>
               </tr>
               <tr>
                 <td className="py-2.5 px-3 font-sans font-bold text-slate-900 dark:text-white whitespace-nowrap">Trạng thái Quạt Làm Mát</td>
@@ -1000,7 +1045,7 @@ export const SnmpTab: React.FC = () => {
                 <td className="py-2.5 px-3 font-sans font-bold text-slate-900 dark:text-white whitespace-nowrap">Trạng thái RAID Volume 1</td>
                 <td className="py-2.5 px-3 text-sky-600 dark:text-sky-400 font-bold select-all whitespace-nowrap">.1.3.6.1.4.1.6574.3.1.1.3</td>
                 <td className="py-2.5 px-3 text-slate-500 whitespace-nowrap">SYNOLOGY-RAID-MIB</td>
-                <td className="py-2.5 px-3 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">1 (Normal / Khỏe mạnh)</td>
+                <td className="py-2.5 px-3 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">1 (Normal / {activeVols[0]?.status === "normal" ? "Khỏe mạnh" : activeVols[0]?.status || "Bình thường"})</td>
               </tr>
             </tbody>
           </table>

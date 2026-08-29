@@ -103,7 +103,7 @@ export const NasTabBar: React.FC = () => {
   const activeId = getActiveProfileId();
 
   return (
-    <div className="w-full bg-slate-100/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-2.5 sm:px-6 py-1.5 sm:py-2 flex items-center justify-between gap-2 sm:gap-3 overflow-x-auto no-scrollbar transition-all">
+    <div className="w-full bg-slate-100/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-2.5 sm:px-6 py-1.5 sm:py-2 flex items-center justify-between gap-2 sm:gap-3 overflow-x-auto no-scrollbar transition-all relative z-10">
       {/* Left: Multi-NAS Instance Tabs */}
       <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 overflow-x-auto py-0.5">
         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 shrink-0 hidden md:inline-flex items-center gap-1.5 mr-1">

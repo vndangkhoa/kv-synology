@@ -207,15 +207,15 @@ function getDefaultModel(provider: string): string {
     case "deepseek":
       return "deepseek-chat";
     case "claude":
-      return "claude-3-5-sonnet-latest";
+      return "claude-3-7-sonnet-latest";
     case "openai":
       return "gpt-4o-mini";
     case "openrouter":
-      return "anthropic/claude-3.5-sonnet";
+      return "anthropic/claude-3.7-sonnet";
     case "opencode":
-      return "opencode-interpreter";
+      return "opencode/zen-1";
     default:
-      return "gpt-4o-mini";
+      return "gemini-2.0-flash";
   }
 }
 
@@ -464,6 +464,52 @@ async function callProvider(
     const text = data.choices?.[0]?.message?.content;
     if (!text) {
       throw new Error("Không nhận được phản hồi từ OpenAI.");
+    }
+    return text;
+  }
+
+  // 7. OPENCODE (Local server / OpenCode Zen / Custom Workspace)
+  if (provider === "opencode") {
+    let baseUrl = (customBaseUrl || "").replace(/\/+$/, "");
+    if (!baseUrl) {
+      baseUrl = apiKey ? "https://opencode.ai/zen/v1" : "http://localhost:4096/v1";
+    }
+
+    const openAiMessages = [
+      { role: "system", content: systemContext },
+      ...messages.map((m) => ({ role: m.role, content: m.content })),
+    ];
+
+    const payload = {
+      model: model || "opencode/zen-1",
+      messages: openAiMessages,
+      temperature: 0.7,
+      max_tokens: 2048,
+    };
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (apiKey) {
+      headers["Authorization"] = `Bearer ${apiKey}`;
+      headers["x-api-key"] = apiKey;
+    }
+
+    const chatEndpoint = baseUrl.endsWith("/chat/completions") ? baseUrl : `${baseUrl}/chat/completions`;
+    const res = await fetch(chatEndpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      throw new Error(data.error?.message || `OpenCode API Error (${res.status})`);
+    }
+
+    const text = data.choices?.[0]?.message?.content || data.response || data.text;
+    if (!text) {
+      throw new Error("Không nhận được phản hồi từ OpenCode API.");
     }
     return text;
   }

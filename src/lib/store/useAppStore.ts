@@ -100,9 +100,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   aiModels: {
     gemini: "gemini-2.0-flash",
     deepseek: "deepseek-chat",
-    claude: "claude-3-5-sonnet-latest",
+    claude: "claude-3-7-sonnet-latest",
     openai: "gpt-4o-mini",
-    openrouter: "anthropic/claude-3.5-sonnet",
+    openrouter: "anthropic/claude-3.7-sonnet",
     opencode: "opencode-interpreter",
   },
   aiCustomBaseUrls: {
