@@ -171,7 +171,7 @@ class DSMClient {
 
     this.config = config;
 
-    const authVersions = [6, 4, 3, 2];
+    const authVersions = [7, 6, 3, 2, 1];
     let lastError = "Không thể xác thực với Synology DSM";
 
     for (const ver of authVersions) {
