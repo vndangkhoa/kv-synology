@@ -39,7 +39,7 @@ import {
 } from "lucide-react";
 
 export const FileStationTab: React.FC = () => {
-  const { t, setActiveTab, setPermissionInspectPath } = useAppStore();
+  const { t, setActiveTab, setPermissionInspectPath, fileStationPath, setFileStationPath } = useAppStore();
   const [currentPath, setCurrentPath] = useState<string>("/");
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -94,8 +94,13 @@ export const FileStationTab: React.FC = () => {
   };
 
   useEffect(() => {
-    loadFolder("/");
-  }, []);
+    if (fileStationPath) {
+      loadFolder(fileStationPath);
+      setFileStationPath(undefined);
+    } else {
+      loadFolder("/");
+    }
+  }, [fileStationPath]);
 
   const handleNavigate = (path: string) => {
     loadFolder(path);

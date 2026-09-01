@@ -171,12 +171,34 @@ export function loadPersistedCredentials(): PersistedCredentials | null {
   }
 }
 
-export function clearPersistedSession() {
+export function clearPersistedSession(opts?: { clearCredentials?: boolean; clearProfileSession?: boolean }) {
   if (!isBrowser()) return;
   try {
     localStorage.removeItem(SESSION_KEY);
   } catch {}
-  // do not clear credentials on logout unless user explicitly wants – keep them
+  // Also clear the 7-day session stored inside the active NAS profile
+  if (opts?.clearProfileSession !== false) {
+    try {
+      const activeId = localStorage.getItem(ACTIVE_PROFILE_KEY);
+      const raw = localStorage.getItem(PROFILES_KEY);
+      if (raw) {
+        const profiles: NasProfile[] = JSON.parse(raw);
+        let changed = false;
+        const updated = profiles.map((p) => {
+          if (!activeId || p.id === activeId) {
+            if (p.session) { changed = true; return { ...p, session: undefined }; }
+          }
+          return p;
+        });
+        if (changed) localStorage.setItem(PROFILES_KEY, JSON.stringify(updated));
+      }
+    } catch {}
+  }
+  if (opts?.clearCredentials) {
+    try {
+      localStorage.removeItem(CREDENTIALS_KEY);
+    } catch {}
+  }
 }
 
 export function clearPersistedCredentials() {

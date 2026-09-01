@@ -46,11 +46,13 @@ import {
 import ResponsiveModal from "@/components/common/ResponsiveModal";
 
 export const FirewallManagerTab: React.FC = () => {
-  const { session, t } = useAppStore();
+  const { session, experienceMode, t } = useAppStore();
+  const isBeginner = experienceMode === "beginner";
 
   const [activeSubTab, setActiveSubTab] = useState<"rules" | "autoblock" | "dos">("rules");
   const [loading, setLoading] = useState(false);
   const [toastMsg, setToastMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [showAdvancedSecurity, setShowAdvancedSecurity] = useState(false);
 
   // Firewall Config & Rules
   const [firewallConfig, setFirewallConfig] = useState<FirewallConfig | null>(null);
@@ -371,14 +373,15 @@ export const FirewallManagerTab: React.FC = () => {
               </span>
             </div>
             <button
+              type="button"
               onClick={handleToggleMasterFirewall}
-              className={`w-12 h-6.5 rounded-full transition-colors relative flex items-center p-1 cursor-pointer ${
+              className={`w-12 h-6 rounded-full transition-colors relative inline-flex items-center p-0.5 cursor-pointer shadow-inner ${
                 firewallConfig?.enabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
               }`}
             >
               <span
-                className={`w-4.5 h-4.5 bg-white rounded-full transition-transform shadow-md ${
-                  firewallConfig?.enabled ? "translate-x-5.5" : "translate-x-0"
+                className={`w-5 h-5 bg-white rounded-full transition-transform shadow-md transform ${
+                  firewallConfig?.enabled ? "translate-x-6" : "translate-x-0"
                 }`}
               />
             </button>
@@ -425,67 +428,193 @@ export const FirewallManagerTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Sub-Tab Navigation Bar */}
-      <div className="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto">
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setActiveSubTab("rules")}
-            className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
-              activeSubTab === "rules"
-                ? "bg-sky-600 text-white shadow-sm shadow-sky-500/20"
-                : "bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-            }`}
-          >
-            <Shield className="w-3.5 h-3.5" />
-            <span>{t.firewall.rulesTab} ({firewallConfig?.rules.length || 0})</span>
-          </button>
+      {/* Simple Beginner Security View */}
+      {isBeginner && !showAdvancedSecurity ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`p-2.5 rounded-2xl ${firewallConfig?.enabled ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-slate-100 text-slate-400"}`}>
+                  <ShieldCheck className="w-5 h-5"/>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">Tường lửa DSM</h4>
+                  <p className="text-[11px] text-slate-400">{firewallConfig?.enabled ? "Đang bật bảo vệ" : "Đang tắt"}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleMasterFirewall}
+                className={`w-11 h-6 rounded-full transition-colors relative inline-flex items-center p-0.5 cursor-pointer shadow-inner ${
+                  firewallConfig?.enabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
+                }`}
+              >
+                <span className={`w-5 h-5 bg-white rounded-full transition-transform shadow-sm transform ${firewallConfig?.enabled ? "translate-x-5" : "translate-x-0"}`}/>
+              </button>
+            </div>
 
-          <button
-            onClick={() => setActiveSubTab("autoblock")}
-            className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
-              activeSubTab === "autoblock"
-                ? "bg-sky-600 text-white shadow-sm shadow-sky-500/20"
-                : "bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-            }`}
-          >
-            <Lock className="w-3.5 h-3.5" />
-            <span>{t.firewall.autoBlockTab} ({blockedIps.length})</span>
-          </button>
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`p-2.5 rounded-2xl ${dosEnabled ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-slate-100 text-slate-400"}`}>
+                  <Zap className="w-5 h-5"/>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">Chống tấn công DoS</h4>
+                  <p className="text-[11px] text-slate-400">{dosEnabled ? "Đang bảo vệ cổng mạng" : "Đang tắt"}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleDos}
+                className={`w-11 h-6 rounded-full transition-colors relative inline-flex items-center p-0.5 cursor-pointer shadow-inner ${
+                  dosEnabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
+                }`}
+              >
+                <span className={`w-5 h-5 bg-white rounded-full transition-transform shadow-sm transform ${dosEnabled ? "translate-x-5" : "translate-x-0"}`}/>
+              </button>
+            </div>
 
-          <button
-            onClick={() => setActiveSubTab("dos")}
-            className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
-              activeSubTab === "dos"
-                ? "bg-sky-600 text-white shadow-sm shadow-sky-500/20"
-                : "bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-            }`}
-          >
-            <Zap className="w-3.5 h-3.5" />
-            <span>{t.firewall.dosTab}</span>
-          </button>
-        </div>
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                  <Lock className="w-5 h-5"/>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">Tự động khóa IP</h4>
+                  <p className="text-[11px] text-slate-400">Đã khóa {blockedIps.length} IP đáng ngờ</p>
+                </div>
+              </div>
+              <span className="text-xs font-bold font-mono px-2.5 py-1 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                {autoBlockConfig?.enabled !== false ? "Đang bật" : "Tắt"}
+              </span>
+            </div>
+          </div>
 
-        <div className="flex items-center gap-2">
-          {activeSubTab === "rules" && (
+          {/* Simple Core Services List */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <Shield className="w-4 h-4 text-sky-500"/>
+                Quy tắc bảo vệ các dịch vụ cốt lõi
+              </h4>
+              <span className="text-[11px] text-slate-400 font-mono">
+                {firewallConfig?.rules.filter(r=>r.enabled).length || 0} / {firewallConfig?.rules.length || 0} đang hoạt động
+              </span>
+            </div>
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {(firewallConfig?.rules || []).slice(0, 5).map(rule => (
+                <div key={rule.id} className="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-xs text-slate-900 dark:text-white truncate">{rule.name}</span>
+                      <span className={`px-2 py-0.2 rounded-full text-[10px] font-bold ${rule.action === "allow" ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"}`}>
+                        {rule.action === "allow" ? "Cho phép" : "Từ chối"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                      Cổng: <strong className="text-slate-700 dark:text-slate-300">{rule.ports}</strong> • Nguồn: {rule.sourceValue}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleRule(rule.id, !rule.enabled)}
+                    className={`w-11 h-6 rounded-full transition-colors relative inline-flex items-center p-0.5 cursor-pointer shadow-inner shrink-0 ${
+                      rule.enabled ? "bg-sky-500" : "bg-slate-300 dark:bg-slate-700"
+                    }`}
+                  >
+                    <span className={`w-5 h-5 bg-white rounded-full transition-transform shadow-sm transform ${rule.enabled ? "translate-x-5" : "translate-x-0"}`}/>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-3 bg-sky-50/60 dark:bg-sky-950/20 rounded-2xl border border-sky-200/60 dark:border-sky-800/60 flex items-center justify-between text-xs">
+            <span className="text-slate-600 dark:text-slate-300">
+              💡 Bạn đang ở <strong>Chế độ Cơ bản</strong>. Có thể mở rộng để quản lý tất cả các quy tắc GeoIP, mạng phụ và danh sách IP bị khóa.
+            </span>
             <button
-              onClick={handleOpenAddRule}
-              className="px-3.5 py-2 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 shrink-0"
+              onClick={() => setShowAdvancedSecurity(true)}
+              className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold text-xs shrink-0 cursor-pointer shadow-xs"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>{t.firewall.addRule}</span>
+              Mở Quản lý Nâng cao ↓
             </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {isBeginner && showAdvancedSecurity && (
+            <div className="flex justify-end pb-1">
+              <button
+                onClick={() => setShowAdvancedSecurity(false)}
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+              >
+                Thu gọn chế độ nâng cao ↑
+              </button>
+            </div>
           )}
 
-          <button
-            onClick={loadData}
-            className="px-3 py-2 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5"
-            title={t.common.refresh}
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-sky-500" : ""}`} />
-            <span className="hidden sm:inline">{t.common.refresh}</span>
-          </button>
-        </div>
-      </div>
+          {/* Sub-Tab Navigation Bar */}
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto">
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setActiveSubTab("rules")}
+                className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  activeSubTab === "rules"
+                    ? "bg-sky-600 text-white shadow-sm shadow-sky-500/20"
+                    : "bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                }`}
+              >
+                <Shield className="w-3.5 h-3.5" />
+                <span>{t.firewall.rulesTab} ({firewallConfig?.rules.length || 0})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveSubTab("autoblock")}
+                className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  activeSubTab === "autoblock"
+                    ? "bg-sky-600 text-white shadow-sm shadow-sky-500/20"
+                    : "bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                }`}
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>{t.firewall.autoBlockTab} ({blockedIps.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveSubTab("dos")}
+                className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  activeSubTab === "dos"
+                    ? "bg-sky-600 text-white shadow-sm shadow-sky-500/20"
+                    : "bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>{t.firewall.dosTab}</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {activeSubTab === "rules" && (
+                <button
+                  onClick={handleOpenAddRule}
+                  className="px-3.5 py-2 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{t.firewall.addRule}</span>
+                </button>
+              )}
+
+              <button
+                onClick={loadData}
+                className="px-3 py-2 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5"
+                title={t.common.refresh}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-sky-500" : ""}`} />
+                <span className="hidden sm:inline">{t.common.refresh}</span>
+              </button>
+            </div>
+          </div>
 
       {/* ==================== SUB-TAB 1: FIREWALL RULES ==================== */}
       {activeSubTab === "rules" && (
@@ -585,15 +714,16 @@ export const FirewallManagerTab: React.FC = () => {
                       {/* Rule Controls */}
                       <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
                         <button
+                          type="button"
                           onClick={() => handleToggleRule(rule.id, !rule.enabled)}
-                          className={`w-10 h-5.5 rounded-full transition-colors relative flex items-center p-0.5 ${
+                          className={`w-11 h-6 rounded-full transition-colors relative inline-flex items-center p-0.5 cursor-pointer shadow-inner ${
                             rule.enabled ? "bg-sky-500" : "bg-slate-300 dark:bg-slate-700"
                           }`}
                           title={rule.enabled ? "Vô hiệu hóa quy tắc" : "Kích hoạt quy tắc"}
                         >
                           <span
-                            className={`w-4.5 h-4.5 bg-white rounded-full transition-transform shadow-xs ${
-                              rule.enabled ? "translate-x-4.5" : "translate-x-0"
+                            className={`w-5 h-5 bg-white rounded-full transition-transform shadow-sm transform ${
+                              rule.enabled ? "translate-x-5" : "translate-x-0"
                             }`}
                           />
                         </button>
@@ -951,6 +1081,8 @@ export const FirewallManagerTab: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
 
       {/* ==================== ADD / EDIT RULE MODAL ==================== */}

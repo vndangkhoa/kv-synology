@@ -242,12 +242,12 @@ export const SettingsTab: React.FC = () => {
   const [fetchingModels, setFetchingModels] = useState<Record<string, boolean>>({});
   const [fetchModelMsg, setFetchModelMsg] = useState<Record<string, string>>({});
 
-  // WebLLM Downloader State
   const [selectedAiModel, setSelectedAiModel] = useState<string>("Qwen2.5-0.5B-Instruct-q4f32_1-MLC");
   const [aiDownloadProgress, setAiDownloadProgress] = useState<number | null>(null);
   const [aiDownloadText, setAiDownloadText] = useState<string>("");
   const [isAiDownloading, setIsAiDownloading] = useState<boolean>(false);
   const [aiDownloadSuccess, setAiDownloadSuccess] = useState<boolean>(false);
+  const [copiedHubUrl, setCopiedHubUrl] = useState<string | null>(null);
 
   const handleFetchLiveModels = async (provider: AiProviderType) => {
     const key = aiApiKeys[provider] || "";
@@ -1092,105 +1092,7 @@ export const SettingsTab: React.FC = () => {
           </div>
         </div>
 
-        {/* Beginner toggle for advanced cards - mobile ultra compact */}
-        {isBeginner && !showAdvancedSettings && (
-          <div className="col-span-1 md:col-span-2 lg:col-span-3 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-sky-50/60 dark:bg-sky-950/20 border border-sky-200/60 dark:border-sky-800/60 flex items-center justify-between gap-2 sm:gap-3 text-[11px] sm:text-xs">
-            <span className="text-slate-600 dark:text-slate-300">
-              🔧 <strong>4 cài đặt nâng cao</strong> (SSH, AI &amp; MCP, PWA, Tường lửa) đang được gọn bớt cho người mới.
-            </span>
-            <button
-              onClick={() => setShowAdvancedSettings(true)}
-              className="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs shrink-0 cursor-pointer"
-            >
-              Hiển thị thêm
-            </button>
-          </div>
-        )}
-
-        {(!isBeginner || showAdvancedSettings) && (
-          <>
-        {/* CARD 4: Terminal & SSH Port Management */}
-        <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "rounded-lg sm:rounded-xl p-2 sm:p-3 shadow-sm space-y-2 sm:space-y-3" : "rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5"} border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between`}>
-          <div className="space-y-2 sm:space-y-3">
-            <div className="flex items-center justify-between pb-1.5 sm:pb-2 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-emerald-500" />
-                Cấu hình Terminal SSH
-              </h3>
-              <button
-                onClick={handleToggleSsh}
-                disabled={terminalLoading || terminalSaving}
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all ${
-                  terminalInfo?.enable_ssh
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"
-                }`}
-              >
-                {terminalInfo?.enable_ssh ? "SSH: Đang bật" : "SSH: Đã tắt"}
-              </button>
-            </div>
-
-            <div>
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block">
-                Số hiệu cổng SSH (Port)
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  value={sshPortInput}
-                  onChange={(e) => setSshPortInput(e.target.value)}
-                  placeholder="22"
-                  className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-                />
-                <button
-                  onClick={handleSaveTerminal}
-                  disabled={terminalSaving || terminalLoading}
-                  className="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-50 flex items-center gap-1"
-                >
-                  {terminalSaving ? <RotateCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                  <span>Lưu cổng</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-2 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-800">
-            <span>API: <code className="font-mono text-slate-600 dark:text-slate-300">SYNO.Core.Terminal v3</code></span>
-            <span>Telnet: {terminalInfo?.enable_telnet ? "Bật" : "Tắt"}</span>
-          </div>
-        </div>
-
-        {/* CARD 5: AI & MCP Integration */}
-        <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "rounded-lg sm:rounded-xl p-2 sm:p-3 shadow-sm space-y-2 sm:space-y-3" : "rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5"} border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between`}>
-          <div className="space-y-2 sm:space-y-3">
-            <div className="flex items-center justify-between pb-1.5 sm:pb-2 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <Bot className="w-4 h-4 text-sky-500" />
-                Tích hợp AI & MCP Server
-              </h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
-                42 Tools Ready
-              </span>
-            </div>
-
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Cung cấp đầy đủ công cụ Model Context Protocol cho Claude, Cursor, VS Code, Roo Code điều khiển DSM trực tiếp.
-            </p>
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-            <button
-              onClick={() => setActiveTab("mcp")}
-              className="w-full py-2.5 px-3 rounded-xl bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold transition-all shadow flex items-center justify-center gap-1.5"
-            >
-              <Globe className="w-3.5 h-3.5 text-sky-400 dark:text-sky-600" />
-              <span>Xem tài liệu & Tạo file cấu hình AI</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-
-        {/* CARD 6: PWA & Client App */}
+        {/* CARD 5: PWA & Client App */}
         <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "rounded-lg sm:rounded-xl p-2 sm:p-3 shadow-sm space-y-2 sm:space-y-3" : "rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5"} border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between`}>
           <div className="space-y-2 sm:space-y-3">
             <div className="flex items-center justify-between pb-1.5 sm:pb-2 border-b border-slate-100 dark:border-slate-800">
@@ -1230,47 +1132,78 @@ export const SettingsTab: React.FC = () => {
           </div>
         </div>
 
-        {/* CARD 7: Firewall & Security */}
+        {/* CARD 6: Synology Hub & Remote Access Links */}
         <div className={`bg-white dark:bg-slate-900 ${isBeginner ? "rounded-lg sm:rounded-xl p-2 sm:p-3 shadow-sm space-y-2 sm:space-y-3" : "rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5"} border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between`}>
           <div className="space-y-2 sm:space-y-3">
             <div className="flex items-center justify-between pb-1.5 sm:pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <Shield className="w-4 h-4 text-emerald-500" />
-                Tường lửa & Bảo mật DSM
+                <Globe className="w-4 h-4 text-sky-500" />
+                Synology Hub &amp; Cổng Truy Cập Từ Xa
               </h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                Đang bảo vệ
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Trực tuyến
               </span>
             </div>
 
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Thiết lập danh sách quy tắc tường lửa lọc cổng, kích hoạt tự động khóa IP Brute-Force và chống DoS.
+              Cổng liên kết truy cập trực tiếp vào trung tâm dịch vụ Synology Hub và máy chủ DSM từ bên ngoài mạng:
             </p>
+
+            <div className="space-y-2 pt-1">
+              {[
+                { title: "Synology Hub (vndns.net)", url: "https://syno.vndns.net", desc: "Cổng thông tin & điều khiển chính" },
+                { title: "Synology Package & DDNS (pkg.khoavo.myds.me)", url: "https://pkg.khoavo.myds.me", desc: "Tên miền Synology DDNS chính thức" },
+              ].map((linkItem) => {
+                const isCopied = copiedHubUrl === linkItem.url;
+                return (
+                  <div
+                    key={linkItem.url}
+                    className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 space-y-1.5 hover:border-sky-300 dark:hover:border-sky-700 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                        {linkItem.title}
+                      </span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(linkItem.url);
+                            setCopiedHubUrl(linkItem.url);
+                            setTimeout(() => setCopiedHubUrl(null), 2000);
+                          }}
+                          className="px-2 py-1 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-100 text-slate-500 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Sao chép liên kết"
+                        >
+                          {isCopied ? <Check className="w-3 h-3 text-emerald-500" /> : <Save className="w-3 h-3" />}
+                          <span>{isCopied ? "Đã chép" : "Sao chép"}</span>
+                        </button>
+                        <a
+                          href={linkItem.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-bold flex items-center gap-1 transition-all shadow-xs"
+                        >
+                          <span>Mở</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </div>
+                    <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400 truncate">
+                      {linkItem.url}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-            <button
-              onClick={() => setActiveTab("firewall")}
-              className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
-            >
-              <Shield className="w-3.5 h-3.5" />
-              <span>Quản trị Quy tắc Tường lửa</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+          <div className="pt-2 text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <span>Truy cập mọi lúc qua HTTPS</span>
+            <span className="font-mono text-sky-500 font-bold">SSL Secured</span>
           </div>
         </div>
-          </>
-        )}
-        {isBeginner && showAdvancedSettings && (
-          <div className="col-span-1 md:col-span-2 lg:col-span-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center">
-            <button
-              onClick={() => setShowAdvancedSettings(false)}
-              className="text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 cursor-pointer"
-            >
-              Thu gọn cài đặt nâng cao ↑
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

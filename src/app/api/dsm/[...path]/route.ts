@@ -434,6 +434,8 @@ async function handleProxy(request: NextRequest, resolvedParams: { path: string[
     const isDDNS = !isQuickConnect && (rawHost.includes(".") && !/^\d+\.\d+\.\d+\.\d+$/.test(rawHost) && rawHost !== "localhost");
     // Heuristic: if host looks like DDNS/synology.me/myds.me or user provided custom port like 41533, treat as potential reverse proxy
 
+    const isDirectIp = /^\d+\.\d+\.\d+\.\d+$/.test(rawHost) || rawHost === "localhost" || rawHost === "127.0.0.1";
+
     if (isQuickConnect) {
       const resolved = await resolveQuickConnect(rawHost, targetPort, targetHttps);
       if (resolved) {
@@ -441,7 +443,7 @@ async function handleProxy(request: NextRequest, resolvedParams: { path: string[
         targetPort = resolved.port;
         targetHttps = resolved.isHttps;
       }
-    } else if (isDDNS || targetPort === 41533 || targetPort === 5001 || targetPort === 5000) {
+    } else if (!isDirectIp && (isDDNS || targetPort === 41533)) {
       // Universal DDNS/reverse-proxy resolver: try multiple port/protocol combos
       // For custom reverse proxy 41533, DSM may actually be on 5001/5000/443
       const candidates = buildUniversalCandidates(rawHost, targetPort, targetHttps);
@@ -526,7 +528,7 @@ async function handleProxy(request: NextRequest, resolvedParams: { path: string[
           allCandidates.push(c);
         }
       }
-    } else if (isDDNS || targetPort === 41533 || rawPort === "41533") {
+    } else if (!isDirectIp && (isDDNS || targetPort === 41533 || rawPort === "41533")) {
       const uni = buildUniversalCandidates(rawHost, parseInt(rawPort, 10) || (isHttps ? 5001 : 5000), isHttps);
       for (const u of uni) {
         if (!allCandidates.some(c => c.host === u.host && c.port === u.port && c.isHttps === u.isHttps)) {

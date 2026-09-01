@@ -6,6 +6,34 @@ Tất cả thay đổi của dự án độc lập **kv-synology** (tách từ `
 
 ---
 
+## [1.2.0] - 2026-09-01
+
+### 🚀 Tính năng mới (Added)
+- **Storage Manager Toàn diện (Toàn bộ chức năng chuyên sâu)**:
+  - Hiển thị trực tiếp bộ nhớ đệm SSD NVMe/SATA không cần bấm ẩn.
+  - Đo hiệu năng ổ đĩa (Disk Benchmark: Sequential Read/Write, Random IOPS, Latency).
+  - Quét Bad Sector chuyên sâu và chẩn đoán S.M.A.R.T. (Quick/Extended Test).
+  - Quét chi tiết dung lượng Volume (Volume Usage Detail Scan).
+  - Hiển thị thông số dung sai lỗi RAID (RAID Type Fault Tolerance: SHR, SHR-2, RAID 0/1/5/6/10/F1).
+  - Cấu hình Write Cache và ngưỡng cảnh báo ổ cứng HDD/SSD.
+- **Download Station Pro (Tích hợp Đa dịch vụ)**:
+  - Tìm kiếm Torrent (BT Search) với bộ indexer đa nguồn và phân loại category.
+  - Trình đọc tin RSS Feeds tự động tải về theo từ khóa.
+  - Tích hợp bộ giải mã link tải trực tiếp (File Hosting Direct Link Converter) cho Google Drive, Fshare.vn, MediaFire.
+- **Tường lửa & An ninh Mạng (Firewall & Security)**:
+  - Chế độ Cơ bản (Simple Mode) với nút gạt Master Toggle và 5 dịch vụ bảo vệ cốt lõi.
+  - Lưu trạng thái bật/tắt tường lửa bền vững theo phiên (Session Persistence) và thực thi đồng thời đa API DSM 7.2.
+  - Phòng chống tấn công từ chối dịch vụ (DoS Protection) và tự động khóa IP tấn công dò mật khẩu (Auto-Block Brute Force).
+- **Lưu lượng Mạng & Phân tích GeoIP (Network Traffic & GeoIP)**:
+  - Chế độ xem đơn giản (Simple Mode) tóm tắt băng thông, Top 5 tiến trình và Top 5 quốc gia.
+  - Sơ đồ tương tác luồng dữ liệu 24 tiến trình (Data Flow Graph) và phân tích Sockets chi tiết.
+- **Cài đặt & Cổng Truy Cập Từ Xa (Settings & Remote Access)**:
+  - Tích hợp cổng truy cập nhanh Synology Hub (`https://syno.vndns.net`) và kho gói Package Server (`https://pkg.khoavo.myds.me`).
+- **Đa ngôn ngữ Toàn diện (Full 100% EN/VI Localization)**:
+  - Hỗ trợ song ngữ Tiếng Việt & English cho toàn bộ 16 Tab chức năng, Modals, thanh điều hướng và thông báo hệ thống.
+
+---
+
 ## [1.1.0] - 2026-08-29
 
 ### 🚀 Tính năng mới (Added)

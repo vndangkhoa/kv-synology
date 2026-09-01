@@ -787,6 +787,9 @@ export const mockDownloadTasks: DownloadTask[] = [
     downloadSpeed: 12500000,
     uploadSpeed: 450000,
     type: "HTTP/HTTPS",
+    uri: "https://cdimage.debian.org/debian-cd/12.5.0/amd64/iso-cd/debian-12.5.0-amd64-netinst.iso",
+    destination: "/downloads",
+    username: "admin",
   },
   {
     id: "dl_2",
@@ -797,6 +800,9 @@ export const mockDownloadTasks: DownloadTask[] = [
     downloadSpeed: 8900000,
     uploadSpeed: 1200000,
     type: "BitTorrent",
+    uri: "magnet:?xt=urn:btih:5f8a1d2c9e3b4a7f6c8d0e1a2b3c4d5e6f7a8b9c",
+    destination: "/downloads/video",
+    username: "admin",
   },
   {
     id: "dl_3",
@@ -807,6 +813,9 @@ export const mockDownloadTasks: DownloadTask[] = [
     downloadSpeed: 0,
     uploadSpeed: 0,
     type: "HTTP",
+    uri: "https://nodejs.org/dist/v22.0.0/node-v22.0.0.tar.gz",
+    destination: "/downloads",
+    username: "admin",
   },
   {
     id: "dl_4",
@@ -817,6 +826,9 @@ export const mockDownloadTasks: DownloadTask[] = [
     downloadSpeed: 0,
     uploadSpeed: 0,
     type: "FTP",
+    uri: "ftp://ftp.archlinux.org/iso/latest/archlinux-bootstrap-x86_64.tar.zst",
+    destination: "/downloads",
+    username: "admin",
   },
 ];
 

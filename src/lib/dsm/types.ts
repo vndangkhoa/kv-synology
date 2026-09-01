@@ -177,11 +177,123 @@ export interface DownloadTask {
   id: string;
   title: string;
   size: number;
-  status: "downloading" | "paused" | "finished" | "error" | "waiting";
+  status: "downloading" | "paused" | "finished" | "error" | "waiting" | "seeding" | "hash_checking" | "extracting" | "filehosting_waiting" | "finishing";
   progress: number;
   downloadSpeed: number;
   uploadSpeed: number;
   type: string;
+  uri?: string;
+  destination?: string;
+  username?: string;
+  createdTime?: number;
+  additional?: any;
+}
+
+export interface DownloadStationInfo {
+  is_manager: boolean;
+  version: number;
+  version_string: string;
+}
+
+export interface DownloadStationConfig {
+  bt_max_download: number;
+  bt_max_upload: number;
+  nzb_max_download: number;
+  http_max_download: number;
+  ftp_max_download: number;
+  emule_max_download: number;
+  emule_max_upload: number;
+  emule_enabled: boolean;
+  unzip_service_enabled: boolean;
+  default_destination: string;
+  emule_default_destination: string;
+}
+
+export interface DownloadStationSchedule {
+  enabled: boolean;
+  emule_enabled: boolean;
+}
+
+export interface DownloadStationStatistic {
+  speed_download: number;
+  speed_upload: number;
+  emule_speed_download: number;
+  emule_speed_upload: number;
+  nzb_speed_download: number;
+  nzb_speed_upload: number;
+}
+
+export interface DownloadTaskDetail extends DownloadTask {
+  detail?: {
+    uri: string;
+    destination: string;
+    create_time: number;
+    priority: string;
+    username: string;
+  };
+  transfer?: {
+    size_downloaded: number;
+    size_uploaded: number;
+    speed_download: number;
+    speed_upload: number;
+  };
+  file?: Array<{ filename: string; size: number; downloaded: number; priority: string }>;
+  tracker?: Array<{ url: string; status: string; seeds: number; peers: number }>;
+  peer?: Array<{ address: string; progress: number; agent: string }>;
+}
+
+export interface RSSSite {
+  id: string;
+  title: string;
+  url: string;
+  username?: string;
+  enabled?: boolean;
+  is_updating?: boolean;
+}
+
+export interface RSSFeed {
+  id: string;
+  title: string;
+  url: string;
+  description?: string;
+  publish_date?: string;
+  size?: number;
+}
+
+export interface BTSearchTask {
+  taskId: string;
+  keyword: string;
+}
+
+export interface BTSearchResult {
+  title: string;
+  download: string;
+  size: number;
+  datetime: string;
+  seednum: number;
+  leech: number;
+  category: string;
+  peers?: number;
+  seeds?: number;
+}
+
+export interface HostAccount {
+  id?: string;
+  username: string;
+  password?: string;
+  status?: "valid" | "invalid" | "expired" | "active";
+  premium?: boolean;
+}
+
+export interface HostModule {
+  id: string; // e.g. "fshare", "googledrive", "mediafire", "mega", "rapidgator", "youtube", "1fichier"
+  name: string;
+  host_type?: "premium" | "free" | "all";
+  version?: string;
+  has_account?: boolean;
+  enabled: boolean;
+  accounts?: HostAccount[];
+  supportedUrls?: string[];
 }
 
 export interface DriveInfo {
@@ -194,6 +306,111 @@ export interface DriveInfo {
   size: number;
   health: string;
   driveType?: "HDD" | "NVMe" | "SSD";
+  // Production SMART & Spec fields
+  device?: string;
+  smartStatus?: string;
+  badSectors?: number;
+  reallocatedSectors?: number;
+  pendingSectors?: number;
+  powerOnHours?: number;
+  remainLife?: number;
+  fwVersion?: string;
+  allocationRole?: string;
+  location?: string;
+  driveAction?: string;
+  is4Kn?: boolean;
+  sectorSize?: number;
+  writeCacheEnabled?: boolean;
+  supportWriteCache?: boolean;
+  interfaceType?: string;
+  rawSizeBytes?: number;
+}
+
+export interface DriveBenchmarkResult {
+  device: string;
+  readSpeedMBs: number;
+  writeSpeedMBs: number;
+  readIOPS?: number;
+  writeIOPS?: number;
+  latencyMs?: number;
+  time?: string;
+  status: "idle" | "running" | "finished" | "failed";
+}
+
+export interface SharedFolderUsage {
+  name: string;
+  path: string;
+  sizeBytes: number;
+  fileCount?: number;
+}
+
+export interface VolumeUsageDetail {
+  volumeId: string;
+  volumePath: string;
+  volumeName: string;
+  totalBytes: number;
+  usedBytes: number;
+  freeBytes: number;
+  usedPercent: number;
+  sharedFoldersBytes: number;
+  sharedFolders: SharedFolderUsage[];
+  othersBytes: number;
+  dockerBytes?: number;
+  packagesBytes?: number;
+  recycleBinBytes?: number;
+  isScanning?: boolean;
+}
+
+export interface CacheAdvisorResult {
+  volumePath: string;
+  recommendedSizeGB: number;
+  analyzedDays: number;
+  hitRateEstimate: number;
+  status: "calculated" | "analyzing" | "disabled";
+}
+
+export interface SmartAttribute {
+  id: number;
+  name: string;
+  value: number;
+  worst: number;
+  threshold: number;
+  raw: string;
+  rawValue: number;
+}
+
+export interface SmartInfo {
+  diskId: string;
+  model: string;
+  serial: string;
+  fwVersion: string;
+  smartStatus: string;
+  temperature: number;
+  powerOnHours: number;
+  powerCycleCount: number;
+  reallocatedSectorCount: number;
+  pendingSectorCount: number;
+  offlineUncorrectable: number;
+  badSectors: number;
+  remainLife?: number;
+  attributes: SmartAttribute[];
+  testStatus?: string;
+  testProgress?: number;
+}
+
+export interface HddHealthConfig {
+  badSctrThrEnabled: boolean;
+  remainLifeThrEnabled: boolean;
+  remainLifeThrValue: number;
+  wddaEnabled: boolean;
+  healthReportEnabled: boolean;
+}
+
+export interface ScrubState {
+  status: "idle" | "running" | "paused" | "finished" | "crashed";
+  progress: number;
+  type: "pool" | "volume" | "btrfs";
+  spaceId?: string;
 }
 
 export interface StorageVolume {
@@ -210,6 +427,64 @@ export interface StorageVolume {
   cacheType?: "read_write" | "read_only" | "storage_pool";
   targetVolume?: string;
   hitRate?: number;
+  raidType?: string;
+  poolId?: string;
+  poolPath?: string;
+  numId?: number;
+}
+
+export interface StoragePool {
+  id: string;
+  numId?: number;
+  name: string;
+  poolPath: string;
+  raidType: string;
+  status: "normal" | "warning" | "critical" | "degraded";
+  totalBytes: number;
+  usedBytes: number;
+  freeBytes: number;
+  drives: DriveInfo[];
+  scrubSupported?: boolean;
+  scrubbingState?: ScrubState;
+}
+
+export interface SsdCacheItem {
+  id: string;
+  name: string;
+  type: "read_only" | "read_write";
+  status: "normal" | "warning" | "critical";
+  totalBytes: number;
+  usedBytes: number;
+  reusableBytes?: number;
+  hitRate?: number;
+  drives: DriveInfo[];
+  targetVolume?: string;
+  bypassSequential?: boolean;
+}
+
+export interface HotSpareItem {
+  id: string;
+  name: string;
+  device: string;
+  pools: string[];
+  status: string;
+}
+
+export interface DiskTestLogItem {
+  time: string;
+  type: string;
+  status: string;
+  device: string;
+  lifeRemain?: number;
+}
+
+export interface StorageFullInfo {
+  volumes: StorageVolume[];
+  storagePools: StoragePool[];
+  ssdCaches: SsdCacheItem[];
+  hotSpares: HotSpareItem[];
+  disks: DriveInfo[];
+  env?: any;
 }
 
 export interface PackageItem {

@@ -645,10 +645,37 @@ export class DSMClient {
     return mockDownloadTasks;
   }
 
+  private sanitizeDsmUri(raw: string): string {
+    raw = raw.trim();
+    if (raw.includes("[") && raw.includes("](")) {
+      const m = raw.match(/\((https?:\/\/[^\)]+)\)/);
+      if (m) return m[1].trim().replace(/[\)\]\",]+$/,"");
+      const any = raw.match(/https?:\/\/[^\s\)\]\"]+/);
+      if (any) return any[0].replace(/[\)\]\",]+$/,"").trim();
+    }
+    const first = raw.match(/https?:\/\/[^\s\)\]\"]+/);
+    if (first) return first[0].replace(/[\)\]\",]+$/,"").trim();
+    return raw.replace(/^[\[\"'`]+|[\]\"'`]+$/g,"").trim();
+  }
   async addDownloadTask(uri: string, destination?: string): Promise<boolean> {
     if (this.session.isDemo || !this.session.isConnected) return true;
-    let data: any = await this.postEntry("SYNO.DownloadStation2.Task", "create", 2, { type: '"url"', url: JSON.stringify([uri]), destination: destination ? JSON.stringify(destination) : undefined } as any);
-    if (!data.success) data = await this.postEntry("SYNO.DownloadStation.Task", "create", 1, { uri, destination: destination || "" });
+    uri = this.sanitizeDsmUri(uri);
+    const cleanDest = destination ? destination.trim() : "";
+    let data: any = await this.postEntry("SYNO.DownloadStation2.Task", "create", 2, {
+      type: "url",
+      create_list: "true",
+      url: JSON.stringify([uri]),
+      ...(cleanDest ? { destination: cleanDest } : {}),
+    } as any);
+    if (!data.success && cleanDest.startsWith("/")) {
+      data = await this.postEntry("SYNO.DownloadStation2.Task", "create", 2, {
+        type: "url",
+        create_list: "true",
+        url: JSON.stringify([uri]),
+        destination: cleanDest.replace(/^\//, ""),
+      } as any);
+    }
+    if (!data.success) data = await this.postEntry("SYNO.DownloadStation.Task", "create", 1, { uri, destination: cleanDest || "" });
     return !!data.success;
   }
 

@@ -659,12 +659,42 @@ export class DSMClient {
         catch { }
         return mockDownloadTasks;
     }
+    sanitizeDsmUri(raw) {
+        raw = raw.trim();
+        if (raw.includes("[") && raw.includes("](")) {
+            const m = raw.match(/\((https?:\/\/[^\)]+)\)/);
+            if (m)
+                return m[1].trim().replace(/[\)\]\",]+$/, "");
+            const any = raw.match(/https?:\/\/[^\s\)\]\"]+/);
+            if (any)
+                return any[0].replace(/[\)\]\",]+$/, "").trim();
+        }
+        const first = raw.match(/https?:\/\/[^\s\)\]\"]+/);
+        if (first)
+            return first[0].replace(/[\)\]\",]+$/, "").trim();
+        return raw.replace(/^[\[\"'`]+|[\]\"'`]+$/g, "").trim();
+    }
     async addDownloadTask(uri, destination) {
         if (this.session.isDemo || !this.session.isConnected)
             return true;
-        let data = await this.postEntry("SYNO.DownloadStation2.Task", "create", 2, { type: '"url"', url: JSON.stringify([uri]), destination: destination ? JSON.stringify(destination) : undefined });
+        uri = this.sanitizeDsmUri(uri);
+        const cleanDest = destination ? destination.trim() : "";
+        let data = await this.postEntry("SYNO.DownloadStation2.Task", "create", 2, {
+            type: "url",
+            create_list: "true",
+            url: JSON.stringify([uri]),
+            ...(cleanDest ? { destination: cleanDest } : {}),
+        });
+        if (!data.success && cleanDest.startsWith("/")) {
+            data = await this.postEntry("SYNO.DownloadStation2.Task", "create", 2, {
+                type: "url",
+                create_list: "true",
+                url: JSON.stringify([uri]),
+                destination: cleanDest.replace(/^\//, ""),
+            });
+        }
         if (!data.success)
-            data = await this.postEntry("SYNO.DownloadStation.Task", "create", 1, { uri, destination: destination || "" });
+            data = await this.postEntry("SYNO.DownloadStation.Task", "create", 1, { uri, destination: cleanDest || "" });
         return !!data.success;
     }
     async toggleDownloadTask(id, action) {

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useAppStore, NavTab } from "@/lib/store/useAppStore";
 import {
   LayoutDashboard,
@@ -44,6 +44,12 @@ export const Sidebar: React.FC = () => {
     t,
   } = useAppStore();
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const navItems: { id: NavTab; label: string; icon: React.ReactNode }[] = [
     { id: "dashboard", label: t.nav.dashboard, icon: <LayoutDashboard className="w-5 h-5" /> },
     { id: "monitor", label: t.nav.resourceMonitor, icon: <Activity className="w-5 h-5" /> },
@@ -68,7 +74,7 @@ export const Sidebar: React.FC = () => {
       {/* 1. Fixed Top Header & Server Status */}
       <div className="shrink-0">
         {/* Brand Header */}
-        <div className={`p-4 border-b border-slate-200 dark:border-slate-800 flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
+        <div className={`p-3 border-b border-slate-200 dark:border-slate-800 flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
           <div className="flex items-center space-x-3 overflow-hidden">
             <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-lg shadow-sky-500/20 shrink-0 ring-1 ring-sky-500/10">
               <img src="/logo.svg" alt="S logo" className="w-full h-full object-cover" />
@@ -95,7 +101,7 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* Server Status Badge */}
-        <div className="p-2.5">
+        <div className="p-3">
           <div
             onClick={() => {
               if (!session.isConnected) openLoginModal(true);
@@ -133,7 +139,7 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Scrollable Navigation Menu (Takes available height, scrolls smoothly) */}
+      {/* 2. Scrollable Navigation Menu */}
       <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-2.5 py-1 space-y-1 overscroll-contain">
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
@@ -238,13 +244,13 @@ export const Sidebar: React.FC = () => {
 
   return (
     <>
-      {/* Desktop Sidebar (Fixed / Sticky in position, stays in place when main content scrolls) */}
+      {/* Desktop Sidebar */}
       <aside
         className={`hidden md:flex bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-col shrink-0 h-screen sticky top-0 transition-all duration-300 z-30 overflow-hidden ${
           isSidebarCollapsed ? "w-20" : "w-64"
         }`}
       >
-        {renderContent(isSidebarCollapsed)}
+        {mounted && renderContent(isSidebarCollapsed)}
       </aside>
 
       {/* Mobile Slide-over Drawer */}
@@ -258,7 +264,7 @@ export const Sidebar: React.FC = () => {
 
           {/* Drawer Panel */}
           <div className="relative w-72 max-w-[80vw] bg-white dark:bg-slate-900 h-full shadow-2xl border-r border-slate-200 dark:border-slate-800 z-10 animate-in slide-in-from-left duration-200 flex flex-col overflow-hidden">
-            {renderContent(false)}
+            {mounted && renderContent(false)}
           </div>
         </div>
       )}

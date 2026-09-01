@@ -38,7 +38,8 @@ import {
 } from "lucide-react";
 
 export const NetworkTrafficTab: React.FC = () => {
-  const { session, utilization, language, t } = useAppStore();
+  const { session, utilization, language, experienceMode, t } = useAppStore();
+  const isBeginner = experienceMode === "beginner";
 
   const [connections, setConnections] = useState<NetworkConnectionItem[]>([]);
   const [summary, setSummary] = useState<TrafficSummary | null>(null);
@@ -50,6 +51,7 @@ export const NetworkTrafficTab: React.FC = () => {
   const [blockedFeedback, setBlockedFeedback] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [visualizerMode, setVisualizerMode] = useState<"graph" | "bars">("graph");
+  const [showAdvancedGraph, setShowAdvancedGraph] = useState(false);
 
   const fetchConnections = useCallback(async () => {
     setLoading(true);
@@ -256,16 +258,126 @@ export const NetworkTrafficTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Hero Visualizer: Interactive Data Flow Graph OR Outbound Country Bars */}
-      {visualizerMode === "graph" ? (
-        <DataFlowGraph
-          connections={connections}
-          summary={summary}
-          onSelectIp={(ip) => setSelectedIpForModal(ip)}
-          onBlockIp={handleBlockIpDirect}
-        />
+      {/* Simple Beginner Overview Cards */}
+      {isBeginner && !showAdvancedGraph ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">Tốc độ Tải xuống</span>
+              <span className="text-base sm:text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1 block">
+                ↓ {formatSpeed(liveInboundSpeed)}
+              </span>
+            </div>
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">Tốc độ Tải lên</span>
+              <span className="text-base sm:text-xl font-bold font-mono text-sky-600 dark:text-sky-400 mt-1 block">
+                ↑ {formatSpeed(liveOutboundSpeed)}
+              </span>
+            </div>
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">Tổng kết nối Socket</span>
+              <span className="text-base sm:text-xl font-bold font-mono text-purple-600 dark:text-purple-400 mt-1 block">
+                {connections.length} socket
+              </span>
+            </div>
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">Quốc gia chính</span>
+              <span className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mt-1 truncate block">
+                {summary?.topCountries && summary.topCountries.length > 0 ? (
+                  <span>{summary.topCountries[0].flagEmoji} {summary.topCountries[0].countryName}</span>
+                ) : (
+                  "Việt Nam 🇻🇳"
+                )}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {/* Simple Top Processes Card */}
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-purple-500"/>
+                  Ứng dụng phát sinh lưu lượng chính
+                </h3>
+                <span className="text-[10px] text-slate-400 font-mono">Top 5</span>
+              </div>
+              <div className="space-y-2">
+                {summary?.topProcesses && summary.topProcesses.length > 0 ? (
+                  summary.topProcesses.slice(0, 5).map(proc => (
+                    <div key={proc.name} className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">{proc.name}</span>
+                      <span className="font-mono text-purple-600 dark:text-purple-400 font-bold">{formatBytes(proc.outboundBytes || 0)}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-400 py-3 text-center">Đang nạp dữ liệu tiến trình...</p>
+                )}
+              </div>
+            </div>
+
+            {/* Simple Top Countries Card */}
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <Globe className="w-4 h-4 text-sky-500"/>
+                  Phân bổ theo Quốc gia
+                </h3>
+                <span className="text-[10px] text-slate-400 font-mono">Top 5</span>
+              </div>
+              <div className="space-y-2">
+                {summary?.topCountries && summary.topCountries.length > 0 ? (
+                  summary.topCountries.slice(0, 5).map(c => (
+                    <div key={c.countryCode} className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 truncate">
+                        <span>{c.flagEmoji}</span>
+                        <span className="truncate">{c.countryName}</span>
+                      </span>
+                      <span className="font-mono text-sky-600 dark:text-sky-400 font-bold">{formatBytes(c.outboundBytes || 0)}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-400 py-3 text-center">Đang nạp dữ liệu quốc gia...</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="p-3 bg-sky-50/60 dark:bg-sky-950/20 rounded-2xl border border-sky-200/60 dark:border-sky-800/60 flex items-center justify-between text-xs">
+            <span className="text-slate-600 dark:text-slate-300">
+              💡 Bạn đang xem ở <strong>Chế độ Cơ bản</strong>. Có thể mở rộng để xem toàn bộ sơ đồ đồ thị kết nối mạng.
+            </span>
+            <button
+              onClick={() => setShowAdvancedGraph(true)}
+              className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold text-xs shrink-0 cursor-pointer shadow-xs"
+            >
+              Mở Sơ đồ Luồng Chi tiết ↓
+            </button>
+          </div>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 sm:gap-4">
+        <>
+          {isBeginner && showAdvancedGraph && (
+            <div className="flex justify-end pb-1">
+              <button
+                onClick={() => setShowAdvancedGraph(false)}
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+              >
+                Thu gọn sơ đồ chi tiết ↑
+              </button>
+            </div>
+          )}
+
+          {/* Hero Visualizer: Interactive Data Flow Graph OR Outbound Country Bars */}
+          {visualizerMode === "graph" ? (
+            <DataFlowGraph
+              connections={connections}
+              summary={summary}
+              onSelectIp={(ip) => setSelectedIpForModal(ip)}
+              onBlockIp={handleBlockIpDirect}
+            />
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 sm:gap-4">
         {/* Left 2 Cols: Outbound Country Destination Distribution */}
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3.5 sm:space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -389,6 +501,8 @@ export const NetworkTrafficTab: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
+      </>
       )}
 
       {/* Filter Tabs & Search Bar */}

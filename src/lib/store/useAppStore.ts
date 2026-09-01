@@ -14,6 +14,7 @@ interface AppState {
   experienceMode: ExperienceMode;
   activeTab: NavTab;
   permissionInspectPath?: string;
+  fileStationPath?: string;
   session: DSMSession;
   systemInfo: SystemInfo | null;
   utilization: SystemUtilization | null;
@@ -39,6 +40,7 @@ interface AppState {
   setExperienceMode: (mode: ExperienceMode) => void;
   setActiveTab: (tab: NavTab) => void;
   setPermissionInspectPath: (path?: string) => void;
+  setFileStationPath: (path?: string) => void;
   setSession: (session: DSMSession) => void;
   setSystemInfo: (info: SystemInfo) => void;
   updateUtilization: (util: SystemUtilization) => void;
@@ -154,6 +156,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setPermissionInspectPath: (path?: string) => set({ permissionInspectPath: path }),
+  setFileStationPath: (path?: string) => set({ fileStationPath: path }),
 
   setSession: (session: DSMSession) => set({ session }),
 
@@ -228,7 +231,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   logout: () => {
     dsmClient.logout();
-    clearPersistedSession();
+    // Complete logout: clear 7-day session, profile session, and keep credentials only if Remember was checked
+    // For "completely log out" we clear profile session; credentials (host/account) stay for convenience
+    clearPersistedSession({ clearProfileSession: true });
+    // Also ensure any stale sid/token cookies are cleared
+    try {
+      document.cookie = "dsm_sid=; Max-Age=0; path=/";
+      document.cookie = "dsm_token=; Max-Age=0; path=/";
+    } catch {}
     set({
       session: {
         sid: "",
@@ -244,6 +254,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       utilizationHistory: [],
       notifications: [],
       appNotifications: [],
+      isLoginModalOpen: false,
     });
   },
 

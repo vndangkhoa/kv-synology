@@ -34,6 +34,7 @@ export declare class DSMClient {
     getDockerContainers(): Promise<DockerContainer[]>;
     toggleDockerContainer(id: string, action: "start" | "stop" | "restart"): Promise<boolean>;
     getDownloadTasks(): Promise<DownloadTask[]>;
+    private sanitizeDsmUri;
     addDownloadTask(uri: string, destination?: string): Promise<boolean>;
     toggleDownloadTask(id: string, action: "pause" | "resume" | "delete"): Promise<boolean>;
     getStorageVolumes(): Promise<StorageVolume[]>;
