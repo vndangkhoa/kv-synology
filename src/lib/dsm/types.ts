@@ -286,12 +286,22 @@ export interface HostAccount {
 }
 
 export interface HostModule {
-  id: string; // e.g. "fshare", "googledrive", "mediafire", "mega", "rapidgator", "youtube", "1fichier"
+  id: string; // e.g. "fshare", "googledrive", "mediafire", "MegaNz", "rapidgator", "youtube", "1fichier"
   name: string;
+  displayname?: string;
+  type?: string; // "pyload" | "syno" | "custom"
+  description?: string;
   host_type?: "premium" | "free" | "all";
   version?: string;
   has_account?: boolean;
+  auth_needed?: boolean;
+  can_be_disabled?: boolean;
+  removable?: boolean;
+  experimental?: boolean;
   enabled: boolean;
+  username?: string;
+  password?: string;
+  valid?: boolean;
   accounts?: HostAccount[];
   supportedUrls?: string[];
 }
@@ -767,5 +777,62 @@ export interface SecurityAuditItem {
   affectedPath?: string;
   affectedUsers?: string[];
   recommendation: string;
+}
+
+export interface ReverseProxyHeader {
+  name: string;
+  value: string;
+}
+
+export interface ReverseProxyFrontend {
+  protocol: 0 | 1; // 0: HTTP, 1: HTTPS
+  fqdn: string;
+  port: number;
+  https?: {
+    hsts?: boolean;
+    http2?: boolean;
+  };
+  acl?: string | null;
+}
+
+export interface ReverseProxyBackend {
+  protocol: 0 | 1; // 0: HTTP, 1: HTTPS
+  fqdn: string;
+  port: number;
+}
+
+export interface ReverseProxyRule {
+  UUID: string;
+  _key?: string;
+  description: string;
+  frontend: ReverseProxyFrontend;
+  backend: ReverseProxyBackend;
+  customize_headers?: ReverseProxyHeader[];
+  proxy_connect_timeout?: number;
+  proxy_read_timeout?: number;
+  proxy_send_timeout?: number;
+  proxy_http_version?: number;
+  proxy_intercept_errors?: boolean;
+}
+
+export interface ReverseProxyPayload {
+  UUID?: string;
+  description: string;
+  frontend: ReverseProxyFrontend;
+  backend: ReverseProxyBackend;
+  customize_headers?: ReverseProxyHeader[];
+  proxy_connect_timeout?: number;
+  proxy_read_timeout?: number;
+  proxy_send_timeout?: number;
+  proxy_http_version?: number;
+  proxy_intercept_errors?: boolean;
+}
+
+export interface ReverseProxyHealthInfo {
+  nginxSyntaxOk: boolean;
+  nginxDetails?: string;
+  orphanedServicesCount: number;
+  activeRulesCount: number;
+  cleanedOrphans?: string[];
 }
 

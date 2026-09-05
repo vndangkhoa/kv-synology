@@ -38,7 +38,7 @@ async function fetchServerInfo(cleanId: string, controlHost: string, portalId = 
             "Content-Type": "application/json",
             "User-Agent": "Synology/DSM",
           },
-          timeout: 5000,
+          timeout: 6000,
           agent: httpsAgent,
         },
         (res) => {
@@ -56,49 +56,69 @@ async function fetchServerInfo(cleanId: string, controlHost: string, portalId = 
       req.end();
     });
     const parsedTunnel = JSON.parse(rawTunnel);
+    // If control_host specifies regional redirect (e.g. usc.quickconnect.to / tw.quickconnect.to), query regional tunnel
+    if (parsedTunnel && parsedTunnel.errno === 0 && parsedTunnel.env?.control_host && parsedTunnel.env.control_host !== controlHost) {
+      try {
+        const regionalParsed = await fetchServerInfo(cleanId, parsedTunnel.env.control_host, portalId);
+        if (regionalParsed && regionalParsed.errno === 0 && (regionalParsed.service?.relay_port || regionalParsed.server)) {
+          return regionalParsed;
+        }
+      } catch (_) {}
+    }
     if (parsedTunnel && parsedTunnel.errno === 0 && parsedTunnel.server) {
       return parsedTunnel;
     }
   } catch (_) {}
 
   // Fallback: get_server_info
-  const payload = JSON.stringify({
-    version: 1,
-    command: "get_server_info",
-    stop_mirror: true,
-    serverID: cleanId,
-    id: portalId,
-  });
-  const raw = await new Promise<string>((resolve, reject) => {
-    const req = https.request(
-      `https://${controlHost}/Serv.php`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "User-Agent": "Synology/DSM",
-        },
-        timeout: 5000,
-        agent: httpsAgent,
-      },
-      (res) => {
-        let data = "";
-        res.on("data", (chunk) => (data += chunk));
-        res.on("end", () => resolve(data));
-      }
-    );
-    req.on("error", reject);
-    req.on("timeout", () => {
-      req.destroy();
-      reject(new Error("QuickConnect lookup timeout"));
+  try {
+    const payload = JSON.stringify({
+      version: 1,
+      command: "get_server_info",
+      stop_mirror: true,
+      serverID: cleanId,
+      id: portalId,
     });
-    req.write(payload);
-    req.end();
-  });
-  return JSON.parse(raw);
+    const raw = await new Promise<string>((resolve, reject) => {
+      const req = https.request(
+        `https://${controlHost}/Serv.php`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "User-Agent": "Synology/DSM",
+          },
+          timeout: 6000,
+          agent: httpsAgent,
+        },
+        (res) => {
+          let data = "";
+          res.on("data", (chunk) => (data += chunk));
+          res.on("end", () => resolve(data));
+        }
+      );
+      req.on("error", reject);
+      req.on("timeout", () => {
+        req.destroy();
+        reject(new Error("QuickConnect lookup timeout"));
+      });
+      req.write(payload);
+      req.end();
+    });
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.errno === 0 && parsed.env?.control_host && parsed.env.control_host !== controlHost) {
+      try {
+        const regParsed = await fetchServerInfo(cleanId, parsed.env.control_host, portalId);
+        if (regParsed && regParsed.errno === 0) return regParsed;
+      } catch (_) {}
+    }
+    return parsed;
+  } catch (_) {
+    return null;
+  }
 }
 
-async function verifyDsmCandidate(c: { host: string; port: number; isHttps: boolean }, timeout = 1800): Promise<boolean> {
+async function verifyDsmCandidate(c: { host: string; port: number; isHttps: boolean }, timeout = 4000): Promise<boolean> {
   try {
     const res = await makeNodeRequest({
       isHttps: c.isHttps,
@@ -144,7 +164,7 @@ async function resolveQuickConnect(
     try {
       let parsed = await fetchServerInfo(cleanId, controlHost, "dsm_portal_https");
 
-      // If dsm_portal_https failed (e.g. user uses HTTP or custom portal), fallback to dsm_portal
+      // If dsm_portal_https failed, fallback to dsm_portal
       if (!parsed || parsed.errno !== 0 || !parsed.server) {
         try {
           parsed = await fetchServerInfo(cleanId, controlHost, "dsm_portal");
@@ -175,7 +195,7 @@ async function resolveQuickConnect(
         const dsmExtPort = parsed.server?.external?.port || parsed.service?.ext_port;
 
         const relayIp: string | null = parsed.service?.relay_ip || null;
-        const relayPort: number | null = parsed.service?.relay_port || 443;
+        const relayPort: number | null = parsed.service?.relay_port || null;
         const relayDn: string | null = parsed.service?.relay_dn || null;
 
         type Candidate = { host: string; port: number; isHttps: boolean };
@@ -191,40 +211,39 @@ async function resolveQuickConnect(
           }
         };
 
-        // Standard DSM Ports to try
         const standardPorts = Array.from(new Set([userPort, dsmHttpsPort, 5001, dsmHttpPort, 5000, dsmExtPort].filter(Boolean))) as number[];
-        
-        // 1. Local container / Docker bridge host gateway (for apps running in container on the NAS)
-        for (const p of standardPorts) {
-          const isH = p === 5001 || p === dsmHttpsPort || (userHttps ?? true);
-          addCand("172.17.0.1", p, isH);
-          addCand("192.168.1.10", p, isH);
-          addCand("127.0.0.1", p, isH);
-        }
 
-        // 2. Relay tunnels from request_tunnel (guaranteed global reachability through NAT)
+        // 1. WAN Relay Tunnels from request_tunnel (highest reliability from the Internet through NAT/Firewalls)
         if (relayDn && relayPort) addCand(relayDn, relayPort, true);
         if (relayIp && relayPort) addCand(relayIp, relayPort, true);
 
-        // 3. DDNS and SmartDNS candidates
+        // 2. Direct DDNS & SmartDNS WAN addresses
         for (const p of standardPorts) {
           const isH = p === 5001 || p === dsmHttpsPort || (userHttps ?? true);
           if (ddns) addCand(ddns, p, isH);
           if (smartDns) addCand(smartDns, p, isH);
           if (smartDnsExt) addCand(smartDnsExt, p, isH);
           addCand(`${cleanId}.direct.quickconnect.to`, p, isH);
-          for (const ip of allLanIps) addCand(ip, p, isH);
-          if (lanIp) addCand(lanIp, p, isH);
-          if (smartDnsLan) addCand(smartDnsLan, p, isH);
           if (wanIp) addCand(wanIp, p, isH);
         }
 
-        // Web ports (443, 80)
+        // 3. Web Ports (443, 80) on DDNS and WAN
         for (const p of [443, 80]) {
           const isH = p === 443;
           if (ddns) addCand(ddns, p, isH);
           if (smartDnsExt) addCand(smartDnsExt, p, isH);
           if (wanIp) addCand(wanIp, p, isH);
+        }
+
+        // 4. LAN candidates (for when client is inside local network or container)
+        for (const p of standardPorts) {
+          const isH = p === 5001 || p === dsmHttpsPort || (userHttps ?? true);
+          for (const ip of allLanIps) addCand(ip, p, isH);
+          if (lanIp) addCand(lanIp, p, isH);
+          if (smartDnsLan) addCand(smartDnsLan, p, isH);
+          addCand("172.17.0.1", p, isH);
+          addCand("192.168.1.10", p, isH);
+          addCand("127.0.0.1", p, isH);
         }
 
         // Store all candidate routes for fallback during actual proxy requests
@@ -234,7 +253,7 @@ async function resolveQuickConnect(
         // Concurrently probe all candidates for genuine DSM API response
         const probeResults = await Promise.all(
           candidates.map(async (cand) => {
-            const ok = await verifyDsmCandidate(cand, 1800);
+            const ok = await verifyDsmCandidate(cand, 3500);
             return ok ? cand : null;
           })
         );
@@ -245,7 +264,7 @@ async function resolveQuickConnect(
           // If direct DSM API probe didn't reply in time, test TCP reachability
           const tcpProbes = await Promise.all(
             candidates.slice(0, 10).map(async (cand) => {
-              const ok = await testHostConnection(cand.host, cand.port, 1000);
+              const ok = await testHostConnection(cand.host, cand.port, 1500);
               return ok ? cand : null;
             })
           );
@@ -254,10 +273,11 @@ async function resolveQuickConnect(
         }
 
         if (!verifiedTarget) {
-          // Fallback: prefer relay or DDNS or localhost gateway over unverified private IP
+          // Fallback: prefer relay or DDNS over private IPs
           verifiedTarget =
             (relayDn && relayPort ? { host: relayDn, port: relayPort, isHttps: true } : null) ||
             (relayIp && relayPort ? { host: relayIp, port: relayPort, isHttps: true } : null) ||
+            (ddns ? { host: ddns, port: dsmHttpsPort, isHttps: true } : null) ||
             { host: "172.17.0.1", port: dsmHttpsPort, isHttps: true };
         }
 
@@ -557,7 +577,7 @@ async function handleProxy(request: NextRequest, resolvedParams: { path: string[
           method: request.method,
           headers: candHeaders,
           body: requestBody,
-          timeoutMs: 3500,
+          timeoutMs: cand.host.includes("quickconnect") || cand.host.includes("synr") ? 9000 : 6000,
         });
         // If DSM returns 404 for /webapi, this candidate is wrong (e.g., 41533 reverse proxy without DSM) -> try next
         if (candResult.statusCode === 404) {

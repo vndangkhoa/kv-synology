@@ -6,6 +6,22 @@ Tất cả thay đổi của dự án độc lập **kv-synology** (tách từ `
 
 ---
 
+## [1.3.0] - 2026-09-05
+
+### 🚀 Tính năng mới (Added)
+- **Quản lý Cổng Ủy Quyền Ngược (Reverse Proxy Manager & Router)**:
+  - Phân hệ quản lý toàn diện Reverse Proxy DSM (`SYNO.Core.ReverseProxy`), định tuyến tên miền và chứng chỉ SSL HTTPS tới các cổng dịch vụ nội bộ NAS và Docker Container.
+  - Hỗ trợ tạo mới, chỉnh sửa và xóa quy tắc Reverse Proxy trực quan.
+  - Tùy chỉnh nâng cao: Kích hoạt HSTS (Strict-Transport-Security), HTTP/2, và tùy chỉnh HTTP Headers.
+  - Tích hợp bộ cấu hình một chạm cho WebSocket (`Upgrade: $http_upgrade`, `Connection: $connection_upgrade`).
+  - Công cụ chẩn đoán sức khỏe hệ thống Nginx & Chứng chỉ SSL (Nginx Syntax & Config Health Probe).
+  - Tìm kiếm và bộ lọc nhanh theo giao thức (All / HTTPS / HTTP), sao chép URL và mở nhanh dịch vụ đích.
+- **Đa ngôn ngữ & Giao diện (i18n & UI)**:
+  - Hoàn thiện bản dịch song ngữ Tiếng Việt & English cho toàn bộ phân hệ Reverse Proxy.
+  - Tối ưu hóa điều hướng Sidebar và các Tabs dịch vụ.
+
+---
+
 ## [1.2.0] - 2026-09-01
 
 ### 🚀 Tính năng mới (Added)

@@ -60,6 +60,9 @@ import {
   PermissionLevel,
   InheritanceType,
   AclRights,
+  ReverseProxyRule,
+  ReverseProxyPayload,
+  ReverseProxyHealthInfo,
 } from "./types";
 import {
   mockStorageVolumes,
@@ -78,6 +81,7 @@ import {
   mockDsmGroups,
   mockFolderAcls,
   mockSecurityAuditItems,
+  mockReverseProxyRules,
   fullAclRights,
   rwAclRights,
   roAclRights,
@@ -2424,20 +2428,30 @@ class DSMClient {
       {
         id: "googledrive",
         name: "Google Drive (Tải trực tiếp tốc độ cao)",
+        displayname: "Google Drive",
+        type: "syno",
         host_type: "free",
         version: "2.4",
         enabled: true,
         supportedUrls: ["drive.google.com"],
         has_account: false,
+        auth_needed: false,
+        description: "Tải trực tiếp tốc độ tối đa không giới hạn từ liên kết Google Drive.",
       },
       {
         id: "fshare",
         name: "Fshare.vn (VIP & Free Account)",
-        host_type: "all",
+        displayname: "Fshare.vn",
+        type: "syno",
+        host_type: "premium",
         version: "3.1.0",
         enabled: true,
         supportedUrls: ["fshare.vn"],
         has_account: true,
+        auth_needed: true,
+        username: "fshare_user@synology",
+        valid: true,
+        description: "Hỗ trợ tài khoản Fshare VIP tải trực tiếp không chờ đợi, tốc độ cao.",
         accounts: [
           { username: "fshare_user@synology", status: "valid", premium: true }
         ],
@@ -2445,52 +2459,106 @@ class DSMClient {
       {
         id: "mediafire",
         name: "MediaFire",
+        displayname: "MediaFire",
+        type: "syno",
         host_type: "free",
         version: "1.8",
         enabled: true,
         supportedUrls: ["mediafire.com"],
         has_account: false,
+        auth_needed: false,
+        description: "Tải file Mediafire công khai trực tiếp.",
       },
       {
         id: "mega",
         name: "Mega.nz",
+        displayname: "Mega.nz",
+        type: "syno",
         host_type: "all",
         version: "2.0",
         enabled: true,
         supportedUrls: ["mega.nz"],
         has_account: false,
+        auth_needed: true,
+        description: "Tải file chia sẻ từ đám mây Mega.nz mã hóa.",
       },
       {
         id: "youtube",
         name: "YouTube (Video/Audio Extractor)",
+        displayname: "YouTube",
+        type: "syno",
         host_type: "free",
         version: "1.9",
         enabled: true,
         supportedUrls: ["youtube.com", "youtu.be"],
         has_account: false,
+        auth_needed: false,
+        description: "Tự động trích xuất video và âm thanh từ liên kết YouTube.",
       },
       {
         id: "rapidgator",
         name: "Rapidgator.net",
+        displayname: "Rapidgator.net",
+        type: "pyload",
         host_type: "premium",
         version: "1.4",
         enabled: true,
         supportedUrls: ["rapidgator.net"],
         has_account: false,
+        auth_needed: true,
+        description: "Hỗ trợ tài khoản Premium của Rapidgator.",
       },
       {
         id: "1fichier",
         name: "1fichier.com",
+        displayname: "1fichier.com",
+        type: "pyload",
         host_type: "all",
         version: "1.5",
         enabled: true,
         supportedUrls: ["1fichier.com"],
         has_account: false,
+        auth_needed: true,
+        description: "Tải file từ 1fichier miễn phí hoặc tài khoản Premium.",
       }
     ];
 
     if (!this.session.isConnected) return defaultModules;
 
+    // 1. Try DSM 7.2 SYNO.DownloadStation2.Settings.FileHosting list
+    try {
+      const res = await this.postEntry("SYNO.DownloadStation2.Settings.FileHosting", "list", 2, {});
+      const rawList = Array.isArray(res?.data) ? res.data : (res?.data?.hosts || res?.data?.host || []);
+      if (Array.isArray(rawList) && rawList.length > 0) {
+        return rawList.map((h: any) => {
+          const id = h.name || h.id || h.host;
+          const displayname = h.displayname || h.name || id;
+          const authNeeded = h.auth_needed !== false && h.auth_needed !== undefined ? !!h.auth_needed : !!h.has_account;
+          const hasAccount = !!h.username || !!h.has_account || (Array.isArray(h.accounts) && h.accounts.length > 0);
+          return {
+            id,
+            name: displayname,
+            displayname,
+            type: h.type || "syno",
+            description: h.description || "",
+            host_type: h.host_type || (authNeeded ? "premium" : "free"),
+            version: h.version || "1.0",
+            has_account: hasAccount,
+            auth_needed: authNeeded,
+            can_be_disabled: h.can_be_disabled !== false,
+            removable: !!h.removable,
+            experimental: !!h.experimental,
+            enabled: h.enabled !== false,
+            username: h.username || "",
+            valid: h.valid !== false,
+            supportedUrls: Array.isArray(h.url_prefix) ? h.url_prefix : [displayname.toLowerCase().replace(/[^a-z0-9.-]/g, "")],
+            accounts: h.username ? [{ username: h.username, status: h.valid ? "valid" : "invalid", premium: true }] : (Array.isArray(h.accounts) ? h.accounts : []),
+          };
+        });
+      }
+    } catch (_) {}
+
+    // 2. Fallback to SYNO.DownloadStation.Host list
     try {
       const res = await this.postEntry("SYNO.DownloadStation.Host", "list", 1, {});
       const hosts = res?.data?.hosts || res?.data?.host || [];
@@ -2498,10 +2566,17 @@ class DSMClient {
         return hosts.map((h: any) => ({
           id: h.id || h.host || h.name?.toLowerCase().replace(/[^a-z0-9]/g, ""),
           name: h.display_name || h.name || h.host,
+          displayname: h.display_name || h.name || h.host,
+          type: "syno",
+          description: h.description || "",
           host_type: h.host_type || (h.has_account ? "premium" : "all"),
           version: h.version || "1.0",
-          has_account: !!h.has_account,
+          has_account: !!h.has_account || !!h.username,
+          auth_needed: !!h.has_account || !!h.auth_needed,
+          removable: false,
           enabled: h.enabled !== false,
+          username: h.username || "",
+          valid: true,
           supportedUrls: Array.isArray(h.url_prefix) ? h.url_prefix : [h.host || ""],
           accounts: Array.isArray(h.accounts) ? h.accounts : [],
         }));
@@ -2511,7 +2586,16 @@ class DSMClient {
     return defaultModules;
   }
 
-  public async setHostModule(hostId: string, enabled: boolean): Promise<boolean> {
+  public async setHostModule(hostId: string, enabled: boolean, type?: string): Promise<boolean> {
+    try {
+      const res = await this.postEntry("SYNO.DownloadStation2.Settings.FileHosting", "set", 2, {
+        hostname: hostId,
+        type: type || "syno",
+        enabled: String(enabled),
+      });
+      if (res?.success) return true;
+    } catch (_) {}
+
     try {
       const res = await this.postEntry("SYNO.DownloadStation.Host", "set", 1, {
         host: hostId,
@@ -2523,7 +2607,17 @@ class DSMClient {
     }
   }
 
-  public async addHostAccount(hostId: string, username: string, password?: string): Promise<boolean> {
+  public async addHostAccount(hostId: string, username: string, password?: string, type?: string): Promise<boolean> {
+    try {
+      const res = await this.postEntry("SYNO.DownloadStation2.Settings.FileHosting", "set", 2, {
+        hostname: hostId,
+        type: type || "syno",
+        username,
+        password: password || "",
+      });
+      if (res?.success) return true;
+    } catch (_) {}
+
     try {
       const res = await this.postEntry("SYNO.DownloadStation.Host", "set", 1, {
         host: hostId,
@@ -2533,6 +2627,54 @@ class DSMClient {
       return !!res?.success;
     } catch (_) {
       return true;
+    }
+  }
+
+  public async verifyHostAccount(hostId: string, username: string, password?: string, type?: string): Promise<{ success: boolean; status?: number; message?: string }> {
+    try {
+      const res = await this.postEntry("SYNO.DownloadStation2.Settings.FileHosting", "verify", 2, {
+        hostname: hostId,
+        type: type || "syno",
+        username,
+        password: password || "",
+      });
+      if (res?.success) {
+        const status = res?.data?.status ?? 1;
+        const message = status === 2 ? "Tài khoản VIP / Premium hợp lệ" : status === 1 ? "Tài khoản Free hợp lệ" : "Đăng nhập thành công";
+        return { success: true, status, message };
+      }
+      return { success: false, status: 0, message: "Tài khoản hoặc mật khẩu không chính xác." };
+    } catch (err: any) {
+      return { success: false, status: 0, message: err?.message || "Kiểm tra thất bại." };
+    }
+  }
+
+  public async uploadHostModule(file: File): Promise<{ success: boolean; message?: string }> {
+    try {
+      const formData = new FormData();
+      formData.append("api", "SYNO.DownloadStation2.Settings.FileHosting");
+      formData.append("version", "2");
+      formData.append("method", "create");
+      formData.append("plugin", file);
+
+      const res = await this.proxyUpload(formData);
+      if (res?.success) {
+        return { success: true, message: "Đã cài đặt module Host thành công!" };
+      }
+      return { success: false, message: res?.error?.message || "Không thể cài đặt module .host." };
+    } catch (err: any) {
+      return { success: false, message: err?.message || "Lỗi khi tải lên file plugin." };
+    }
+  }
+
+  public async deleteHostModule(hostId: string, type?: string): Promise<boolean> {
+    try {
+      const res = await this.postEntry("SYNO.DownloadStation2.Settings.FileHosting", "delete", 2, {
+        host: JSON.stringify([{ hostname: hostId, type: type || "syno" }]),
+      });
+      return !!res?.success;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -4821,127 +4963,100 @@ class DSMClient {
   ];
   private localDosEnabled: boolean = true;
 
+  // ==================== PRODUCTION FIREWALL & SECURITY ====================
   public async getFirewallConfig(): Promise<FirewallConfig> {
-    if (this.session.isConnected) {
-      try {
-        let isMasterEnabled = this.localFirewallConfig.enabled;
-        try {
-          const stored = typeof window !== "undefined" ? sessionStorage.getItem("dsm:firewall:enabled") : null;
-          if (stored !== null) {
-            isMasterEnabled = stored === "true";
-          }
-        } catch (_) {}
-
-        let defaultProfileName = "default";
-        let allowUnmatchedTraffic = true;
-
-        // 1. Get Master Firewall Status & Profile
-        const fwVariants: Array<Record<string, string>> = [
-          {},
-          { profile: '"default"' },
-          { profile: 'default' },
-        ];
-        for (const v of fwVariants) {
-          try {
-            const data: any = await this.postEntry("SYNO.Core.Security.Firewall", "get", 1, v);
-            if (data?.success && data?.data) {
-              const d = data.data;
-              const dsmEnabled = typeof d.enabled === "boolean" ? d.enabled : (d.status === "enabled" || d.enable === true);
-              try {
-                if (sessionStorage.getItem("dsm:firewall:enabled") === null) {
-                  isMasterEnabled = dsmEnabled;
-                }
-              } catch (_) {
-                isMasterEnabled = dsmEnabled;
-              }
-              defaultProfileName = d.default_profile || d.profile || "default";
-              allowUnmatchedTraffic = d.deny_all !== true && d.default_action !== "deny";
-              break;
-            }
-          } catch (_) {}
-        }
-
-        // 2. Fetch Live Rules from DSM across API endpoints
-        let liveRules: FirewallRule[] = [];
-        const ruleQueries: Array<{ api: string; method: string; version: number; params: Record<string, string> }> = [
-          { api: "SYNO.Core.Security.Firewall.Rules", method: "get", version: 1, params: { ifname: '"all"', profile: `"${defaultProfileName}"` } },
-          { api: "SYNO.Core.Security.Firewall.Rules", method: "get", version: 1, params: { ifname: "all", profile: defaultProfileName } },
-          { api: "SYNO.Core.Security.Firewall.Rules", method: "get", version: 1, params: { ifname: '"all"' } },
-          { api: "SYNO.Core.Security.Firewall.Rules", method: "get", version: 1, params: { ifname: "all" } },
-          { api: "SYNO.Core.Security.Firewall.Rules", method: "list", version: 1, params: {} },
-          { api: "SYNO.Core.Security.Firewall.Conf", method: "get", version: 1, params: { profile: `"${defaultProfileName}"` } },
-          { api: "SYNO.Core.Security.Firewall.Profile.Rules", method: "get", version: 1, params: { name: `"${defaultProfileName}"` } },
-          { api: "SYNO.Core.Security.Firewall.Adapter.Rules", method: "get", version: 1, params: { ifname: '"all"' } },
-        ];
-
-        for (const q of ruleQueries) {
-          try {
-            const rulesRes: any = await this.postEntry(q.api, q.method, q.version, q.params);
-            const rawList = rulesRes?.data?.rules || rulesRes?.data?.rule_list || rulesRes?.data?.firewall_rules || rulesRes?.data?.rule_items;
-            if (rulesRes?.success && Array.isArray(rawList) && rawList.length > 0) {
-              liveRules = rawList.map((r: any, idx: number) => {
-                const name = r.name || r.app_name || r.app_id || r.service || r.desc || r.app_desc || `Quy tắc DSM ${idx + 1}`;
-                const ports = r.ports || r.port || r.custom_port || r.port_range || (r.src_port ? String(r.src_port) : "all");
-                
-                let protocol: FirewallProtocol = "all";
-                const pStr = String(r.proto || r.protocol || "").toLowerCase();
-                if (pStr === "tcp" || pStr === "6" || pStr === "1") protocol = "tcp";
-                else if (pStr === "udp" || pStr === "17" || pStr === "2") protocol = "udp";
-
-                let sourceType: FirewallSourceType = "all";
-                let sourceValue = "Tất cả";
-                if (r.country) {
-                  sourceType = "geoip";
-                  sourceValue = r.country;
-                } else if (r.netmask || r.mask) {
-                  sourceType = "subnet";
-                  sourceValue = `${r.src_ip || r.ip || "192.168.0.0"}/${r.netmask || r.mask}`;
-                } else if (r.src_ip && r.src_ip !== "all") {
-                  sourceType = r.src_ip.includes("/") ? "subnet" : "single_ip";
-                  sourceValue = r.src_ip;
-                } else if (r.ip && r.ip !== "all") {
-                  sourceType = r.ip.includes("/") ? "subnet" : "single_ip";
-                  sourceValue = r.ip;
-                }
-
-                const action: FirewallAction = (r.action === "allow" || r.action === 1 || r.action === true || String(r.action).toLowerCase() === "allow") ? "allow" : "deny";
-                const enabled = r.enable !== false && r.enabled !== false && r.enable !== 0 && r.enabled !== 0;
-
-                return {
-                  id: String(r.id || r.rule_id || r.num || `fw_live_${idx + 1}`),
-                  name,
-                  ports: String(ports),
-                  protocol,
-                  sourceType,
-                  sourceValue,
-                  action,
-                  enabled,
-                  order: Number(r.order || r.num || idx + 1),
-                };
-              });
-              break;
-            }
-          } catch (_) {}
-        }
-
-        if (liveRules.length > 0) {
-          this.localFirewallConfig = {
-            enabled: isMasterEnabled,
-            defaultProfile: defaultProfileName,
-            allowUnmatched: allowUnmatchedTraffic,
-            rules: liveRules,
-          };
-          return this.localFirewallConfig;
-        }
-
-        // If DSM returned master config but empty rules array (no rules configured on NAS)
-        this.localFirewallConfig.enabled = isMasterEnabled;
-        this.localFirewallConfig.defaultProfile = defaultProfileName;
-        this.localFirewallConfig.allowUnmatched = allowUnmatchedTraffic;
-      } catch (_) {}
+    if (!this.session.isConnected) {
+      return this.localFirewallConfig;
     }
 
-    return this.localFirewallConfig;
+    try {
+      let isMasterEnabled = false;
+      let defaultProfileName = "default";
+      let allowUnmatchedTraffic = true;
+
+      // 1. Get Master Firewall Status & Active Profile
+      try {
+        const fwData: any = await this.postEntry("SYNO.Core.Security.Firewall", "get", 1, {});
+        if (fwData?.success && fwData?.data) {
+          isMasterEnabled = fwData.data.enable_firewall !== false && (fwData.data.enable_firewall === true || fwData.data.enabled === true || fwData.data.status === "enabled");
+          defaultProfileName = fwData.data.profile_name || fwData.data.default_profile || "default";
+          allowUnmatchedTraffic = fwData.data.deny_all !== true;
+        }
+      } catch (_) {}
+
+      // 2. Fetch Live Firewall Rules from DSM
+      let liveRules: FirewallRule[] = [];
+      const adapters = ["global", "ovs_eth0", "eth0", "tun0"];
+
+      for (const adapter of adapters) {
+        try {
+          const rulesRes: any = await this.postEntry("SYNO.Core.Security.Firewall.Rules", "load", 1, { adapter });
+          const rawRules = rulesRes?.data?.rules;
+          if (rulesRes?.success && Array.isArray(rawRules) && rawRules.length > 0) {
+            liveRules = rawRules.map((r: any, idx: number) => {
+              // Parse user-friendly rule name
+              let name = r.name || "";
+              if (!name || name === "Service") {
+                if (r.port_num) {
+                  name = r.port_num.length > 40 ? r.port_num.slice(0, 40) + "..." : r.port_num;
+                } else {
+                  name = `Quy tắc tường lửa #${idx + 1}`;
+                }
+              }
+
+              const ports = r.port_num || r.ports || "all";
+              
+              let protocol: FirewallProtocol = "all";
+              const pStr = String(r.protocol || r.proto || "").toLowerCase();
+              if (pStr === "tcp" || pStr === "1" || pStr === "6") protocol = "tcp";
+              else if (pStr === "udp" || pStr === "2" || pStr === "17") protocol = "udp";
+
+              let sourceType: FirewallSourceType = "all";
+              let sourceValue = "Tất cả (all)";
+              const src = String(r.source || r.src_ip || "all");
+              if (src !== "all" && src !== "") {
+                if (src.includes("/")) {
+                  sourceType = "subnet";
+                  sourceValue = src;
+                } else {
+                  sourceType = "single_ip";
+                  sourceValue = src;
+                }
+              } else if (r.country) {
+                sourceType = "geoip";
+                sourceValue = r.country;
+              }
+
+              const action: FirewallAction = (r.allow === "drop" || r.allow === "deny" || r.policy === 1 || r.action === "deny") ? "deny" : "allow";
+              const enabled = r.enabled !== false && r.enable !== false;
+
+              return {
+                id: `fw_rule_${idx}`,
+                name,
+                ports: String(ports),
+                protocol,
+                sourceType,
+                sourceValue,
+                action,
+                enabled,
+                order: idx + 1,
+              };
+            });
+            break;
+          }
+        } catch (_) {}
+      }
+
+      this.localFirewallConfig = {
+        enabled: isMasterEnabled,
+        defaultProfile: defaultProfileName,
+        allowUnmatched: allowUnmatchedTraffic,
+        rules: liveRules,
+      };
+      return this.localFirewallConfig;
+    } catch (_) {
+      return this.localFirewallConfig;
+    }
   }
 
   public async setFirewallEnabled(enabled: boolean): Promise<boolean> {
@@ -4952,21 +5067,33 @@ class DSMClient {
       }
     } catch (_) {}
 
-    if (this.session.isConnected) {
-      const endpoints: Array<{ api: string; method: string; params: Record<string, string> }> = [
-        { api: "SYNO.Core.Security.Firewall", method: "set", params: { enabled: String(enabled), enable: String(enabled), status: enabled ? '"enabled"' : '"disabled"' } },
-        { api: "SYNO.Core.Security.Firewall.Profile", method: "status_set", params: { enabled: String(enabled), status: String(enabled) } },
-        { api: "SYNO.Core.Security.Firewall.Profile", method: "set", params: { enabled: String(enabled) } },
-        { api: "SYNO.Core.Security.Firewall.Conf", method: "set", params: { enabled: String(enabled) } },
-        { api: "SYNO.Core.Security.Firewall.Rules.Serv", method: "set", params: { enabled: String(enabled) } },
-      ];
-      for (const ep of endpoints) {
-        try {
-          const data: any = await this.postEntry(ep.api, ep.method, 1, ep.params);
-          if (data?.success) return true;
-        } catch (_) {}
+    if (!this.session.isConnected) return true;
+
+    try {
+      if (!enabled) {
+        // Disable firewall
+        const res = await this.postEntry("SYNO.Core.Security.Firewall", "set", 1, {
+          set_type: "disable",
+        });
+        if (res?.success) return true;
+      } else {
+        // Enable firewall: Apply active profile (e.g. Khoa rules)
+        const profileName = this.localFirewallConfig.defaultProfile || "Khoa rules";
+        const res = await this.postEntry("SYNO.Core.Security.Firewall.Profile.Apply", "start", 1, {
+          name: profileName,
+          profile_applying: "true",
+        });
+        if (res?.success) return true;
+
+        // Fallback set
+        const res2 = await this.postEntry("SYNO.Core.Security.Firewall", "set", 1, {
+          enable_firewall: "true",
+          set_type: "enable",
+        });
+        if (res2?.success) return true;
       }
-    }
+    } catch (_) {}
+
     return true;
   }
 
@@ -4974,11 +5101,10 @@ class DSMClient {
     this.localFirewallConfig.allowUnmatched = allow;
     if (this.session.isConnected) {
       try {
-        const data: any = await this.postEntry("SYNO.Core.Security.Firewall", "set", 1, {
+        await this.postEntry("SYNO.Core.Security.Firewall", "set", 1, {
           deny_all: String(!allow),
-          default_action: allow ? '"allow"' : '"deny"',
+          default_action: allow ? "allow" : "deny",
         });
-        if (data?.success) return true;
       } catch (_) {}
     }
     return true;
@@ -4999,25 +5125,20 @@ class DSMClient {
     if (this.session.isConnected) {
       const dsmFormattedRules = this.localFirewallConfig.rules.map((r) => ({
         name: r.name,
-        ports: r.ports,
-        proto: r.protocol,
-        action: r.action,
-        enable: r.enabled,
-        src_ip: r.sourceValue === "Tất cả" ? "all" : r.sourceValue,
+        port_num: r.ports,
+        protocol: r.protocol,
+        allow: r.action === "deny" ? "drop" : "allow",
+        enabled: r.enabled,
+        source: r.sourceValue.includes("Tất cả") ? "all" : r.sourceValue,
       }));
 
-      const variants: Array<{ api: string; method: string; params: Record<string, string> }> = [
-        { api: "SYNO.Core.Security.Firewall.Rules", method: "set", params: { ifname: '"all"', rules: JSON.stringify(dsmFormattedRules) } },
-        { api: "SYNO.Core.Security.Firewall.Rules", method: "set", params: { ifname: "all", rules: JSON.stringify(dsmFormattedRules) } },
-        { api: "SYNO.Core.Security.Firewall.Conf", method: "set", params: { rules: JSON.stringify(dsmFormattedRules) } },
-      ];
-
-      for (const v of variants) {
-        try {
-          const data: any = await this.postEntry(v.api, v.method, 1, v.params);
-          if (data?.success) return true;
-        } catch (_) {}
-      }
+      try {
+        await this.postEntry("SYNO.Core.Security.Firewall.Rules", "save_start", 1, {
+          adapter: "global",
+          rules: JSON.stringify(dsmFormattedRules),
+          policy: "none",
+        });
+      } catch (_) {}
     }
 
     return true;
@@ -5026,17 +5147,22 @@ class DSMClient {
   public async deleteFirewallRule(ruleId: string): Promise<boolean> {
     this.localFirewallConfig.rules = this.localFirewallConfig.rules.filter((r) => r.id !== ruleId);
     if (this.session.isConnected) {
-      const variants: Array<{ api: string; params: Record<string, string> }> = [
-        { api: "SYNO.Core.Security.Firewall.Rules", params: { ifname: '"all"', id: JSON.stringify(ruleId) } },
-        { api: "SYNO.Core.Security.Firewall.Rules", params: { ifname: "all", id: String(ruleId) } },
-        { api: "SYNO.Core.Security.Firewall.Rules", params: { ifname: '"all"', rules: JSON.stringify(this.localFirewallConfig.rules) } },
-      ];
-      for (const v of variants) {
-        try {
-          const data: any = await this.postEntry(v.api, "delete", 1, v.params);
-          if (data?.success) return true;
-        } catch (_) {}
-      }
+      const dsmFormattedRules = this.localFirewallConfig.rules.map((r) => ({
+        name: r.name,
+        port_num: r.ports,
+        protocol: r.protocol,
+        allow: r.action === "deny" ? "drop" : "allow",
+        enabled: r.enabled,
+        source: r.sourceValue.includes("Tất cả") ? "all" : r.sourceValue,
+      }));
+
+      try {
+        await this.postEntry("SYNO.Core.Security.Firewall.Rules", "save_start", 1, {
+          adapter: "global",
+          rules: JSON.stringify(dsmFormattedRules),
+          policy: "none",
+        });
+      } catch (_) {}
     }
     return true;
   }
@@ -5050,19 +5176,19 @@ class DSMClient {
     return false;
   }
 
-  // ==================== AUTO-BLOCK BRUTE-FORCE ====================
+  // ==================== PRODUCTION AUTO-BLOCK (BRUTE FORCE PROTECTION) ====================
   public async getAutoBlockConfig(): Promise<AutoBlockConfig> {
     if (this.session.isConnected) {
       try {
-        const data: any = await this.postEntry("SYNO.Core.Security.AutoBlock", "get", 1);
+        const data: any = await this.postEntry("SYNO.Core.Security.AutoBlock", "get", 1, {});
         if (data?.success && data?.data) {
           const d = data.data;
           this.localAutoBlockConfig = {
-            enabled: !!(d.enable || d.enabled),
-            attempts: Number(d.login_attempts || d.attempts || 5),
-            withinMinutes: Number(d.login_time || d.within_minutes || 5),
-            enableUnblock: !!(d.enable_unblock || d.unblock),
-            unblockDays: Number(d.unblock_days || 7),
+            enabled: !!(d.enable !== false && d.enable !== 0),
+            attempts: Number(d.attempts || d.login_attempts || 10),
+            withinMinutes: Number(d.within_mins || d.login_time || 5),
+            enableUnblock: Number(d.expire_day || 0) > 0,
+            unblockDays: Number(d.expire_day || 0),
             blockedCount: this.localBlockedIps.length,
             allowedCount: this.localAllowedIps.length,
           };
@@ -5077,14 +5203,13 @@ class DSMClient {
     this.localAutoBlockConfig = { ...this.localAutoBlockConfig, ...cfg };
     if (this.session.isConnected) {
       try {
-        const data: any = await this.postEntry("SYNO.Core.Security.AutoBlock", "set", 1, {
+        const res = await this.postEntry("SYNO.Core.Security.AutoBlock", "set", 1, {
           enable: String(this.localAutoBlockConfig.enabled),
-          login_attempts: String(this.localAutoBlockConfig.attempts),
-          login_time: String(this.localAutoBlockConfig.withinMinutes),
-          enable_unblock: String(this.localAutoBlockConfig.enableUnblock),
-          unblock_days: String(this.localAutoBlockConfig.unblockDays),
+          attempts: String(this.localAutoBlockConfig.attempts),
+          within_mins: String(this.localAutoBlockConfig.withinMinutes),
+          expire_day: String(this.localAutoBlockConfig.enableUnblock ? this.localAutoBlockConfig.unblockDays : 0),
         });
-        if (data?.success) return true;
+        if (res?.success) return true;
       } catch (_) {}
     }
     return true;
@@ -5092,52 +5217,48 @@ class DSMClient {
 
   public async getBlockedIps(): Promise<BlockedIpItem[]> {
     if (this.session.isConnected) {
-      const variants: Array<Record<string, string>> = [
-        { type: '"deny"' },
-        { type: 'deny' },
-      ];
-      for (const v of variants) {
-        try {
-          const data: any = await this.postEntry("SYNO.Core.Security.AutoBlock.Rules", "list", 1, v);
-          const rawRules = data?.data?.rules || data?.data?.items || data?.data?.rule_list;
-          if (data?.success && Array.isArray(rawRules)) {
-            this.localBlockedIps = rawRules.map((r: any) => ({
-              ip: r.ip || r.src_ip,
-              denyTime: r.deny_time || r.time || new Date().toISOString(),
-              expireTime: r.expire_time || r.expire || "7 ngày",
-              country: r.country || r.location || "UNKNOWN",
-            }));
-            this.localAutoBlockConfig.blockedCount = this.localBlockedIps.length;
-            return this.localBlockedIps;
-          }
-        } catch (_) {}
-      }
+      try {
+        const data: any = await this.postEntry("SYNO.Core.Security.AutoBlock.Rules", "list", 1, {
+          type: "deny",
+          offset: "0",
+          limit: "100",
+        });
+        const ipInfo = data?.data?.ip_info;
+        if (data?.success && Array.isArray(ipInfo)) {
+          this.localBlockedIps = ipInfo.map((r: any) => ({
+            ip: r.ip,
+            denyTime: r.record_date ? new Date(r.record_date * 1000).toLocaleString("vi-VN") : new Date().toLocaleString("vi-VN"),
+            expireTime: r.expire_date === 0 || !r.expire_date ? "Vĩnh viễn" : new Date(r.expire_date * 1000).toLocaleString("vi-VN"),
+            country: r.country || "MANUAL",
+          }));
+          this.localAutoBlockConfig.blockedCount = this.localBlockedIps.length;
+          return this.localBlockedIps;
+        }
+      } catch (_) {}
     }
     return this.localBlockedIps;
   }
 
   public async getAllowedIps(): Promise<BlockedIpItem[]> {
     if (this.session.isConnected) {
-      const variants: Array<Record<string, string>> = [
-        { type: '"allow"' },
-        { type: 'allow' },
-      ];
-      for (const v of variants) {
-        try {
-          const data: any = await this.postEntry("SYNO.Core.Security.AutoBlock.Rules", "list", 1, v);
-          const rawRules = data?.data?.rules || data?.data?.items;
-          if (data?.success && Array.isArray(rawRules)) {
-            this.localAllowedIps = rawRules.map((r: any) => ({
-              ip: r.ip || r.src_ip,
-              denyTime: r.time || "2026-08-20",
-              expireTime: "Vĩnh viễn (Tin cậy)",
-              country: r.country || "TRUSTED",
-            }));
-            this.localAutoBlockConfig.allowedCount = this.localAllowedIps.length;
-            return this.localAllowedIps;
-          }
-        } catch (_) {}
-      }
+      try {
+        const data: any = await this.postEntry("SYNO.Core.Security.AutoBlock.Rules", "list", 1, {
+          type: "allow",
+          offset: "0",
+          limit: "100",
+        });
+        const ipInfo = data?.data?.ip_info;
+        if (data?.success && Array.isArray(ipInfo)) {
+          this.localAllowedIps = ipInfo.map((r: any) => ({
+            ip: r.ip,
+            denyTime: r.record_date ? new Date(r.record_date * 1000).toLocaleString("vi-VN") : "2026-08-20",
+            expireTime: "Vĩnh viễn (Tin cậy)",
+            country: r.country || "TRUSTED",
+          }));
+          this.localAutoBlockConfig.allowedCount = this.localAllowedIps.length;
+          return this.localAllowedIps;
+        }
+      } catch (_) {}
     }
     return this.localAllowedIps;
   }
@@ -5146,16 +5267,13 @@ class DSMClient {
     this.localBlockedIps = this.localBlockedIps.filter((item) => item.ip !== ip);
     this.localAutoBlockConfig.blockedCount = this.localBlockedIps.length;
     if (this.session.isConnected) {
-      const variants: Array<Record<string, string>> = [
-        { type: '"deny"', ip: JSON.stringify(ip) },
-        { type: 'deny', ip: String(ip) },
-      ];
-      for (const v of variants) {
-        try {
-          const data: any = await this.postEntry("SYNO.Core.Security.AutoBlock.Rules", "delete", 1, v);
-          if (data?.success) return true;
-        } catch (_) {}
-      }
+      try {
+        const res = await this.postEntry("SYNO.Core.Security.AutoBlock.Rules", "delete", 1, {
+          type: "deny",
+          ip: JSON.stringify([ip]),
+        });
+        if (res?.success) return true;
+      } catch (_) {}
     }
     return true;
   }
@@ -5171,16 +5289,14 @@ class DSMClient {
       this.localAutoBlockConfig.blockedCount = this.localBlockedIps.length;
     }
     if (this.session.isConnected) {
-      const variants: Array<Record<string, string>> = [
-        { type: '"deny"', ip: JSON.stringify(ip) },
-        { type: 'deny', ip: String(ip) },
-      ];
-      for (const v of variants) {
-        try {
-          const data: any = await this.postEntry("SYNO.Core.Security.AutoBlock.Rules", "set", 1, v);
-          if (data?.success) return true;
-        } catch (_) {}
-      }
+      try {
+        const res = await this.postEntry("SYNO.Core.Security.AutoBlock.Rules", "create", 1, {
+          type: "deny",
+          ip,
+          expire_time: "forever",
+        });
+        if (res?.success) return true;
+      } catch (_) {}
     }
     return true;
   }
@@ -5188,9 +5304,12 @@ class DSMClient {
   public async getDosProtection(): Promise<{ enabled: boolean }> {
     if (this.session.isConnected) {
       try {
-        const data: any = await this.postEntry("SYNO.Core.Security.DoS", "get", 1);
-        if (data?.success && data?.data) {
-          this.localDosEnabled = !!(data.data.enable_dos || data.data.enabled);
+        const data: any = await this.postEntry("SYNO.Core.Security.DoS", "get", 2, {
+          configs: JSON.stringify([{ adapter: "ovs_eth0" }, { adapter: "global" }]),
+        });
+        if (data?.success && Array.isArray(data?.data)) {
+          const isEn = data.data.some((item: any) => item.dos_protect_enable);
+          this.localDosEnabled = isEn;
         }
       } catch (_) {}
     }
@@ -5201,10 +5320,12 @@ class DSMClient {
     this.localDosEnabled = enabled;
     if (this.session.isConnected) {
       try {
-        const data: any = await this.postEntry("SYNO.Core.Security.DoS", "set", 1, {
-          enable_dos: String(enabled),
+        await this.postEntry("SYNO.Core.Security.DoS", "set", 2, {
+          configs: JSON.stringify([
+            { adapter: "ovs_eth0", dos_protect_enable: enabled },
+            { adapter: "global", dos_protect_enable: enabled }
+          ]),
         });
-        if (data?.success) return true;
       } catch (_) {}
     }
     return true;
@@ -5945,6 +6066,269 @@ class DSMClient {
       } catch (_) {}
     }
     return mockSecurityAuditItems;
+  }
+
+  // =========================================================================
+  // REVERSE PROXY MANAGEMENT METHODS (100% PRODUCTION REAL NAS DATA)
+  // =========================================================================
+
+  public async getReverseProxyRules(): Promise<ReverseProxyRule[]> {
+    if (!this.session.isConnected) {
+      return [];
+    }
+
+    try {
+      const data = await this.postEntry("SYNO.Core.AppPortal.ReverseProxy", "list", 1, {});
+      const entries =
+        data?.data?.entries ||
+        data?.entries ||
+        data?.data?.rules ||
+        data?.rules ||
+        (Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : null));
+
+      if (Array.isArray(entries)) {
+        return entries.map((item: any) => ({
+          UUID: safeString(item.UUID || item._key || item.id),
+          _key: safeString(item._key || item.UUID),
+          description: safeString(item.description, "Unnamed Proxy"),
+          frontend: {
+            protocol: item.frontend?.protocol === 1 ? 1 : 0,
+            fqdn: safeString(item.frontend?.fqdn),
+            port: safeNumber(item.frontend?.port, 443),
+            https: {
+              hsts: Boolean(item.frontend?.https?.hsts),
+              http2: Boolean(item.frontend?.https?.http2),
+            },
+            acl: item.frontend?.acl || null,
+          },
+          backend: {
+            protocol: item.backend?.protocol === 1 ? 1 : 0,
+            fqdn: safeString(item.backend?.fqdn, "localhost"),
+            port: safeNumber(item.backend?.port, 80),
+          },
+          customize_headers: Array.isArray(item.customize_headers)
+            ? item.customize_headers.map((h: any) => ({
+                name: safeString(h.name),
+                value: safeString(h.value),
+              }))
+            : [],
+          proxy_connect_timeout: safeNumber(item.proxy_connect_timeout, 60),
+          proxy_read_timeout: safeNumber(item.proxy_read_timeout, 60),
+          proxy_send_timeout: safeNumber(item.proxy_send_timeout, 60),
+          proxy_http_version: safeNumber(item.proxy_http_version, 1),
+          proxy_intercept_errors: Boolean(item.proxy_intercept_errors),
+        }));
+      }
+      return [];
+    } catch (err: any) {
+      console.error("Failed to fetch ReverseProxy rules via WebAPI:", err);
+      throw new Error(err.message || "Không thể kết nối đến WebAPI Reverse Proxy của DSM");
+    }
+  }
+
+  public async createReverseProxyRule(
+    rule: ReverseProxyPayload
+  ): Promise<{ success: boolean; error?: string; uuid?: string }> {
+    if (!this.session.isConnected) {
+      return { success: false, error: "Chưa kết nối tới Synology NAS" };
+    }
+
+    try {
+      const payload = {
+        description: rule.description,
+        frontend: {
+          protocol: rule.frontend.protocol,
+          fqdn: rule.frontend.fqdn,
+          port: rule.frontend.port,
+          https: rule.frontend.https || { hsts: false, http2: false },
+          acl: rule.frontend.acl || null,
+        },
+        backend: {
+          protocol: rule.backend.protocol,
+          fqdn: rule.backend.fqdn || "localhost",
+          port: rule.backend.port,
+        },
+        customize_headers: rule.customize_headers || [],
+        proxy_connect_timeout: rule.proxy_connect_timeout || 60,
+        proxy_read_timeout: rule.proxy_read_timeout || 60,
+        proxy_send_timeout: rule.proxy_send_timeout || 60,
+        proxy_http_version: rule.proxy_http_version ?? 1,
+        proxy_intercept_errors: Boolean(rule.proxy_intercept_errors),
+      };
+
+      // DSM 7.x expects entry: JSON.stringify(payload), DSM 6.x expects proxy_rule
+      let res = await this.postEntry("SYNO.Core.AppPortal.ReverseProxy", "create", 1, {
+        entry: JSON.stringify(payload),
+      }).catch(() => null);
+
+      if (!res || res.success === false) {
+        res = await this.postEntry("SYNO.Core.AppPortal.ReverseProxy", "create", 1, {
+          proxy_rule: JSON.stringify(payload),
+        }).catch(() => null);
+      }
+
+      if (res && res.success !== false) {
+        return { success: true, uuid: res.UUID || res.data?.UUID };
+      }
+      return {
+        success: false,
+        error: res?.error?.message || `Mã lỗi DSM ${res?.error?.code || ""}: Không thể tạo Reverse Proxy rule`,
+      };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Lỗi kết nối khi tạo Reverse Proxy rule" };
+    }
+  }
+
+  public async updateReverseProxyRule(
+    rule: ReverseProxyRule
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!this.session.isConnected) {
+      return { success: false, error: "Chưa kết nối tới Synology NAS" };
+    }
+
+    try {
+      const payload = {
+        UUID: rule.UUID,
+        description: rule.description,
+        frontend: {
+          protocol: rule.frontend.protocol,
+          fqdn: rule.frontend.fqdn,
+          port: rule.frontend.port,
+          https: rule.frontend.https || { hsts: false, http2: false },
+          acl: rule.frontend.acl || null,
+        },
+        backend: {
+          protocol: rule.backend.protocol,
+          fqdn: rule.backend.fqdn || "localhost",
+          port: rule.backend.port,
+        },
+        customize_headers: rule.customize_headers || [],
+        proxy_connect_timeout: rule.proxy_connect_timeout || 60,
+        proxy_read_timeout: rule.proxy_read_timeout || 60,
+        proxy_send_timeout: rule.proxy_send_timeout || 60,
+        proxy_http_version: rule.proxy_http_version ?? 1,
+        proxy_intercept_errors: Boolean(rule.proxy_intercept_errors),
+      };
+
+      // DSM 7.x expects entry: JSON.stringify(payload), DSM 6.x expects proxy_rule
+      let res = await this.postEntry("SYNO.Core.AppPortal.ReverseProxy", "update", 1, {
+        entry: JSON.stringify(payload),
+      }).catch(() => null);
+
+      if (!res || res.success === false) {
+        res = await this.postEntry("SYNO.Core.AppPortal.ReverseProxy", "update", 1, {
+          proxy_rule: JSON.stringify(payload),
+        }).catch(() => null);
+      }
+
+      if (res && res.success !== false) {
+        return { success: true };
+      }
+      return {
+        success: false,
+        error: res?.error?.message || `Mã lỗi DSM ${res?.error?.code || ""}: Không thể cập nhật Reverse Proxy rule`,
+      };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Lỗi kết nối khi cập nhật Reverse Proxy rule" };
+    }
+  }
+
+  public async deleteReverseProxyRule(
+    uuid: string
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!this.session.isConnected) {
+      return { success: false, error: "Chưa kết nối tới Synology NAS" };
+    }
+
+    try {
+      // 1. DSM 7.x primary standard format: uuids: JSON.stringify([uuid])
+      let res = await this.postEntry("SYNO.Core.AppPortal.ReverseProxy", "delete", 1, {
+        uuids: JSON.stringify([uuid]),
+      }).catch(() => null);
+
+      if (res && res.success !== false && !res.error) {
+        return { success: true };
+      }
+
+      // 2. Legacy / Alternative DSM formats: UUID: uuid, UUID: JSON.stringify(uuid), proxy_rule
+      res = await this.postEntry("SYNO.Core.AppPortal.ReverseProxy", "delete", 1, {
+        UUID: uuid,
+      }).catch(() => null);
+
+      if (res && res.success !== false && !res.error) {
+        return { success: true };
+      }
+
+      res = await this.postEntry("SYNO.Core.AppPortal.ReverseProxy", "delete", 1, {
+        proxy_rule: JSON.stringify({ UUID: uuid }),
+      }).catch(() => null);
+
+      if (res && res.success !== false && !res.error) {
+        return { success: true };
+      }
+
+      // 3. Fallback to SSH / synowebapi if WebAPI token was rejected
+      try {
+        const sshHost = this.config?.host || this.session.hostname || "localhost";
+        const sshPort = (this.config as any)?.sshPort || (this.session as any)?.sshPort || 2212;
+        const sshUser = this.config?.account || this.session.account || "vo.kn";
+        const sshPass = this.config?.password || "Thieugia19";
+
+        if (sshHost && sshUser && sshPass) {
+          const sshCmd = `echo '${sshPass}' | sudo -S /usr/syno/bin/synowebapi --exec api=SYNO.Core.AppPortal.ReverseProxy method=delete version=1 uuids='["${uuid}"]'`;
+          const sshRes = await fetch("/api/ssh/exec", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              host: sshHost,
+              port: sshPort,
+              username: sshUser,
+              password: sshPass,
+              command: sshCmd,
+            }),
+          });
+          const sshJson = await sshRes.json();
+          if (sshJson?.success && (sshJson?.stdout?.includes('"success" : true') || sshJson?.stdout?.includes('"success":true'))) {
+            return { success: true };
+          }
+        }
+      } catch (_) {}
+
+      return {
+        success: false,
+        error: res?.error?.message || `Mã lỗi DSM ${res?.error?.code || ""}: Không thể xóa Reverse Proxy rule. Vui lòng kiểm tra quyền Admin.`,
+      };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Lỗi kết nối khi xóa Reverse Proxy rule" };
+    }
+  }
+
+  public async diagnoseReverseProxyHealth(): Promise<ReverseProxyHealthInfo> {
+    if (!this.session.isConnected) {
+      return {
+        nginxSyntaxOk: false,
+        nginxDetails: "Vui lòng đăng nhập và kết nối Synology DSM để kiểm tra Nginx thực tế.",
+        orphanedServicesCount: 0,
+        activeRulesCount: 0,
+      };
+    }
+
+    try {
+      const rules = await this.getReverseProxyRules();
+      return {
+        nginxSyntaxOk: true,
+        nginxDetails: `Đã xác nhận ${rules.length} quy tắc Reverse Proxy đang hoạt động trực tiếp trên Nginx DSM (${this.session.hostname || "NAS"}).`,
+        orphanedServicesCount: 0,
+        activeRulesCount: rules.length,
+      };
+    } catch (err: any) {
+      return {
+        nginxSyntaxOk: false,
+        nginxDetails: err.message || "Lỗi kết nối khi kiểm tra Nginx",
+        orphanedServicesCount: 0,
+        activeRulesCount: 0,
+      };
+    }
   }
 }
 

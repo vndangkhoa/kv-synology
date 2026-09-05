@@ -41,9 +41,120 @@ import {
   ShieldQuestion,
   Activity,
   Key,
+  Folder,
+  Terminal,
+  Tv,
+  HardDrive,
+  Printer,
+  Wifi,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 import ResponsiveModal from "@/components/common/ResponsiveModal";
+
+// DSM Built-in Services Catalog
+export interface DSMServiceItem {
+  id: string;
+  name: string;
+  category: "file" | "remote" | "admin" | "media" | "backup_network";
+  ports: string;
+  protocol: FirewallProtocol;
+  description: string;
+}
+
+export const DSM_SERVICES_CATALOG: DSMServiceItem[] = [
+  // 1. Chia sẻ tệp (File Sharing)
+  { id: "cifs", name: "Windows SMB / CIFS", category: "file", ports: "445, 137, 138, 139", protocol: "tcp", description: "Chia sẻ tệp mạng nội bộ Windows, macOS & Linux" },
+  { id: "windowsODX", name: "Windows ODX Offload", category: "file", ports: "445", protocol: "tcp", description: "Tăng tốc sao chép tệp Windows Server ODX" },
+  { id: "rodsp_vdisk", name: "Synology VDisk Service", category: "file", ports: "3260, 445", protocol: "tcp", description: "Dịch vụ ổ đĩa ảo Synology Storage" },
+  { id: "ws_transfer_port", name: "WS-Transfer (Web Services)", category: "file", ports: "5357", protocol: "tcp", description: "Truyền tệp Web Services Discovery Windows" },
+  { id: "ws_discovery_port", name: "WS-Discovery", category: "file", ports: "3702", protocol: "udp", description: "Dò tìm thiết bị Synology trên mạng Windows" },
+  { id: "nfs", name: "NFS File Service", category: "file", ports: "2049, 111, 892", protocol: "all", description: "Giao thức chia sẻ tệp Linux / Unix NFS" },
+  { id: "ftp", name: "FTP / FTPS File Transfer", category: "file", ports: "21, 20, 55536-55567", protocol: "tcp", description: "Truyền nhận tệp tin FTP & FTPS bảo mật" },
+  { id: "HybridShare", name: "Synology Hybrid Share", category: "file", ports: "443, 80", protocol: "tcp", description: "Đồng bộ đám mây Synology C2 Hybrid Share" },
+  { id: "webdav", name: "WebDAV Server", category: "file", ports: "5005, 5006", protocol: "tcp", description: "Truy cập ổ đĩa qua giao thức HTTP/HTTPS WebDAV" },
+
+  // 2. Truy cập từ xa & VPN (Remote Access & VPN)
+  { id: "ssh", name: "SSH Terminal Quản trị", category: "remote", ports: "22, 2212", protocol: "tcp", description: "Dòng lệnh bảo mật SSH quản trị NAS từ xa" },
+  { id: "Tailscale", name: "Tailscale Mesh VPN", category: "remote", ports: "41641", protocol: "udp", description: "Mạng riêng ảo P2P Tailscale bảo mật cao" },
+  { id: "vpn_server_openvpn", name: "OpenVPN Server", category: "remote", ports: "1194", protocol: "udp", description: "Máy chủ VPN OpenVPN tiêu chuẩn mã hóa SSL" },
+  { id: "vpn_server_pptp", name: "PPTP VPN Server", category: "remote", ports: "1723", protocol: "tcp", description: "Máy chủ VPN PPTP truyền thống" },
+  { id: "vpn_server_l2tp", name: "L2TP VPN Server", category: "remote", ports: "1701, 500, 4500", protocol: "udp", description: "Máy chủ VPN L2TP/IPSec" },
+  { id: "vpn_server_ipsec", name: "IPSec VPN Server", category: "remote", ports: "500, 4500", protocol: "udp", description: "Máy chủ VPN IPSec doanh nghiệp" },
+
+  // 3. Quản trị DSM & Web Server
+  { id: "dsm_http", name: "DSM Web HTTP", category: "admin", ports: "5000", protocol: "tcp", description: "Giao diện web quản trị Synology DSM không mã hóa" },
+  { id: "dsm_https", name: "DSM Web HTTPS (SSL)", category: "admin", ports: "5001", protocol: "tcp", description: "Giao diện web quản trị Synology DSM bảo mật SSL" },
+  { id: "web_http", name: "Web Server / HTTP", category: "admin", ports: "80", protocol: "tcp", description: "Web Station / Reverse Proxy cổng 80" },
+  { id: "web_https", name: "Web Server / HTTPS (SSL)", category: "admin", ports: "443", protocol: "tcp", description: "Web Station / Reverse Proxy cổng 443 SSL" },
+
+  // 4. Giải trí & Đa phương tiện (Media)
+  { id: "plex", name: "Plex Media Server", category: "media", ports: "32400, 32401, 32402", protocol: "tcp", description: "Máy chủ phát trực tuyến phim và video Plex" },
+  { id: "jellyfin", name: "Jellyfin Media Server", category: "media", ports: "8096, 8920", protocol: "tcp", description: "Máy chủ truyền thông mã nguồn mở Jellyfin" },
+  { id: "video_station", name: "Video Station", category: "media", ports: "9025-9040, 5000", protocol: "tcp", description: "Synology Video Station streaming" },
+  { id: "audio_station", name: "Audio Station", category: "media", ports: "5000, 5001, 8888", protocol: "tcp", description: "Synology Audio Station streaming nhạc" },
+
+  // 5. Sao lưu, Mạng & Thiết bị ngoại vi
+  { id: "netbkp", name: "Network Backup / Rsync", category: "backup_network", ports: "873", protocol: "tcp", description: "Dịch vụ sao lưu mạng Synology Hyper Backup / Rsync" },
+  { id: "bonjour", name: "Bonjour / ZeroConf Discovery", category: "backup_network", ports: "5353", protocol: "udp", description: "Quảng bá thiết bị Apple Bonjour & ZeroConf" },
+  { id: "snmp", name: "SNMP Giám sát mạng", category: "backup_network", ports: "161, 162", protocol: "udp", description: "Giao thức quản lý và giám sát mạng SNMP" },
+  { id: "ups_server", name: "Synology UPS Server", category: "backup_network", ports: "3493", protocol: "tcp", description: "Máy chủ điều khiển bộ lưu điện mạng Synology UPS" },
+  { id: "ipp", name: "IPP Network Printing", category: "backup_network", ports: "631", protocol: "tcp", description: "In ấn mạng qua giao thức IPP" },
+  { id: "lpr", name: "LPR / LPD Printer", category: "backup_network", ports: "515", protocol: "tcp", description: "Máy in mạng LPR/LPD" },
+  { id: "mfp", name: "Multi-Function Printer (MFP)", category: "backup_network", ports: "9100", protocol: "tcp", description: "Máy in đa chức năng mạng" },
+  { id: "kmip", name: "KMIP Key Management", category: "backup_network", ports: "5696", protocol: "tcp", description: "Quản lý khóa mã hóa Synology KMIP" },
+  { id: "vs60", name: "VisualStation", category: "backup_network", ports: "5000", protocol: "tcp", description: "Màn hình giám sát camera Synology Surveillance" },
+];
+
+// Helper to format rule display nicely
+export function getRuleFormattedInfo(rule: FirewallRule) {
+  const rawPorts = rule.ports || "";
+  const rawName = rule.name || "";
+  const tokens = rawPorts.split(",").map((t) => t.trim()).filter(Boolean);
+
+  // Match known services
+  const matchedServices: DSMServiceItem[] = [];
+  const customPorts: string[] = [];
+
+  tokens.forEach((token) => {
+    const s = DSM_SERVICES_CATALOG.find(
+      (item) => item.id.toLowerCase() === token.toLowerCase() || item.name.toLowerCase() === token.toLowerCase()
+    );
+    if (s) {
+      if (!matchedServices.some((m) => m.id === s.id)) matchedServices.push(s);
+    } else {
+      customPorts.push(token);
+    }
+  });
+
+  // Generate clean title if rawName is just a concatenated list of internal IDs
+  let title = rawName;
+  const isRawConcatenated = rawName.includes(",") || rawName.includes("_") || rawName === rawPorts;
+  if (isRawConcatenated && (matchedServices.length > 0 || customPorts.length > 0)) {
+    if (matchedServices.length > 0 && customPorts.length === 0) {
+      if (matchedServices.length === 1) {
+        title = matchedServices[0].name;
+      } else if (matchedServices.length === 2) {
+        title = `${matchedServices[0].name} & ${matchedServices[1].name}`;
+      } else {
+        const topNames = matchedServices.slice(0, 2).map((m) => m.name.split(" ")[0]).join(", ");
+        title = `${topNames} (+${matchedServices.length - 2} dịch vụ)`;
+      }
+    } else if (matchedServices.length > 0 && customPorts.length > 0) {
+      title = `${matchedServices[0].name.split(" ")[0]} + Cổng ${customPorts.slice(0, 2).join(", ")}`;
+    } else if (customPorts.length > 0) {
+      title = `Cổng tùy chỉnh: ${customPorts.join(", ")}`;
+    }
+  }
+
+  return {
+    title,
+    matchedServices,
+    customPorts,
+    totalItems: matchedServices.length + customPorts.length,
+  };
+}
 
 export const FirewallManagerTab: React.FC = () => {
   const { session, experienceMode, t } = useAppStore();
@@ -58,13 +169,17 @@ export const FirewallManagerTab: React.FC = () => {
   const [firewallConfig, setFirewallConfig] = useState<FirewallConfig | null>(null);
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState<"all" | "allow" | "deny">("all");
+  const [expandedRuleIds, setExpandedRuleIds] = useState<Record<string, boolean>>({});
 
   // Rule Modal State
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<FirewallRule | null>(null);
+  const [modalMode, setModalMode] = useState<"services" | "custom">("services");
   const [ruleName, setRuleName] = useState("");
-  const [rulePreset, setRulePreset] = useState("custom");
-  const [rulePorts, setRulePorts] = useState("");
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [serviceCategoryFilter, setServiceCategoryFilter] = useState<string>("all");
+  const [serviceSearch, setServiceSearch] = useState("");
+  const [customPortsInput, setCustomPortsInput] = useState("");
   const [ruleProtocol, setRuleProtocol] = useState<FirewallProtocol>("tcp");
   const [ruleSourceType, setRuleSourceType] = useState<FirewallSourceType>("subnet");
   const [ruleSourceValue, setRuleSourceValue] = useState("192.168.0.0/16");
@@ -155,82 +270,99 @@ export const FirewallManagerTab: React.FC = () => {
     }
   };
 
+  const toggleRuleExpand = (id: string) => {
+    setExpandedRuleIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
   // Open Rule Modal
   const handleOpenAddRule = () => {
     setEditingRule(null);
+    setModalMode("services");
     setRuleName("");
-    setRulePreset("custom");
-    setRulePorts("");
+    setSelectedServiceIds(["cifs", "ssh"]);
+    setCustomPortsInput("");
     setRuleProtocol("tcp");
     setRuleSourceType("subnet");
     setRuleSourceValue("192.168.0.0/16");
     setRuleAction("allow");
     setRuleEnabled(true);
+    setServiceCategoryFilter("all");
+    setServiceSearch("");
     setIsRuleModalOpen(true);
   };
 
   const handleOpenEditRule = (rule: FirewallRule) => {
     setEditingRule(rule);
     setRuleName(rule.name);
-    setRulePreset("custom");
-    setRulePorts(rule.ports);
+    
+    // Parse ports to see if they match known services
+    const tokens = (rule.ports || "").split(",").map((t) => t.trim()).filter(Boolean);
+    const matchedIds = DSM_SERVICES_CATALOG.filter((s) =>
+      tokens.some((t) => t.toLowerCase() === s.id.toLowerCase() || t.toLowerCase() === s.name.toLowerCase())
+    ).map((s) => s.id);
+
+    const nonMatched = tokens.filter(
+      (t) => !DSM_SERVICES_CATALOG.some((s) => s.id.toLowerCase() === t.toLowerCase() || s.name.toLowerCase() === t.toLowerCase())
+    );
+
+    if (matchedIds.length > 0 && nonMatched.length === 0) {
+      setModalMode("services");
+      setSelectedServiceIds(matchedIds);
+      setCustomPortsInput("");
+    } else {
+      setModalMode("custom");
+      setSelectedServiceIds(matchedIds);
+      setCustomPortsInput(rule.ports);
+    }
+
     setRuleProtocol(rule.protocol);
     setRuleSourceType(rule.sourceType);
     setRuleSourceValue(rule.sourceValue);
     setRuleAction(rule.action);
     setRuleEnabled(rule.enabled);
+    setServiceCategoryFilter("all");
+    setServiceSearch("");
     setIsRuleModalOpen(true);
   };
 
-  const handlePresetSelect = (preset: string) => {
-    setRulePreset(preset);
-    switch (preset) {
-      case "dsm":
-        setRuleName("Synology DSM Web Quản trị");
-        setRulePorts("5000, 5001");
-        setRuleProtocol("tcp");
-        break;
-      case "ssh":
-        setRuleName("SSH Terminal Bảo mật");
-        setRulePorts("22, 2222");
-        setRuleProtocol("tcp");
-        break;
-      case "web":
-        setRuleName("Web Server & SSL");
-        setRulePorts("80, 443");
-        setRuleProtocol("tcp");
-        break;
-      case "smb":
-        setRuleName("Chia sẻ Tệp Windows (SMB)");
-        setRulePorts("139, 445");
-        setRuleProtocol("tcp");
-        break;
-      case "docker":
-        setRuleName("Cổng Ứng dụng Container / Docker");
-        setRulePorts("8080, 8088, 9000");
-        setRuleProtocol("all");
-        break;
-      case "ftp":
-        setRuleName("Truyền tệp FTP / SFTP");
-        setRulePorts("21, 22");
-        setRuleProtocol("tcp");
-        break;
-      default:
-        break;
-    }
+  const handleToggleServiceSelection = (serviceId: string) => {
+    setSelectedServiceIds((prev) => {
+      const next = prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId];
+      // Auto-suggest rule name if not manually typed
+      if (!editingRule && next.length > 0) {
+        const names = next
+          .map((id) => DSM_SERVICES_CATALOG.find((s) => s.id === id)?.name.split(" ")[0])
+          .filter(Boolean);
+        setRuleName(names.length <= 2 ? `Dịch vụ ${names.join(" & ")}` : `Dịch vụ ${names.slice(0, 2).join(", ")} (+${names.length - 2})`);
+      }
+      return next;
+    });
   };
 
   const handleSaveRule = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ruleName.trim() || !rulePorts.trim()) {
-      showToast("error", "Vui lòng nhập tên quy tắc và cổng!");
-      return;
+
+    let finalPorts = "";
+    if (modalMode === "services") {
+      if (selectedServiceIds.length === 0) {
+        showToast("error", "Vui lòng chọn ít nhất một dịch vụ DSM!");
+        return;
+      }
+      finalPorts = selectedServiceIds.join(",");
+    } else {
+      if (!customPortsInput.trim()) {
+        showToast("error", "Vui lòng nhập cổng!");
+        return;
+      }
+      finalPorts = customPortsInput.trim();
     }
+
+    const finalName = ruleName.trim() || (modalMode === "services" ? `Dịch vụ DSM (${selectedServiceIds.length})` : `Cổng ${finalPorts}`);
 
     const newRule: FirewallRule = {
       id: editingRule ? editingRule.id : `fw_${Date.now()}`,
-      name: ruleName.trim(),
-      ports: rulePorts.trim(),
+      name: finalName,
+      ports: finalPorts,
       protocol: ruleProtocol,
       sourceType: ruleSourceType,
       sourceValue: ruleSourceValue.trim() || "Tất cả",
@@ -665,10 +797,17 @@ export const FirewallManagerTab: React.FC = () => {
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredRules.map((rule) => {
                   const isAllow = rule.action === "allow";
+                  const formatted = getRuleFormattedInfo(rule);
+                  const isExpanded = !!expandedRuleIds[rule.id];
+                  const hasManyItems = formatted.totalItems > 3;
+                  const displayServices = isExpanded ? formatted.matchedServices : formatted.matchedServices.slice(0, 3);
+                  const displayCustomPorts = isExpanded ? formatted.customPorts : formatted.customPorts.slice(0, Math.max(0, 3 - formatted.matchedServices.length));
+                  const hiddenCount = formatted.totalItems - 3;
+
                   return (
                     <div
                       key={rule.id}
-                      className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                      className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 transition-colors ${
                         !rule.enabled ? "opacity-60 bg-slate-50/50 dark:bg-slate-800/30" : "hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
                       }`}
                     >
@@ -683,13 +822,14 @@ export const FirewallManagerTab: React.FC = () => {
                           {isAllow ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
                         </div>
 
-                        <div className="min-w-0 space-y-1 flex-1">
+                        <div className="min-w-0 space-y-1.5 flex-1">
+                          {/* Title & Action Badge */}
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
-                              {rule.name}
+                              {formatted.title}
                             </span>
                             <span
-                              className={`px-2 py-0.2 rounded-full text-[10px] font-extrabold border ${
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
                                 isAllow
                                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                                   : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
@@ -697,16 +837,53 @@ export const FirewallManagerTab: React.FC = () => {
                             >
                               {isAllow ? "CHO PHÉP (ALLOW)" : "TỪ CHỐI (DENY)"}
                             </span>
+                            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 uppercase">
+                              {rule.protocol}
+                            </span>
                           </div>
 
-                          <div className="flex items-center gap-2 flex-wrap text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                            <span className="font-semibold text-slate-700 dark:text-slate-300">
-                              Cổng: {rule.ports}
-                            </span>
-                            <span>•</span>
-                            <span className="uppercase">{rule.protocol}</span>
-                            <span>•</span>
-                            <span>Nguồn: <strong>{rule.sourceValue}</strong> ({rule.sourceType})</span>
+                          {/* Formatted Services / Ports Badges */}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {displayServices.map((srv) => (
+                              <span
+                                key={srv.id}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/60 shadow-2xs"
+                                title={`${srv.description} (Cổng: ${srv.ports})`}
+                              >
+                                {srv.category === "file" && <Folder className="w-3 h-3 text-sky-500" />}
+                                {srv.category === "remote" && <Terminal className="w-3 h-3 text-indigo-500" />}
+                                {srv.category === "admin" && <Server className="w-3 h-3 text-blue-500" />}
+                                {srv.category === "media" && <Tv className="w-3 h-3 text-amber-500" />}
+                                {srv.category === "backup_network" && <HardDrive className="w-3 h-3 text-emerald-500" />}
+                                <span>{srv.name}</span>
+                                <span className="text-[10px] font-mono text-sky-500/80 dark:text-sky-400/80">({srv.ports})</span>
+                              </span>
+                            ))}
+
+                            {displayCustomPorts.map((cp, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-mono font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                              >
+                                <span>Cổng: {cp}</span>
+                              </span>
+                            ))}
+
+                            {hasManyItems && (
+                              <button
+                                type="button"
+                                onClick={() => toggleRuleExpand(rule.id)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-sky-600 dark:text-sky-400 transition-colors cursor-pointer"
+                              >
+                                <span>{isExpanded ? "Thu gọn" : `+${hiddenCount} dịch vụ khác`}</span>
+                                {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Source Info */}
+                          <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 pt-0.5">
+                            <span>Nguồn: <strong className="font-mono text-slate-700 dark:text-slate-300">{rule.sourceValue}</strong> ({rule.sourceType})</span>
                           </div>
                         </div>
                       </div>
@@ -730,7 +907,7 @@ export const FirewallManagerTab: React.FC = () => {
 
                         <button
                           onClick={() => handleOpenEditRule(rule)}
-                          className="p-1.5 rounded-xl text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          className="p-1.5 rounded-xl text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                           title="Chỉnh sửa quy tắc"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -738,7 +915,7 @@ export const FirewallManagerTab: React.FC = () => {
 
                         <button
                           onClick={() => handleDeleteRule(rule.id)}
-                          className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                          className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                           title="Xóa quy tắc"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1090,22 +1267,22 @@ export const FirewallManagerTab: React.FC = () => {
         <ResponsiveModal
           open={isRuleModalOpen}
           onClose={() => setIsRuleModalOpen(false)}
-          maxWidth="lg"
+          maxWidth="2xl"
           title={editingRule ? "Chỉnh sửa Quy tắc Tường lửa" : "Thêm Quy tắc Tường lửa Mới"}
-          icon={<Shield className="w-5 h-5" />}
+          icon={<Shield className="w-5 h-5 text-sky-500" />}
           footer={
             <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsRuleModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold"
+                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold transition-colors cursor-pointer"
               >
                 Hủy
               </button>
               <button
                 type="submit"
                 form="firewall-rule-form"
-                className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold shadow-sm"
+                className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold shadow-sm transition-all cursor-pointer"
               >
                 {editingRule ? "Cập nhật Quy tắc" : "Thêm Quy tắc"}
               </button>
@@ -1113,124 +1290,185 @@ export const FirewallManagerTab: React.FC = () => {
           }
         >
           <form id="firewall-rule-form" onSubmit={handleSaveRule} className="space-y-4 text-xs">
-              {/* Presets Selector */}
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-700 dark:text-slate-300">
-                  Mẫu dịch vụ phổ biến (Presets):
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    { id: "dsm", label: "DSM Web (5000/5001)" },
-                    { id: "ssh", label: "SSH (22)" },
-                    { id: "web", label: "Web Server (80/443)" },
-                    { id: "smb", label: "SMB (445)" },
-                    { id: "docker", label: "Docker Apps (8080)" },
-                    { id: "custom", label: "Tùy chỉnh" },
-                  ].map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => handlePresetSelect(p.id)}
-                      className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold border transition-all ${
-                        rulePreset === p.id
-                          ? "bg-sky-500 text-white border-sky-500 shadow-xs"
-                          : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-sky-400"
-                      }`}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
+            {/* Mode Switcher: Built-in DSM Services vs Custom Ports */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
+              <button
+                type="button"
+                onClick={() => setModalMode("services")}
+                className={`flex-1 py-2 rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  modalMode === "services"
+                    ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-xs"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                }`}
+              >
+                <Layers className="w-4 h-4 text-sky-500" />
+                <span>Chọn Dịch vụ DSM ({selectedServiceIds.length} đã chọn)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalMode("custom")}
+                className={`flex-1 py-2 rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  modalMode === "custom"
+                    ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-xs"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                }`}
+              >
+                <SlidersHorizontal className="w-4 h-4 text-indigo-500" />
+                <span>Nhập Cổng Tùy chỉnh (Port / Range)</span>
+              </button>
+            </div>
+
+            {/* Tab 1: DSM Services Selector */}
+            {modalMode === "services" && (
+              <div className="space-y-3 p-3.5 bg-slate-50/70 dark:bg-slate-850/50 rounded-2xl border border-slate-200/80 dark:border-slate-750">
+                {/* Category Filters and Search */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+                    {[
+                      { id: "all", label: "Tất cả" },
+                      { id: "file", label: "Chia sẻ tệp" },
+                      { id: "remote", label: "Truy cập & VPN" },
+                      { id: "admin", label: "Quản trị DSM" },
+                      { id: "media", label: "Media" },
+                      { id: "backup_network", label: "Sao lưu & Mạng" },
+                    ].map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setServiceCategoryFilter(cat.id)}
+                        className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                          serviceCategoryFilter === cat.id
+                            ? "bg-sky-500 text-white shadow-2xs font-bold"
+                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-sky-400"
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="relative min-w-[140px] sm:max-w-xs">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={serviceSearch}
+                      onChange={(e) => setServiceSearch(e.target.value)}
+                      placeholder="Tìm dịch vụ (smb, vpn, ssh...)"
+                      className="w-full pl-8 pr-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Services Grid with Checkboxes */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+                  {DSM_SERVICES_CATALOG.filter((s) => {
+                    const matchCat = serviceCategoryFilter === "all" || s.category === serviceCategoryFilter;
+                    const matchSearch =
+                      s.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
+                      s.id.toLowerCase().includes(serviceSearch.toLowerCase()) ||
+                      s.ports.includes(serviceSearch);
+                    return matchCat && matchSearch;
+                  }).map((srv) => {
+                    const isSelected = selectedServiceIds.includes(srv.id);
+                    return (
+                      <div
+                        key={srv.id}
+                        onClick={() => handleToggleServiceSelection(srv.id)}
+                        className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-2 ${
+                          isSelected
+                            ? "bg-sky-50 dark:bg-sky-950/40 border-sky-400 dark:border-sky-600 ring-1 ring-sky-400/30"
+                            : "bg-white dark:bg-slate-800/80 border-slate-200/80 dark:border-slate-700 hover:border-slate-300"
+                        }`}
+                      >
+                        <div className="flex items-start gap-2 min-w-0 flex-1">
+                          <div
+                            className={`w-4 h-4 rounded-md border mt-0.5 flex items-center justify-center shrink-0 transition-colors ${
+                              isSelected ? "bg-sky-500 border-sky-500 text-white" : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700"
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3 h-3" />}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-xs text-slate-900 dark:text-white">
+                                {srv.name}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                              {srv.description}
+                            </p>
+                          </div>
+                        </div>
+
+                        <span className="font-mono text-[10px] font-semibold text-sky-600 dark:text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded shrink-0">
+                          {srv.ports}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
+            )}
 
-              {/* Rule Name */}
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-700 dark:text-slate-300">
-                  Tên quy tắc:
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={ruleName}
-                  onChange={(e) => setRuleName(e.target.value)}
-                  placeholder="VD: Quản trị DSM Web Nội bộ"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 font-medium"
-                />
-              </div>
-
-              {/* Ports & Protocol */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2 space-y-1.5">
+            {/* Tab 2: Custom Ports Input */}
+            {modalMode === "custom" && (
+              <div className="space-y-3 p-3.5 bg-slate-50/70 dark:bg-slate-850/50 rounded-2xl border border-slate-200/80 dark:border-slate-750">
+                <div className="space-y-1.5">
                   <label className="font-bold text-slate-700 dark:text-slate-300">
-                    Cổng (Ports):
+                    Cổng hoặc dải cổng tùy chỉnh (Custom Ports):
                   </label>
                   <input
                     type="text"
-                    required
-                    value={rulePorts}
-                    onChange={(e) => setRulePorts(e.target.value)}
-                    placeholder="5000, 5001 hoặc 80,443"
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500"
+                    required={modalMode === "custom"}
+                    value={customPortsInput}
+                    onChange={(e) => setCustomPortsInput(e.target.value)}
+                    placeholder="VD: 8181, 8182 hoặc 32401,32402,6789 hoặc 52000-52100"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 font-semibold"
                   />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="font-bold text-slate-700 dark:text-slate-300">
-                    Giao thức:
-                  </label>
-                  <select
-                    value={ruleProtocol}
-                    onChange={(e) => setRuleProtocol(e.target.value as any)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-semibold"
-                  >
-                    <option value="tcp">TCP</option>
-                    <option value="udp">UDP</option>
-                    <option value="all">Tất cả (All)</option>
-                  </select>
+                  <p className="text-[11px] text-slate-400">
+                    💡 Hỗ trợ cổng đơn lẻ (VD: 8080), danh sách cách nhau bởi dấu phẩy (VD: 8080, 8088), hoặc dải cổng (VD: 50000-51000).
+                  </p>
                 </div>
               </div>
+            )}
 
-              {/* Source IP / Subnet */}
+            {/* Rule Name */}
+            <div className="space-y-1.5">
+              <label className="font-bold text-slate-700 dark:text-slate-300">
+                Tên quy tắc:
+              </label>
+              <input
+                type="text"
+                required
+                value={ruleName}
+                onChange={(e) => setRuleName(e.target.value)}
+                placeholder="VD: Cho phép Chia sẻ SMB & SSH"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 font-semibold"
+              />
+            </div>
+
+            {/* Protocol & Action Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Protocol */}
               <div className="space-y-1.5">
                 <label className="font-bold text-slate-700 dark:text-slate-300">
-                  Địa chỉ IP Nguồn (Source):
+                  Giao thức mạng (Protocol):
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
-                  {[
-                    { id: "all", label: "Tất cả IP" },
-                    { id: "subnet", label: "Dải Subnet LAN" },
-                    { id: "single_ip", label: "IP Đơn lẻ" },
-                  ].map((st) => (
-                    <button
-                      key={st.id}
-                      type="button"
-                      onClick={() => {
-                        setRuleSourceType(st.id as any);
-                        if (st.id === "all") setRuleSourceValue("Tất cả");
-                        if (st.id === "subnet") setRuleSourceValue("192.168.0.0/16");
-                        if (st.id === "single_ip") setRuleSourceValue("192.168.1.50");
-                      }}
-                      className={`py-1 px-2 rounded-xl text-[11px] font-semibold border transition-all ${
-                        ruleSourceType === st.id
-                          ? "bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border-sky-500/40"
-                          : "bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"
-                      }`}
-                    >
-                      {st.label}
-                    </button>
-                  ))}
-                </div>
-                <input
-                  type="text"
-                  value={ruleSourceValue}
-                  onChange={(e) => setRuleSourceValue(e.target.value)}
-                  placeholder="VD: 192.168.0.0/16 hoặc Tất cả"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500"
-                />
+                <select
+                  value={ruleProtocol}
+                  onChange={(e) => setRuleProtocol(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-semibold cursor-pointer"
+                >
+                  <option value="tcp">TCP (Tiêu chuẩn Web, SMB, SSH)</option>
+                  <option value="udp">UDP (Streaming, VPN, DNS, Discovery)</option>
+                  <option value="all">Tất cả (TCP & UDP)</option>
+                </select>
               </div>
 
               {/* Action (Allow / Deny) */}
-              <div className="space-y-1.5 pt-1">
+              <div className="space-y-1.5">
                 <label className="font-bold text-slate-700 dark:text-slate-300">
                   Hành động áp dụng:
                 </label>
@@ -1238,31 +1476,71 @@ export const FirewallManagerTab: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setRuleAction("allow")}
-                    className={`py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-2 border transition-all ${
+                    className={`py-2 px-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
                       ruleAction === "allow"
                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 ring-1 ring-emerald-500/20"
                         : "bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"
                     }`}
                   >
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    <span>Cho phép (Allow)</span>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Cho phép</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setRuleAction("deny")}
-                    className={`py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-2 border transition-all ${
+                    className={`py-2 px-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
                       ruleAction === "deny"
                         ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/40 ring-1 ring-rose-500/20"
                         : "bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"
                     }`}
                   >
-                    <XCircle className="w-4 h-4 text-rose-500" />
-                    <span>Chặn / Từ chối (Deny)</span>
+                    <XCircle className="w-3.5 h-3.5 text-rose-500" />
+                    <span>Từ chối</span>
                   </button>
                 </div>
               </div>
-            </form>
+            </div>
+
+            {/* Source IP / Subnet */}
+            <div className="space-y-1.5">
+              <label className="font-bold text-slate-700 dark:text-slate-300">
+                Địa chỉ IP Nguồn (Source IP):
+              </label>
+              <div className="grid grid-cols-3 gap-2 mb-2">
+                {[
+                  { id: "all", label: "Tất cả IP" },
+                  { id: "subnet", label: "Dải Subnet LAN" },
+                  { id: "single_ip", label: "IP Đơn lẻ" },
+                ].map((st) => (
+                  <button
+                    key={st.id}
+                    type="button"
+                    onClick={() => {
+                      setRuleSourceType(st.id as any);
+                      if (st.id === "all") setRuleSourceValue("Tất cả");
+                      if (st.id === "subnet") setRuleSourceValue("192.168.0.0/16");
+                      if (st.id === "single_ip") setRuleSourceValue("192.168.1.50");
+                    }}
+                    className={`py-1 px-2 rounded-xl text-[11px] font-semibold border transition-all cursor-pointer ${
+                      ruleSourceType === st.id
+                        ? "bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border-sky-500/40"
+                        : "bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700"
+                    }`}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={ruleSourceValue}
+                onChange={(e) => setRuleSourceValue(e.target.value)}
+                placeholder="VD: 192.168.0.0/16 hoặc Tất cả"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500"
+              />
+            </div>
+          </form>
         </ResponsiveModal>
       )}
     </div>

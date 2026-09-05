@@ -287,10 +287,10 @@ export const ServicesTab: React.FC = () => {
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Settings2 className="w-6 h-6 text-sky-500" />
-            Dịch vụ (Services)
+            Dịch vụ hệ thống & Ứng dụng
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Bật / tắt các dịch vụ hệ thống, chia sẻ tệp và ứng dụng đang chạy trên DSM
+            Quản lý các dịch vụ chia sẻ tệp, mạng và gói ứng dụng trên Synology DSM
           </p>
         </div>
         <div className="flex items-center gap-2 self-end sm:self-center">

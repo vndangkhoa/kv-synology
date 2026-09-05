@@ -12,6 +12,7 @@ import {
   FolderPlus,
   FilePlus,
   Upload,
+  Download,
   RefreshCw,
   Search,
   LayoutGrid,
@@ -45,6 +46,10 @@ export const FileStationTab: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [search, setSearch] = useState<string>("");
+
+  // Modals state
+  const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Modals state
   const [newFolderOpen, setNewFolderOpen] = useState(false);
@@ -85,6 +90,7 @@ export const FileStationTab: React.FC = () => {
   const loadFolder = async (path: string) => {
     setLoading(true);
     setCurrentPath(path);
+    setSelectedPaths([]);
     try {
       const items = await dsmClient.listFiles(path);
       setFiles(items);
@@ -104,6 +110,111 @@ export const FileStationTab: React.FC = () => {
 
   const handleNavigate = (path: string) => {
     loadFolder(path);
+  };
+
+  const handleDownload = (file: FileItem) => {
+    if (file.isdir) {
+      showToast("Tải về thư mục dưới dạng ZIP hoặc mở thư mục để tải tệp bên trong.");
+      return;
+    }
+    const url = dsmClient.getFileDownloadUrl(file.path);
+    if (!url) {
+      showToast("Không thể lấy đường dẫn tải về. Vui lòng kiểm tra kết nối DSM.");
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast(`Đang tải về "${file.name}"...`);
+  };
+
+  const handleBatchDownload = () => {
+    const downloadable = files.filter((f) => selectedPaths.includes(f.path) && !f.isdir);
+    if (downloadable.length === 0) {
+      showToast("Vui lòng chọn ít nhất một tệp tin để tải về.");
+      return;
+    }
+    downloadable.forEach((f, idx) => {
+      setTimeout(() => handleDownload(f), idx * 300);
+    });
+    showToast(`Đang tải về ${downloadable.length} tệp tin...`);
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedPaths.length === 0) return;
+    if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedPaths.length} mục đã chọn?`)) return;
+
+    setLoading(true);
+    try {
+      for (const p of selectedPaths) {
+        await dsmClient.deleteFile(p);
+      }
+      showToast(`Đã xóa ${selectedPaths.length} mục thành công!`);
+      setSelectedPaths([]);
+      loadFolder(currentPath);
+    } catch (err: any) {
+      showToast(`Lỗi khi xóa: ${err.message || err}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    const filtered = files.filter((f) =>
+      f.name.toLowerCase().includes(search.toLowerCase())
+    );
+    if (selectedPaths.length === filtered.length && filtered.length > 0) {
+      setSelectedPaths([]);
+    } else {
+      setSelectedPaths(filtered.map((f) => f.path));
+    }
+  };
+
+  const toggleSelectPath = (path: string) => {
+    setSelectedPaths((prev) =>
+      prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path]
+    );
+  };
+
+  // Drag and drop upload
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const droppedFiles = e.dataTransfer.files;
+    if (!droppedFiles || droppedFiles.length === 0) return;
+
+    setUploading(true);
+    try {
+      for (let i = 0; i < droppedFiles.length; i++) {
+        const file = droppedFiles[i];
+        setUploadProgress(`Đang tải lên (${i + 1}/${droppedFiles.length}): ${file.name}...`);
+        await dsmClient.uploadFile(currentPath, file);
+      }
+      showToast(`Đã tải lên ${droppedFiles.length} tệp tin thành công!`);
+      loadFolder(currentPath);
+    } catch (err: any) {
+      alert(`Lỗi khi tải lên tệp: ${err.message || err}`);
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
+    }
   };
 
   const handleCreateFolder = async (e: React.FormEvent) => {
@@ -192,9 +303,10 @@ export const FileStationTab: React.FC = () => {
   };
 
   const handleDelete = async (file: FileItem) => {
-    if (confirm(`${t.files.deleteConfirm} (${file.name})`)) {
+    if (confirm(`Bạn có chắc chắn muốn xóa "${file.name}"?`)) {
       await dsmClient.deleteFile(file.path);
       showToast(`Đã xóa "${file.name}"`);
+      setFiles((prev) => prev.filter((f) => f.path !== file.path));
       loadFolder(currentPath);
     }
   };
@@ -254,7 +366,23 @@ export const FileStationTab: React.FC = () => {
   );
 
   return (
-    <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-200">
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className="space-y-4 sm:space-y-6 animate-in fade-in duration-200 relative min-h-[400px]"
+    >
+      {/* Drag & Drop Visual Dropzone Overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 z-50 bg-sky-500/15 backdrop-blur-[2px] border-2 border-dashed border-sky-500 rounded-3xl flex flex-col items-center justify-center p-6 text-sky-600 dark:text-sky-400 pointer-events-none animate-in fade-in zoom-in-95 duration-150">
+          <div className="p-4 rounded-3xl bg-white/90 dark:bg-slate-900/90 shadow-2xl flex flex-col items-center space-y-2">
+            <Upload className="w-10 h-10 text-sky-500 animate-bounce" />
+            <p className="text-sm font-bold">Thả tệp tin vào đây để tải lên NAS</p>
+            <p className="text-xs text-slate-500">Đang chọn thư mục đích: {currentPath}</p>
+          </div>
+        </div>
+      )}
+
       {/* Toast Notification */}
       {toastMsg && (
         <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-2xl text-xs font-semibold flex items-center justify-between animate-in slide-in-from-top duration-300">
@@ -422,63 +550,87 @@ export const FileStationTab: React.FC = () => {
                 {t.files.emptyFolder}
               </div>
             ) : (
-              filteredFiles.map((file) => (
-                <div
-                  key={file.path}
-                  className="p-3.5 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors flex items-center justify-between gap-3"
-                >
+              filteredFiles.map((file) => {
+                const isSelected = selectedPaths.includes(file.path);
+                return (
                   <div
-                    onClick={() => (file.isdir ? handleNavigate(file.path) : setPreviewFile(file))}
-                    className="flex items-center space-x-3 min-w-0 flex-1 cursor-pointer"
+                    key={file.path}
+                    className={`p-3.5 transition-colors flex items-center justify-between gap-3 ${
+                      isSelected
+                        ? "bg-sky-500/10 dark:bg-sky-500/15"
+                        : "hover:bg-slate-50/50 dark:hover:bg-slate-800/40"
+                    }`}
                   >
-                    <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 shrink-0">
-                      {getFileIcon(file)}
+                    <div className="flex items-center space-x-2.5 min-w-0 flex-1">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectPath(file.path)}
+                        className="rounded border-slate-300 text-sky-600 focus:ring-sky-500 w-4 h-4 shrink-0"
+                      />
+                      <div
+                        onClick={() => (file.isdir ? handleNavigate(file.path) : setPreviewFile(file))}
+                        className="flex items-center space-x-3 min-w-0 flex-1 cursor-pointer"
+                      >
+                        <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 shrink-0">
+                          {getFileIcon(file)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                            {file.name}
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-0.5 font-mono">
+                            {file.isdir ? (file.itemCount ? `${file.itemCount} mục` : "Thư mục") : formatBytes(file.size)} • {formatDate(file.mtime)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold text-xs text-slate-900 dark:text-white truncate">
-                        {file.name}
-                      </p>
-                      <p className="text-[11px] text-slate-400 mt-0.5 font-mono">
-                        {file.isdir ? (file.itemCount ? `${file.itemCount} mục` : "Thư mục") : formatBytes(file.size)} • {formatDate(file.mtime)}
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center space-x-1 shrink-0">
-                    <button
-                      onClick={() => handleOpenShare(file)}
-                      className="p-1.5 text-slate-400 hover:text-sky-500 rounded-lg"
-                      title="Chia sẻ liên kết công khai"
-                    >
-                      <Share2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => (file.isdir ? handleNavigate(file.path) : setPreviewFile(file))}
-                      className="p-1.5 text-slate-400 hover:text-sky-500 rounded-lg"
-                      title="Xem / Chỉnh sửa"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setRenameItem(file);
-                        setRenameInput(file.name);
-                      }}
-                      className="p-1.5 text-slate-400 hover:text-amber-500 rounded-lg"
-                      title="Đổi tên"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(file)}
-                      className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg"
-                      title="Xóa"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center space-x-1 shrink-0">
+                      {!file.isdir && (
+                        <button
+                          onClick={() => handleDownload(file)}
+                          className="p-1.5 text-slate-400 hover:text-emerald-500 rounded-lg"
+                          title="Tải về tệp tin"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleOpenShare(file)}
+                        className="p-1.5 text-slate-400 hover:text-sky-500 rounded-lg"
+                        title="Chia sẻ liên kết công khai"
+                      >
+                        <Share2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => (file.isdir ? handleNavigate(file.path) : setPreviewFile(file))}
+                        className="p-1.5 text-slate-400 hover:text-sky-500 rounded-lg"
+                        title="Xem / Chỉnh sửa"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setRenameItem(file);
+                          setRenameInput(file.name);
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-amber-500 rounded-lg"
+                        title="Đổi tên"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(file)}
+                        className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg"
+                        title="Xóa"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
@@ -487,6 +639,15 @@ export const FileStationTab: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50/80 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold border-b border-slate-100 dark:border-slate-800">
                 <tr>
+                  <th className="w-10 px-4 py-3.5">
+                    <input
+                      type="checkbox"
+                      checked={filteredFiles.length > 0 && selectedPaths.length === filteredFiles.length}
+                      onChange={toggleSelectAll}
+                      className="rounded border-slate-300 text-sky-600 focus:ring-sky-500 w-4 h-4 cursor-pointer"
+                      title="Chọn tất cả"
+                    />
+                  </th>
                   <th className="px-4 py-3.5">{t.common.name}</th>
                   <th className="px-4 py-3.5">{t.common.type}</th>
                   <th className="px-4 py-3.5">{t.common.size}</th>
@@ -498,90 +659,129 @@ export const FileStationTab: React.FC = () => {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {filteredFiles.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-16 text-center text-slate-400 text-xs">
+                    <td colSpan={7} className="px-4 py-16 text-center text-slate-400 text-xs">
                       {t.files.emptyFolder}
                     </td>
                   </tr>
                 ) : (
-                  filteredFiles.map((file) => (
-                    <tr
-                      key={file.path}
-                      className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors group cursor-pointer"
-                    >
-                      <td
-                        onClick={() => (file.isdir ? handleNavigate(file.path) : setPreviewFile(file))}
-                        className="px-4 py-3.5 font-bold text-slate-900 dark:text-white flex items-center space-x-3"
+                  filteredFiles.map((file) => {
+                    const isSelected = selectedPaths.includes(file.path);
+                    return (
+                      <tr
+                        key={file.path}
+                        className={`transition-colors group cursor-pointer ${
+                          isSelected
+                            ? "bg-sky-500/10 dark:bg-sky-500/15"
+                            : "hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
+                        }`}
                       >
-                        {getFileIcon(file)}
-                        <span className="truncate hover:text-sky-500 transition-colors">{file.name}</span>
-                      </td>
+                        <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectPath(file.path)}
+                            className="rounded border-slate-300 text-sky-600 focus:ring-sky-500 w-4 h-4 cursor-pointer"
+                          />
+                        </td>
 
-                      <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 font-medium">
-                        {getFileTypeLabel(file)}
-                      </td>
+                        <td
+                          onClick={() => (file.isdir ? handleNavigate(file.path) : setPreviewFile(file))}
+                          className="px-4 py-3.5 font-bold text-slate-900 dark:text-white flex items-center space-x-3"
+                        >
+                          {getFileIcon(file)}
+                          <span className="truncate hover:text-sky-500 transition-colors">{file.name}</span>
+                        </td>
 
-                      <td className="px-4 py-3.5 font-semibold text-slate-700 dark:text-slate-300">
-                        {file.isdir ? (file.itemCount ? `${file.itemCount} mục` : "--") : formatBytes(file.size)}
-                      </td>
+                        <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 font-medium">
+                          {getFileTypeLabel(file)}
+                        </td>
 
-                      <td className="px-4 py-3.5 text-slate-500 font-mono text-[11px]">
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">{file.owner || "admin"}</span>
-                        <span className="text-slate-400 ml-1.5">({file.perm || "0644"})</span>
-                      </td>
+                        <td className="px-4 py-3.5 font-semibold text-slate-700 dark:text-slate-300">
+                          {file.isdir ? (file.itemCount ? `${file.itemCount} mục` : "--") : formatBytes(file.size)}
+                        </td>
 
-                      <td className="px-4 py-3.5 text-slate-400">
-                        {formatDate(file.mtime)}
-                      </td>
+                        <td className="px-4 py-3.5 text-slate-500 font-mono text-[11px]">
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">{file.owner || "admin"}</span>
+                          <span className="text-slate-400 ml-1.5">({file.perm || "0644"})</span>
+                        </td>
 
-                      <td className="px-4 py-3.5 text-right">
-                        <div className="flex items-center justify-end space-x-1 opacity-80 group-hover:opacity-100">
-                          {file.isdir && (
+                        <td className="px-4 py-3.5 text-slate-400">
+                          {formatDate(file.mtime)}
+                        </td>
+
+                        <td className="px-4 py-3.5 text-right">
+                          <div className="flex items-center justify-end space-x-1 opacity-80 group-hover:opacity-100">
+                            {!file.isdir && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownload(file);
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                                title="Tải về tệp tin"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                            )}
+                            {file.isdir && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPermissionInspectPath(file.path);
+                                  setActiveTab("permissions");
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                                title="Kiểm tra phân quyền thư mục này (Permission Inspector)"
+                              >
+                                <ShieldCheck className="w-4 h-4 text-sky-500" />
+                              </button>
+                            )}
                             <button
-                              onClick={() => {
-                                setPermissionInspectPath(file.path);
-                                setActiveTab("permissions");
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenShare(file);
                               }}
                               className="p-1.5 text-slate-400 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                              title="Kiểm tra phân quyền thư mục này (Permission Inspector)"
+                              title="Chia sẻ liên kết công khai"
                             >
-                              <ShieldCheck className="w-4 h-4 text-sky-500" />
+                              <Share2 className="w-4 h-4" />
                             </button>
-                          )}
-                          <button
-                            onClick={() => handleOpenShare(file)}
-                            className="p-1.5 text-slate-400 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                            title="Chia sẻ liên kết công khai"
-                          >
-                            <Share2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => (file.isdir ? handleNavigate(file.path) : setPreviewFile(file))}
-                            className="p-1.5 text-slate-400 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                            title="Xem / Chỉnh sửa"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setRenameItem(file);
-                              setRenameInput(file.name);
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                            title="Đổi tên"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(file)}
-                            className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                            title="Xóa"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                (file.isdir ? handleNavigate(file.path) : setPreviewFile(file));
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                              title="Xem / Chỉnh sửa"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRenameItem(file);
+                                setRenameInput(file.name);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                              title="Đổi tên"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(file);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                              title="Xóa"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -590,23 +790,92 @@ export const FileStationTab: React.FC = () => {
       ) : (
         /* Grid View */
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-3.5">
-          {filteredFiles.map((file) => (
-            <div
-              key={file.path}
-              onClick={() => (file.isdir ? handleNavigate(file.path) : setPreviewFile(file))}
-              className="p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-sky-500/50 hover:shadow-md transition-all flex flex-col items-center justify-center text-center cursor-pointer group relative"
-            >
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 mb-2 group-hover:scale-110 transition-transform">
-                {getFileIcon(file)}
+          {filteredFiles.map((file) => {
+            const isSelected = selectedPaths.includes(file.path);
+            return (
+              <div
+                key={file.path}
+                onClick={() => (file.isdir ? handleNavigate(file.path) : setPreviewFile(file))}
+                className={`p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border transition-all flex flex-col items-center justify-center text-center cursor-pointer group relative ${
+                  isSelected
+                    ? "bg-sky-500/10 border-sky-500 dark:bg-sky-500/15"
+                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-sky-500/50 hover:shadow-md"
+                }`}
+              >
+                {/* Select Checkbox */}
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSelectPath(file.path);
+                  }}
+                  className="absolute top-2.5 left-2.5 z-10"
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => {}}
+                    className="rounded border-slate-300 text-sky-600 focus:ring-sky-500 w-4 h-4 cursor-pointer"
+                  />
+                </div>
+
+                {/* Direct Download button on hover */}
+                {!file.isdir && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownload(file);
+                    }}
+                    className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-slate-100/80 dark:bg-slate-800/80 hover:bg-emerald-500 hover:text-white text-slate-500 transition-colors opacity-0 group-hover:opacity-100 z-10"
+                    title="Tải về"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </button>
+                )}
+
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 mb-2 group-hover:scale-110 transition-transform">
+                  {getFileIcon(file)}
+                </div>
+                <p className="text-xs font-bold text-slate-900 dark:text-white truncate w-full">
+                  {file.name}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-0.5 font-mono">
+                  {file.isdir ? (file.itemCount ? `${file.itemCount} mục` : "Thư mục") : formatBytes(file.size)}
+                </p>
               </div>
-              <p className="text-xs font-bold text-slate-900 dark:text-white truncate w-full">
-                {file.name}
-              </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                {file.isdir ? (file.itemCount ? `${file.itemCount} mục` : "Thư mục") : formatBytes(file.size)}
-              </p>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+      )}
+
+      {/* Floating Batch Action Bar */}
+      {selectedPaths.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white px-4 py-2.5 rounded-2xl shadow-2xl border border-slate-700/60 flex items-center space-x-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <span className="text-xs font-bold text-sky-400">
+            Đã chọn {selectedPaths.length} mục
+          </span>
+          <div className="h-4 w-[1px] bg-slate-700" />
+          <button
+            onClick={handleBatchDownload}
+            className="flex items-center space-x-1 px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+            title="Tải về các tệp đã chọn"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Tải về</span>
+          </button>
+          <button
+            onClick={handleBatchDelete}
+            className="flex items-center space-x-1 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+            title="Xóa các mục đã chọn"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Xóa</span>
+          </button>
+          <button
+            onClick={() => setSelectedPaths([])}
+            className="px-2.5 py-1.5 hover:bg-slate-700/60 text-slate-400 hover:text-white rounded-xl text-xs transition-colors"
+          >
+            Bỏ chọn
+          </button>
         </div>
       )}
 

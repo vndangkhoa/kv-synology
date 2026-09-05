@@ -25,7 +25,7 @@ import {
   Bot,
   Shield,
   ShieldCheck,
-  Gauge,
+  ArrowLeftRight,
 } from "lucide-react";
 
 export const Sidebar: React.FC = () => {
@@ -62,6 +62,7 @@ export const Sidebar: React.FC = () => {
     { id: "storage", label: t.nav.storageManager, icon: <HardDrive className="w-5 h-5" /> },
     { id: "packages", label: t.nav.packageCenter, icon: <Package className="w-5 h-5" /> },
     { id: "services", label: t.nav.services, icon: <Settings2 className="w-5 h-5" /> },
+    { id: "reverse-proxy", label: t.nav.reverseProxy, icon: <ArrowLeftRight className="w-5 h-5" /> },
     { id: "firewall", label: t.nav.firewall, icon: <Shield className="w-5 h-5" /> },
     { id: "notifications", label: t.nav.notifications, icon: <Bell className="w-5 h-5" /> },
     { id: "terminal", label: t.nav.terminal, icon: <Terminal className="w-5 h-5" /> },

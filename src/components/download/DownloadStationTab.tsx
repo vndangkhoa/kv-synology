@@ -54,7 +54,16 @@ import {
   Share2,
   KeyRound,
   ShieldCheck,
+  ShieldAlert,
   Zap,
+  FileCode,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Info,
+  Filter,
+  Server,
+  Sparkle,
 } from "lucide-react";
 
 export const DownloadStationTab: React.FC = () => {
@@ -116,6 +125,8 @@ export const DownloadStationTab: React.FC = () => {
   // File Hosting (Google Drive, Fshare.vn, Mediafire...) states
   const [hostModules, setHostModules] = useState<HostModule[]>([]);
   const [hostLoading, setHostLoading] = useState(false);
+  const [hostSearch, setHostSearch] = useState("");
+  const [hostFilter, setHostFilter] = useState<"all" | "enabled" | "accounts" | "custom" | "free">("all");
   const [selectedHostId, setSelectedHostId] = useState<string | null>(null);
   const [newHostUsername, setNewHostUsername] = useState("");
   const [newHostPassword, setNewHostPassword] = useState("");
@@ -123,11 +134,30 @@ export const DownloadStationTab: React.FC = () => {
   const [hostResolving, setHostResolving] = useState(false);
   const [hostResolvedResult, setHostResolvedResult] = useState<{ directUrl?: string; host?: string; message?: string } | null>(null);
 
+  // Add / Upload Host Module Modal states
+  const [addHostModalOpen, setAddHostModalOpen] = useState(false);
+  const [uploadHostFile, setUploadHostFile] = useState<File | null>(null);
+  const [uploadHostLoading, setUploadHostLoading] = useState(false);
+  const [uploadHostError, setUploadHostError] = useState<string | null>(null);
+  const [uploadHostSuccess, setUploadHostSuccess] = useState<string | null>(null);
+
+  // Edit / Verify Host Account Modal states
+  const [editHostModalOpen, setEditHostModalOpen] = useState(false);
+  const [editingHost, setEditingHost] = useState<HostModule | null>(null);
+  const [editHostUsername, setEditHostUsername] = useState("");
+  const [editHostPassword, setEditHostPassword] = useState("");
+  const [verifyingHost, setVerifyingHost] = useState(false);
+  const [verifyResult, setVerifyResult] = useState<{ success: boolean; status?: number; message?: string } | null>(null);
+  const [saveHostLoading, setSaveHostLoading] = useState(false);
+  const [saveHostMessage, setSaveHostMessage] = useState<{ success: boolean; text: string } | null>(null);
+  const [deleteHostLoading, setDeleteHostLoading] = useState(false);
+
   const [addError, setAddError] = useState<string | null>(null);
   const [duplicateId, setDuplicateId] = useState<string | null>(null);
 
   const folderPickerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hostFileInputRef = useRef<HTMLInputElement>(null);
   const editPickerRef = useRef<HTMLDivElement>(null);
   const defaultFolderPickerRef = useRef<HTMLDivElement>(null);
   const [showDefaultPicker, setShowDefaultPicker] = useState(false);
@@ -250,6 +280,163 @@ export const DownloadStationTab: React.FC = () => {
     } finally {
       setHostLoading(false);
     }
+  };
+
+  const handleToggleHost = async (h: HostModule) => {
+    const nextState = !h.enabled;
+    // Optimistic UI update
+    setHostModules(prev => prev.map(item => item.id === h.id ? { ...item, enabled: nextState } : item));
+    await dsmClient.setHostModule(h.id, nextState, h.type);
+    await loadHostModules();
+  };
+
+  const openEditHostModal = (h: HostModule) => {
+    setEditingHost(h);
+    setEditHostUsername(h.username || (h.accounts && h.accounts.length > 0 ? h.accounts[0].username : ""));
+    setEditHostPassword("");
+    setVerifyResult(null);
+    setSaveHostMessage(null);
+    setEditHostModalOpen(true);
+  };
+
+  const handleVerifyAccount = async () => {
+    if (!editingHost || !editHostUsername.trim()) return;
+    setVerifyingHost(true);
+    setVerifyResult(null);
+    setSaveHostMessage(null);
+    try {
+      const res = await dsmClient.verifyHostAccount(
+        editingHost.id,
+        editHostUsername.trim(),
+        editHostPassword,
+        editingHost.type
+      );
+      setVerifyResult(res);
+    } catch (err: any) {
+      setVerifyResult({ success: false, status: 0, message: err?.message || "Kiểm tra thất bại" });
+    } finally {
+      setVerifyingHost(false);
+    }
+  };
+
+  const handleSaveAccount = async () => {
+    if (!editingHost) return;
+    setSaveHostLoading(true);
+    setSaveHostMessage(null);
+    try {
+      const ok = await dsmClient.addHostAccount(
+        editingHost.id,
+        editHostUsername.trim(),
+        editHostPassword,
+        editingHost.type
+      );
+      if (ok) {
+        setSaveHostMessage({ success: true, text: "Đã lưu cấu hình tài khoản thành công!" });
+        await loadHostModules();
+        setTimeout(() => {
+          setEditHostModalOpen(false);
+        }, 800);
+      } else {
+        setSaveHostMessage({ success: false, text: "Không thể lưu cấu hình lên NAS. Vui lòng thử lại." });
+      }
+    } catch (err: any) {
+      setSaveHostMessage({ success: false, text: err?.message || "Lỗi lưu tài khoản." });
+    } finally {
+      setSaveHostLoading(false);
+    }
+  };
+
+  const handleUploadHostModule = async () => {
+    if (!uploadHostFile) return;
+    setUploadHostLoading(true);
+    setUploadHostError(null);
+    setUploadHostSuccess(null);
+    try {
+      const res = await dsmClient.uploadHostModule(uploadHostFile);
+      if (res.success) {
+        setUploadHostSuccess(res.message || "Cài đặt module Host thành công!");
+        setUploadHostFile(null);
+        await loadHostModules();
+        setTimeout(() => {
+          setAddHostModalOpen(false);
+        }, 1200);
+      } else {
+        setUploadHostError(res.message || "Không thể cài đặt module .host này.");
+      }
+    } catch (err: any) {
+      setUploadHostError(err?.message || "Lỗi khi tải lên file module.");
+    } finally {
+      setUploadHostLoading(false);
+    }
+  };
+
+  const handleDeleteHost = async (h: HostModule) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa host module "${h.displayname || h.name}" khỏi Download Station không?`)) return;
+    setDeleteHostLoading(true);
+    try {
+      await dsmClient.deleteHostModule(h.id, h.type);
+      await loadHostModules();
+    } finally {
+      setDeleteHostLoading(false);
+    }
+  };
+
+  const getHostBrandInfo = (h: HostModule) => {
+    const raw = (h.displayname || h.name || h.id || "").toLowerCase();
+    if (raw.includes("drive") || raw.includes("google")) {
+      return {
+        bg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+        badge: "Google Drive",
+        iconColor: "text-emerald-500",
+      };
+    }
+    if (raw.includes("fshare")) {
+      return {
+        bg: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
+        badge: "Fshare.vn",
+        iconColor: "text-orange-500",
+      };
+    }
+    if (raw.includes("mega")) {
+      return {
+        bg: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+        badge: "Mega Cloud",
+        iconColor: "text-rose-500",
+      };
+    }
+    if (raw.includes("mediafire")) {
+      return {
+        bg: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+        badge: "MediaFire",
+        iconColor: "text-blue-500",
+      };
+    }
+    if (raw.includes("youtube") || raw.includes("youtu")) {
+      return {
+        bg: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+        badge: "YouTube",
+        iconColor: "text-red-500",
+      };
+    }
+    if (raw.includes("rapidgator")) {
+      return {
+        bg: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+        badge: "Rapidgator",
+        iconColor: "text-amber-500",
+      };
+    }
+    if (raw.includes("1fichier")) {
+      return {
+        bg: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20",
+        badge: "1fichier",
+        iconColor: "text-teal-500",
+      };
+    }
+    return {
+      bg: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+      badge: h.type === "pyload" ? "pyLoad Plugin" : "Host Plugin",
+      iconColor: "text-sky-500",
+    };
   };
 
   useEffect(() => {
@@ -1261,131 +1448,322 @@ export const DownloadStationTab: React.FC = () => {
         </div>
       )}
 
-      {subTab==="hosts" && (
-        <div className="space-y-4">
-          {/* Top Quick Link Resolver Card */}
-          <div className="bg-gradient-to-r from-sky-900 via-indigo-900 to-slate-900 text-white p-5 rounded-3xl shadow-md">
-            <div className="flex items-center gap-2 mb-2">
-              <Zap className="w-5 h-5 text-amber-400"/>
-              <h3 className="font-bold text-sm">Chuyển Đổi &amp; Tải Trực Tiếp Link Google Drive / Fshare.vn</h3>
-            </div>
-            <p className="text-xs text-sky-200/80 mb-3 leading-relaxed">
-              Tự động giải mã đường link chia sẻ từ <b>Google Drive</b>, <b>Fshare.vn VIP/Free</b>, <b>MediaFire</b>, <b>Mega</b> và gửi trực tiếp vào Download Station với tốc độ tối đa.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                value={hostLinkInput}
-                onChange={e=>setHostLinkInput(e.target.value)}
-                placeholder="Dán link: https://drive.google.com/file/d/... hoặc https://www.fshare.vn/file/..."
-                className="flex-1 px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-xl text-xs text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-sky-400 font-mono"
-              />
-              <button
-                disabled={hostResolving || !hostLinkInput.trim()}
-                onClick={async () => {
-                  setHostResolving(true);
-                  try {
-                    const resolved = await dsmClient.resolveDownloadLink(hostLinkInput.trim());
-                    setHostResolvedResult(resolved);
-                    if (resolved.directUrl) {
-                      const res: any = await dsmClient.addDownloadTask(resolved.directUrl, destination);
-                      const ok = typeof res === "object" ? res.success : !!res;
-                      if (ok) {
-                        setHostLinkInput("");
-                        await loadTasks();
-                        setSubTab("tasks");
-                      }
-                    }
-                  } finally {
-                    setHostResolving(false);
-                  }
-                }}
-                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shrink-0 shadow transition-all cursor-pointer"
-              >
-                {hostResolving ? <RefreshCw className="w-3.5 h-3.5 animate-spin"/> : <DownloadCloud className="w-3.5 h-3.5"/>}
-                <span>{hostResolving ? "Đang xử lý..." : "Giải mã & Tải ngay"}</span>
-              </button>
-            </div>
-          </div>
+      {subTab==="hosts" && (() => {
+        const filteredHosts = hostModules.filter(h => {
+          if (hostSearch) {
+            const q = hostSearch.toLowerCase();
+            const matchesName = (h.name || "").toLowerCase().includes(q);
+            const matchesDisplay = (h.displayname || "").toLowerCase().includes(q);
+            const matchesId = (h.id || "").toLowerCase().includes(q);
+            const matchesDesc = (h.description || "").toLowerCase().includes(q);
+            const matchesUser = (h.username || "").toLowerCase().includes(q);
+            const matchesUrls = (h.supportedUrls || []).some(u => u.toLowerCase().includes(q));
+            if (!matchesName && !matchesDisplay && !matchesId && !matchesDesc && !matchesUser && !matchesUrls) return false;
+          }
+          if (hostFilter === "enabled") return h.enabled;
+          if (hostFilter === "accounts") return !!h.username || !!h.has_account || (h.accounts && h.accounts.length > 0);
+          if (hostFilter === "custom") return !!h.removable;
+          if (hostFilter === "free") return !h.auth_needed;
+          return true;
+        });
 
-          {/* Supported File Hosting Plugins Grid */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-              <div>
-                <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-sky-500"/>
-                  Danh Sách Host Plugin Hỗ Trợ trong Download Station
-                </h4>
-                <p className="text-xs text-slate-400 mt-0.5">Tích hợp sẵn bộ giải mã máy chủ lưu trữ (File Hosting Modules)</p>
-              </div>
-              <button
-                onClick={loadHostModules}
-                className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
-                title="Tải lại danh sách Hosts"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${hostLoading ? "animate-spin" : ""}`}/>
-              </button>
-            </div>
+        const totalCount = hostModules.length;
+        const enabledCount = hostModules.filter(h => h.enabled).length;
+        const accountCount = hostModules.filter(h => h.username || h.has_account || (h.accounts && h.accounts.length > 0)).length;
+        const customCount = hostModules.filter(h => h.removable).length;
+        const freeCount = hostModules.filter(h => !h.auth_needed).length;
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {hostModules.map(h => (
-                <div
-                  key={h.id}
-                  className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/60 dark:bg-slate-800/40 flex flex-col justify-between space-y-3"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-bold text-xs text-slate-900 dark:text-white truncate">{h.name}</p>
-                      <p className="text-[11px] text-slate-400 font-mono mt-0.5">v{h.version || "1.0"} • {h.host_type === "free" ? "Miễn phí" : h.host_type === "premium" ? "Tài khoản VIP" : "Đa năng"}</p>
-                    </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${h.enabled ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-slate-200 text-slate-500"}`}>
-                      {h.enabled ? "Hoạt động" : "Tắt"}
-                    </span>
+        return (
+          <div className="space-y-4">
+            {/* Top Quick Link Resolver Card */}
+            <div className="bg-gradient-to-r from-sky-900 via-indigo-900 to-slate-900 text-white p-5 rounded-3xl shadow-md">
+              <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+                    <Zap className="w-5 h-5"/>
                   </div>
-
-                  <div className="text-[11px] text-slate-500 space-y-1">
-                    <p className="truncate">Miền: <span className="font-mono text-slate-700 dark:text-slate-300 font-medium">{(h.supportedUrls || []).join(", ") || h.id}</span></p>
-                    {h.accounts && h.accounts.length > 0 && (
-                      <p className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                        <ShieldCheck className="w-3.5 h-3.5"/>Đã kết nối tài khoản ({h.accounts[0].username})
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-600 dark:text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={h.enabled}
-                        onChange={async (e) => {
-                          const updated = e.target.checked;
-                          await dsmClient.setHostModule(h.id, updated);
-                          await loadHostModules();
-                        }}
-                        className="rounded border-slate-300 text-sky-600 w-3.5 h-3.5"
-                      />
-                      <span>Bật plugin</span>
-                    </label>
-
-                    {h.has_account && (
-                      <button
-                        onClick={() => {
-                          setSelectedHostId(h.id);
-                          setSettingsTab("hosts");
-                          setSettingsOpen(true);
-                        }}
-                        className="text-[11px] font-bold text-sky-600 hover:text-sky-700 flex items-center gap-1"
-                      >
-                        <KeyRound className="w-3 h-3"/>
-                        <span>Tài khoản VIP</span>
-                      </button>
-                    )}
+                  <div>
+                    <h3 className="font-bold text-sm">Bộ Chuyển Đổi &amp; Tải Trực Tiếp Link (Direct Link Resolver)</h3>
+                    <p className="text-xs text-sky-200/80">Tự động giải mã đường link chia sẻ từ Google Drive, Fshare.vn, MediaFire, Mega, Rapidgator...</p>
                   </div>
                 </div>
-              ))}
+                <div className="flex items-center gap-1.5 text-xs text-sky-200 bg-white/10 px-3 py-1 rounded-full border border-white/10">
+                  <FolderOpen className="w-3.5 h-3.5 text-sky-400"/>
+                  <span className="font-mono text-[11px] truncate max-w-[160px]">{destination}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                <div className="relative flex-1">
+                  <input
+                    value={hostLinkInput}
+                    onChange={e=>setHostLinkInput(e.target.value)}
+                    placeholder="Dán link: https://drive.google.com/file/d/... hoặc https://www.fshare.vn/file/..."
+                    className="w-full px-4 py-2.5 bg-white/10 border border-white/20 rounded-2xl text-xs text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-sky-400 font-mono"
+                  />
+                  {hostLinkInput && (
+                    <button
+                      type="button"
+                      onClick={()=>setHostLinkInput("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-white/50 hover:text-white"
+                    >
+                      <X className="w-3.5 h-3.5"/>
+                    </button>
+                  )}
+                </div>
+                <button
+                  disabled={hostResolving || !hostLinkInput.trim()}
+                  onClick={async () => {
+                    setHostResolving(true);
+                    try {
+                      const resolved = await dsmClient.resolveDownloadLink(hostLinkInput.trim());
+                      setHostResolvedResult(resolved);
+                      if (resolved.directUrl) {
+                        const res: any = await dsmClient.addDownloadTask(resolved.directUrl, destination);
+                        const ok = typeof res === "object" ? res.success : !!res;
+                        if (ok) {
+                          setHostLinkInput("");
+                          await loadTasks();
+                          setSubTab("tasks");
+                        } else {
+                          alert((res && res.error) || "Không thể tạo tác vụ tải");
+                        }
+                      }
+                    } finally {
+                      setHostResolving(false);
+                    }
+                  }}
+                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold rounded-2xl text-xs flex items-center justify-center gap-2 shrink-0 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                >
+                  {hostResolving ? <RefreshCw className="w-3.5 h-3.5 animate-spin"/> : <DownloadCloud className="w-3.5 h-3.5"/>}
+                  <span>{hostResolving ? "Đang xử lý..." : "Giải mã & Tải ngay"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Supported File Hosting Plugins Section */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+              {/* Header & Quick Action Buttons */}
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-2xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200/60 dark:border-sky-800/40 text-sky-600 dark:text-sky-400">
+                    <Globe className="w-5 h-5"/>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                        Danh Sách Host Plugin trong Download Station
+                      </h4>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300">
+                        {totalCount} modules
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Bộ giải mã máy chủ lưu trữ (File Hosting Modules) tích hợp trên DSM
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
+                  <button
+                    onClick={() => {
+                      setUploadHostFile(null);
+                      setUploadHostError(null);
+                      setUploadHostSuccess(null);
+                      setAddHostModalOpen(true);
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-sm shadow-sky-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Thêm Host (.host)</span>
+                  </button>
+
+                  <button
+                    onClick={loadHostModules}
+                    className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                    title="Tải lại danh sách Hosts"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${hostLoading ? "animate-spin text-sky-500" : ""}`}/>
+                  </button>
+                </div>
+              </div>
+
+              {/* Search & Filter Categories Bar */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"/>
+                  <input
+                    type="text"
+                    value={hostSearch}
+                    onChange={e => setHostSearch(e.target.value)}
+                    placeholder="Tìm kiếm host (fshare, gdrive, mega, 1fichier, rapidgator...)..."
+                    className="w-full pl-9 pr-8 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  />
+                  {hostSearch && (
+                    <button
+                      onClick={() => setHostSearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      <X className="w-3 h-3"/>
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 overflow-x-auto p-1 bg-slate-100 dark:bg-slate-800/60 rounded-xl text-xs font-semibold">
+                  {[
+                    { key: "all", label: `Tất cả (${totalCount})` },
+                    { key: "enabled", label: `Đang bật (${enabledCount})` },
+                    { key: "accounts", label: `Tài khoản VIP (${accountCount})` },
+                    { key: "custom", label: `Tùy chỉnh (${customCount})` },
+                    { key: "free", label: `Miễn phí (${freeCount})` },
+                  ].map(tab => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setHostFilter(tab.key as any)}
+                      className={`px-2.5 py-1 rounded-lg transition-all shrink-0 text-[11px] cursor-pointer ${
+                        hostFilter === tab.key
+                          ? "bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm font-bold"
+                          : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Host Cards Grid */}
+              {filteredHosts.length === 0 ? (
+                <div className="py-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                  <Globe className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2"/>
+                  <p className="text-xs font-bold text-slate-600 dark:text-slate-400">Không tìm thấy host plugin nào phù hợp</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Thử thay đổi từ khóa tìm kiếm hoặc bấm nút "Thêm Host (.host)"</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {filteredHosts.map(h => {
+                    const brand = getHostBrandInfo(h);
+                    const hasAccount = !!h.username || !!h.has_account || (h.accounts && h.accounts.length > 0);
+                    const accountName = h.username || (h.accounts && h.accounts[0]?.username);
+                    const isPremium = h.valid !== false;
+
+                    return (
+                      <div
+                        key={h.id}
+                        className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 relative group ${
+                          h.enabled
+                            ? "bg-slate-50/70 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-700/80 shadow-sm hover:border-sky-400/60 dark:hover:border-sky-500/40"
+                            : "bg-slate-100/40 dark:bg-slate-900/30 border-slate-200/40 dark:border-slate-800/40 opacity-70"
+                        }`}
+                      >
+                        {/* Top: Brand info + Status Badge */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex items-start gap-2.5">
+                            <div className={`p-2 rounded-xl border shrink-0 ${brand.bg}`}>
+                              <Globe className={`w-4 h-4 ${brand.iconColor}`} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-xs text-slate-900 dark:text-white truncate" title={h.displayname || h.name}>
+                                {h.displayname || h.name}
+                              </p>
+                              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-200/70 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                                  v{h.version || "1.0"}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                  {h.type === "pyload" ? "pyLoad" : h.removable ? "Tùy chỉnh" : "Synology"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              h.enabled
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                                : "bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
+                            }`}>
+                              {h.enabled ? "Hoạt động" : "Tắt"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Description & URLs */}
+                        <div className="space-y-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+                          {h.description && (
+                            <p className="line-clamp-2 text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                              {h.description}
+                            </p>
+                          )}
+
+                          <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                            <span className="text-[10px] font-semibold text-slate-400">Miền hỗ trợ:</span>
+                            {(h.supportedUrls && h.supportedUrls.length > 0 ? h.supportedUrls : [h.id]).slice(0, 2).map(u => (
+                              <span key={u} className="px-1.5 py-0.5 bg-slate-200/60 dark:bg-slate-700/60 rounded text-[10px] font-mono text-slate-700 dark:text-slate-300 truncate max-w-[140px]">
+                                {u}
+                              </span>
+                            ))}
+                          </div>
+
+                          {/* Connected Account Badge */}
+                          {hasAccount && (
+                            <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/40 flex items-center justify-between gap-1.5">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0"/>
+                                <span className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-200 truncate">
+                                  {accountName}
+                                </span>
+                              </div>
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-600 text-white shrink-0">
+                                {isPremium ? "VIP" : "Free"}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Card Action Footer */}
+                        <div className="flex items-center justify-between pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60 gap-2">
+                          <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-600 dark:text-slate-300 select-none">
+                            <input
+                              type="checkbox"
+                              checked={h.enabled}
+                              onChange={() => handleToggleHost(h)}
+                              className="rounded border-slate-300 text-sky-600 focus:ring-sky-500 w-3.5 h-3.5 cursor-pointer"
+                            />
+                            <span>Bật plugin</span>
+                          </label>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => openEditHostModal(h)}
+                              className="px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-900/30 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-600 dark:text-sky-400 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                              title="Cấu hình tài khoản VIP"
+                            >
+                              <KeyRound className="w-3 h-3"/>
+                              <span>{hasAccount ? "Sửa tài khoản" : "Cấu hình VIP"}</span>
+                            </button>
+
+                            {h.removable && (
+                              <button
+                                onClick={() => handleDeleteHost(h)}
+                                disabled={deleteHostLoading}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                title="Xóa Host module này"
+                              >
+                                <Trash2 className="w-3.5 h-3.5"/>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Detail Modal */}
       {detailOpen && detailTask && (() => {
@@ -1901,6 +2279,209 @@ export const DownloadStationTab: React.FC = () => {
               <button type="submit" disabled={submitting || (addTab==="url"? !urlInput.trim() : !selectedFile)} className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all">{submitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <DownloadCloud className="w-3.5 h-3.5" />}<span>{submitting ? "Đang gửi..." : t.common.confirm}</span></button>
             </div>
           </form>
+        </ResponsiveModal>
+      )}
+
+      {/* Add Host (.host file) Modal */}
+      {addHostModalOpen && (
+        <ResponsiveModal
+          open={addHostModalOpen}
+          onClose={() => setAddHostModalOpen(false)}
+          maxWidth="md"
+          title="Thêm Host Plugin Mới (.host)"
+          icon={<Plus className="w-5 h-5" />}
+        >
+          <div className="space-y-4">
+            <div className="p-3 bg-sky-50 dark:bg-sky-950/30 border border-sky-200/70 dark:border-sky-800/50 rounded-2xl flex items-start gap-2.5 text-xs text-sky-900 dark:text-sky-200">
+              <Info className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5"/>
+              <div className="space-y-1">
+                <p className="font-bold">Cài đặt Plugin giải mã máy chủ lưu trữ (File Hosting)</p>
+                <p className="text-[11px] text-sky-700 dark:text-sky-300 leading-relaxed">
+                  Tải lên tệp định dạng <b>.host</b> (plugin Download Station) để bổ sung dịch vụ giải mã liên kết tải tốc độ cao từ cộng đồng vào NAS của bạn.
+                </p>
+              </div>
+            </div>
+
+            {uploadHostError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 flex items-center gap-2 text-xs text-rose-700 dark:text-rose-300">
+                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0"/>
+                <span>{uploadHostError}</span>
+              </div>
+            )}
+
+            {uploadHostSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300">
+                <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0"/>
+                <span>{uploadHostSuccess}</span>
+              </div>
+            )}
+
+            <div
+              onClick={() => hostFileInputRef.current?.click()}
+              className="p-6 border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-400 rounded-2xl bg-slate-50 dark:bg-slate-800/50 text-center cursor-pointer transition-colors"
+            >
+              <FileCode className="w-8 h-8 text-slate-400 mx-auto mb-2"/>
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                {uploadHostFile ? uploadHostFile.name : "Nhấn để chọn hoặc kéo thả tệp .host vào đây"}
+              </p>
+              <p className="text-[11px] text-slate-400 mt-1">
+                {uploadHostFile ? formatBytes(uploadHostFile.size) : "Chấp nhận định dạng *.host"}
+              </p>
+            </div>
+            <input
+              ref={hostFileInputRef}
+              type="file"
+              accept=".host"
+              className="hidden"
+              onChange={e => {
+                if (e.target.files?.[0]) {
+                  setUploadHostFile(e.target.files[0]);
+                  setUploadHostError(null);
+                  setUploadHostSuccess(null);
+                }
+              }}
+            />
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setAddHostModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={!uploadHostFile || uploadHostLoading}
+                onClick={handleUploadHostModule}
+                className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                {uploadHostLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                <span>{uploadHostLoading ? "Đang cài đặt..." : "Cài đặt vào NAS"}</span>
+              </button>
+            </div>
+          </div>
+        </ResponsiveModal>
+      )}
+
+      {/* Edit / Configure Host Account Modal */}
+      {editHostModalOpen && editingHost && (
+        <ResponsiveModal
+          open={editHostModalOpen}
+          onClose={() => setEditHostModalOpen(false)}
+          maxWidth="md"
+          title={`Cấu hình Host: ${editingHost.displayname || editingHost.name}`}
+          icon={<KeyRound className="w-5 h-5 text-sky-500" />}
+        >
+          <div className="space-y-4">
+            {/* Host overview badge */}
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-2xl flex items-center justify-between gap-2">
+              <div>
+                <p className="font-bold text-xs text-slate-900 dark:text-white">{editingHost.displayname || editingHost.name}</p>
+                <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                  Loại: {editingHost.type === "pyload" ? "pyLoad Plugin" : "Synology Plugin"} • v{editingHost.version || "1.0"}
+                </p>
+              </div>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                editingHost.enabled ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-slate-200 text-slate-500"
+              }`}>
+                {editingHost.enabled ? "Đang bật" : "Đang tắt"}
+              </span>
+            </div>
+
+            {/* Status alerts */}
+            {saveHostMessage && (
+              <div className={`p-3 rounded-xl border flex items-center gap-2 text-xs ${
+                saveHostMessage.success
+                  ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
+                  : "bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300"
+              }`}>
+                {saveHostMessage.success ? <CheckCircle className="w-4 h-4 shrink-0"/> : <AlertCircle className="w-4 h-4 shrink-0"/>}
+                <span>{saveHostMessage.text}</span>
+              </div>
+            )}
+
+            {verifyResult && (
+              <div className={`p-3 rounded-xl border flex items-center gap-2 text-xs ${
+                verifyResult.success
+                  ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
+                  : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300"
+              }`}>
+                {verifyResult.success ? <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0"/> : <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0"/>}
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold">{verifyResult.success ? "Kết quả xác thực NAS:" : "Không thể xác thực:"}</p>
+                  <p className="text-[11px] mt-0.5">{verifyResult.message || (verifyResult.success ? "Tài khoản hoạt động tốt." : "Vui lòng kiểm tra lại thông tin.")}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Input fields */}
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Tên tài khoản / Email đăng nhập
+                </label>
+                <input
+                  type="text"
+                  value={editHostUsername}
+                  onChange={e => {
+                    setEditHostUsername(e.target.value);
+                    setVerifyResult(null);
+                  }}
+                  placeholder="Ví dụ: fshare_user@email.com"
+                  className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Mật khẩu tài khoản (Để trống nếu không đổi)
+                </label>
+                <input
+                  type="password"
+                  value={editHostPassword}
+                  onChange={e => {
+                    setEditHostPassword(e.target.value);
+                    setVerifyResult(null);
+                  }}
+                  placeholder="Nhập mật khẩu mới..."
+                  className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                disabled={!editHostUsername.trim() || verifyingHost}
+                onClick={handleVerifyAccount}
+                className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-200 dark:border-slate-700 disabled:opacity-50 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                {verifyingHost ? <RefreshCw className="w-3.5 h-3.5 animate-spin"/> : <ShieldCheck className="w-3.5 h-3.5 text-emerald-500"/>}
+                <span>{verifyingHost ? "Đang kiểm tra..." : "Kiểm tra tài khoản"}</span>
+              </button>
+
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditHostModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  disabled={saveHostLoading}
+                  onClick={handleSaveAccount}
+                  className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 disabled:opacity-50 flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  {saveHostLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin"/> : <Check className="w-3.5 h-3.5"/>}
+                  <span>{saveHostLoading ? "Đang lưu..." : "Lưu cấu hình"}</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </ResponsiveModal>
       )}
     </div>

@@ -4,7 +4,7 @@ import { DSMSession, SystemInfo, SystemUtilization, NotificationItem, AppNotifyI
 import { dsmClient } from "../dsm/client";
 import { clearPersistedSession } from "../sessionStorage";
 
-export type NavTab = "dashboard" | "monitor" | "snmp" | "traffic" | "files" | "docker" | "download" | "storage" | "packages" | "services" | "firewall" | "permissions" | "notifications" | "terminal" | "mcp" | "settings";
+export type NavTab = "dashboard" | "monitor" | "snmp" | "traffic" | "files" | "docker" | "download" | "storage" | "packages" | "services" | "reverse-proxy" | "firewall" | "permissions" | "notifications" | "terminal" | "mcp" | "settings";
 export type ThemeMode = "system" | "light" | "gemini" | "dark";
 export type ExperienceMode = "beginner" | "advance";
 

@@ -20,6 +20,7 @@ import { DownloadStationTab } from "@/components/download/DownloadStationTab";
 import { StorageManagerTab } from "@/components/storage/StorageManagerTab";
 import { PackageCenterTab } from "@/components/packages/PackageCenterTab";
 import { ServicesTab } from "@/components/services/ServicesTab";
+import { ReverseProxyTab } from "@/components/services/ReverseProxyTab";
 import { FirewallManagerTab } from "@/components/security/FirewallManagerTab";
 import { PermissionInspectorTab } from "@/components/permissions/PermissionInspectorTab";
 import { NotificationsTab } from "@/components/notifications/NotificationsTab";
@@ -201,6 +202,8 @@ export default function Home() {
         return <PackageCenterTab />;
       case "services":
         return <ServicesTab />;
+      case "reverse-proxy":
+        return <ReverseProxyTab />;
       case "firewall":
         return <FirewallManagerTab />;
       case "permissions":
