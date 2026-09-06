@@ -836,3 +836,71 @@ export interface ReverseProxyHealthInfo {
   cleanedOrphans?: string[];
 }
 
+export interface SmartAttributeRow {
+  id: number;
+  name: string;
+  flag?: string;
+  value: number | string;
+  worst: number | string;
+  thresh: number | string;
+  type?: string;
+  updated?: string;
+  whenFailed?: string;
+  rawValue: string;
+  status?: "OK" | "WARN" | "FAIL";
+  description?: string;
+}
+
+export interface NvmeSpecRow {
+  key: string;
+  label: string;
+  value: string;
+  status?: "OK" | "WARN" | "FAIL";
+}
+
+export interface SynoSmartDriveSummary {
+  slot: string;
+  device: string;
+  model: string;
+  serial: string;
+  firmware?: string;
+  capacity?: string;
+  rotationRate?: string;
+  sataVersion?: string;
+  health: "PASSED" | "OK" | "WARNING" | "CRITICAL" | "UNKNOWN";
+  tempC: number | null;
+  powerOnHours: number | null;
+  reallocatedSectors: number | null;
+  pendingSectors: number | null;
+  crcErrors: number | null;
+  nvmeWearPercent?: number | null;
+  attributesCount?: number;
+  smartAttributes?: SmartAttributeRow[];
+  nvmeSpecs?: NvmeSpecRow[];
+  rawLines?: string[];
+}
+
+export interface SynoSmartParsedReport {
+  hostname?: string;
+  nasModel?: string;
+  dsmVersion?: string;
+  drives: SynoSmartDriveSummary[];
+  overallHealth: "PASSED" | "WARNING" | "CRITICAL" | "UNKNOWN";
+}
+
+export interface SynoSmartResult {
+  success: boolean;
+  source: "cgi" | "ssh" | "mock";
+  message: string;
+  result: string | null;
+  parsed?: SynoSmartParsedReport;
+  sudoers_missing?: boolean;
+  systemInfo?: {
+    MODEL?: string;
+    PLATFORM?: string;
+    DSM_VERSION?: string;
+    Update?: string;
+  } | null;
+}
+
+

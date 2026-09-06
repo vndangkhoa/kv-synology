@@ -27,6 +27,7 @@ import {
   HotSpareItem,
   DriveInfo,
   SmartInfo,
+  SynoSmartResult,
   HddHealthConfig,
   ScrubState,
   DiskTestLogItem,
@@ -82,6 +83,7 @@ import {
   mockFolderAcls,
   mockSecurityAuditItems,
   mockReverseProxyRules,
+  mockFiles,
   fullAclRights,
   rwAclRights,
   roAclRights,
@@ -511,8 +513,12 @@ class DSMClient {
     return this.getFiles(folderPath);
   }
 
+  private localFiles: Record<string, FileItem[]> = JSON.parse(JSON.stringify(mockFiles));
+
   public async getFiles(folderPath: string): Promise<FileItem[]> {
-    if (!this.session.isConnected) return [];
+    if (!this.session.isConnected) {
+      return this.localFiles[folderPath] || [];
+    }
 
     try {
       let data: any;
@@ -563,7 +569,11 @@ class DSMClient {
   }
 
   public async getFileContent(filePath: string): Promise<string> {
-    if (!this.session.isConnected) return "";
+    if (!this.session.isConnected) {
+      const parentDir = filePath.substring(0, filePath.lastIndexOf("/")) || "/";
+      const file = this.localFiles[parentDir]?.find((f) => f.path === filePath);
+      return file?.content || "";
+    }
     try {
       const streamUrl = this.getFileStreamUrl(filePath, false);
       const res = await fetch(streamUrl);
@@ -575,7 +585,28 @@ class DSMClient {
   }
 
   public async saveTextFile(folderPath: string, fileName: string, content: string): Promise<boolean> {
-
+    if (!this.session.isConnected) {
+      if (!this.localFiles[folderPath]) this.localFiles[folderPath] = [];
+      const p = folderPath === "/" ? `/${fileName}` : `${folderPath}/${fileName}`;
+      const existing = this.localFiles[folderPath].find((f) => f.name === fileName);
+      if (existing) {
+        existing.content = content;
+        existing.size = new Blob([content]).size;
+        existing.mtime = Date.now();
+      } else {
+        this.localFiles[folderPath].push({
+          path: p,
+          name: fileName,
+          isdir: false,
+          size: new Blob([content]).size,
+          mtime: Date.now(),
+          owner: "admin",
+          perm: "0644",
+          content,
+        });
+      }
+      return true;
+    }
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     return this.uploadFile(folderPath, blob, fileName);
   }
@@ -583,6 +614,21 @@ class DSMClient {
   public async uploadFile(folderPath: string, file: File | Blob, customFileName?: string): Promise<boolean> {
     const fileName = customFileName || (file as File).name || "file.txt";
 
+    if (!this.session.isConnected) {
+      if (!this.localFiles[folderPath]) this.localFiles[folderPath] = [];
+      const p = folderPath === "/" ? `/${fileName}` : `${folderPath}/${fileName}`;
+      this.localFiles[folderPath] = this.localFiles[folderPath].filter((f) => f.name !== fileName);
+      this.localFiles[folderPath].push({
+        path: p,
+        name: fileName,
+        isdir: false,
+        size: file.size,
+        mtime: Date.now(),
+        owner: "admin",
+        perm: "0644",
+      });
+      return true;
+    }
 
     const formData = new FormData();
     formData.append("api", "SYNO.FileStation.Upload");
@@ -672,6 +718,23 @@ class DSMClient {
   }
 
   public async createFolder(folderPath: string, name: string): Promise<boolean> {
+    if (!this.session.isConnected) {
+      const parent = folderPath === "/" ? "" : folderPath;
+      const newPath = `${parent}/${name}`;
+      const newItem: FileItem = {
+        path: newPath,
+        name,
+        isdir: true,
+        size: 0,
+        mtime: Date.now(),
+        owner: "admin",
+        perm: "0755",
+      };
+      if (!this.localFiles[folderPath]) this.localFiles[folderPath] = [];
+      this.localFiles[folderPath].push(newItem);
+      this.localFiles[newPath] = [];
+      return true;
+    }
     const data = await this.postEntry("SYNO.FileStation.CreateFolder", "create", 2, {
       folder_path: JSON.stringify(folderPath),
       name: JSON.stringify(name),
@@ -681,6 +744,16 @@ class DSMClient {
   }
 
   public async deleteFile(filePath: string): Promise<boolean> {
+    if (!this.session.isConnected) {
+      for (const key of Object.keys(this.localFiles)) {
+        this.localFiles[key] = this.localFiles[key].filter((f) => f.path !== filePath);
+      }
+      delete this.localFiles[filePath];
+      Object.keys(this.localFiles).forEach((k) => {
+        if (k.startsWith(filePath + "/")) delete this.localFiles[k];
+      });
+      return true;
+    }
     const data = await this.postEntry("SYNO.FileStation.Delete", "start", 2, {
       path: JSON.stringify([filePath]),
       accurate_progress: "true",
@@ -689,11 +762,195 @@ class DSMClient {
   }
 
   public async renameFile(filePath: string, newName: string): Promise<boolean> {
+    if (!this.session.isConnected) {
+      const parentDir = filePath.substring(0, filePath.lastIndexOf("/")) || "/";
+      const newPath = parentDir === "/" ? `/${newName}` : `${parentDir}/${newName}`;
+      if (this.localFiles[parentDir]) {
+        const item = this.localFiles[parentDir].find((f) => f.path === filePath);
+        if (item) {
+          item.name = newName;
+          item.path = newPath;
+        }
+      }
+      if (this.localFiles[filePath]) {
+        this.localFiles[newPath] = this.localFiles[filePath];
+        delete this.localFiles[filePath];
+      }
+      return true;
+    }
     const data = await this.postEntry("SYNO.FileStation.Rename", "rename", 2, {
       path: JSON.stringify(filePath),
       name: JSON.stringify(newName),
     });
     return !!data.success;
+  }
+
+  public async copyMoveFiles(
+    paths: string[],
+    destFolderPath: string,
+    isMove: boolean = false,
+    overwrite: boolean = false
+  ): Promise<{ success: boolean; taskid?: string; error?: string }> {
+    if (paths.length === 0) return { success: true };
+
+    if (!this.session.isConnected) {
+      const targetDest = destFolderPath === "/" ? "" : destFolderPath;
+      if (!this.localFiles[destFolderPath]) {
+        this.localFiles[destFolderPath] = [];
+      }
+
+      for (const srcPath of paths) {
+        const srcParent = srcPath.substring(0, srcPath.lastIndexOf("/")) || "/";
+        const items = this.localFiles[srcParent] || [];
+        const itemIndex = items.findIndex((f) => f.path === srcPath);
+        if (itemIndex === -1) continue;
+
+        const srcItem = items[itemIndex];
+        const newPath = `${targetDest}/${srcItem.name}`;
+
+        if (isMove && srcPath === newPath) continue;
+
+        const destExistingIdx = this.localFiles[destFolderPath].findIndex((f) => f.name === srcItem.name);
+        if (destExistingIdx !== -1) {
+          if (overwrite) {
+            this.localFiles[destFolderPath].splice(destExistingIdx, 1);
+          } else {
+            const dotIdx = srcItem.name.lastIndexOf(".");
+            const base = dotIdx > 0 ? srcItem.name.slice(0, dotIdx) : srcItem.name;
+            const ext = dotIdx > 0 ? srcItem.name.slice(dotIdx) : "";
+            const copyName = `${base} (copy)${ext}`;
+            const copyPath = `${targetDest}/${copyName}`;
+            const copiedItem: FileItem = {
+              ...srcItem,
+              name: copyName,
+              path: copyPath,
+              mtime: Date.now(),
+            };
+            this.localFiles[destFolderPath].push(copiedItem);
+            if (srcItem.isdir && this.localFiles[srcPath]) {
+              this.localFiles[copyPath] = JSON.parse(JSON.stringify(this.localFiles[srcPath]));
+            }
+            if (isMove) {
+              items.splice(itemIndex, 1);
+            }
+            continue;
+          }
+        }
+
+        if (isMove) {
+          items.splice(itemIndex, 1);
+          const movedItem: FileItem = {
+            ...srcItem,
+            path: newPath,
+            mtime: Date.now(),
+          };
+          this.localFiles[destFolderPath].push(movedItem);
+
+          if (srcItem.isdir) {
+            const oldPrefix = srcPath;
+            const newPrefix = newPath;
+            for (const key of Object.keys(this.localFiles)) {
+              if (key === oldPrefix || key.startsWith(oldPrefix + "/")) {
+                const subKey = newPrefix + key.slice(oldPrefix.length);
+                this.localFiles[subKey] = this.localFiles[key].map((child) => ({
+                  ...child,
+                  path: newPrefix + child.path.slice(oldPrefix.length),
+                }));
+                if (key !== subKey) delete this.localFiles[key];
+              }
+            }
+          }
+        } else {
+          const copiedItem: FileItem = {
+            ...srcItem,
+            path: newPath,
+            mtime: Date.now(),
+          };
+          this.localFiles[destFolderPath].push(copiedItem);
+
+          if (srcItem.isdir) {
+            const oldPrefix = srcPath;
+            const newPrefix = newPath;
+            for (const key of Object.keys(this.localFiles)) {
+              if (key === oldPrefix || key.startsWith(oldPrefix + "/")) {
+                const subKey = newPrefix + key.slice(oldPrefix.length);
+                this.localFiles[subKey] = this.localFiles[key].map((child) => ({
+                  ...child,
+                  path: newPrefix + child.path.slice(oldPrefix.length),
+                }));
+              }
+            }
+          }
+        }
+      }
+      return { success: true };
+    }
+
+    try {
+      let res: any = await this.postEntry("SYNO.FileStation.CopyMove", "start", 3, {
+        path: JSON.stringify(paths),
+        dest_folder_path: JSON.stringify(destFolderPath),
+        overwrite: overwrite ? "true" : "false",
+        remove_src: isMove ? "true" : "false",
+        accurate_progress: "true",
+      }).catch(() => null);
+
+      if (!res || !res.success) {
+        res = await this.postEntry("SYNO.FileStation.CopyMove", "start", 2, {
+          path: JSON.stringify(paths),
+          dest_folder_path: JSON.stringify(destFolderPath),
+          overwrite: overwrite ? "true" : "false",
+          remove_src: isMove ? "true" : "false",
+          accurate_progress: "true",
+        }).catch(() => null);
+      }
+
+      if (!res || !res.success) {
+        res = await this.postEntry("SYNO.FileStation.CopyMove", "start", 1, {
+          path: JSON.stringify(paths),
+          dest_folder_path: destFolderPath,
+          overwrite: overwrite ? "true" : "false",
+          remove_src: isMove ? "true" : "false",
+        }).catch(() => null);
+      }
+
+      if (!res || !res.success) {
+        const errCode = res?.error?.code;
+        let errMsg = "Không thể thực hiện tác vụ sao chép/di chuyển.";
+        if (errCode === 1000) errMsg = "Tác vụ sao chép/di chuyển thất bại trên DSM.";
+        else if (errCode === 1002) errMsg = "Đường dẫn nguồn hoặc đích không hợp lệ.";
+        else if (errCode === 1003) errMsg = "Không thể ghi đè tệp tin trùng lặp.";
+        else if (errCode === 1004) errMsg = "Không thể sao chép hoặc di chuyển vào cùng một thư mục.";
+        else if (errCode === 1006) errMsg = "Không thể sao chép hoặc di chuyển thư mục vào chính nó hoặc thư mục con.";
+        else if (errCode === 1019) errMsg = "Thư mục đích không tồn tại.";
+        else if (errCode === 1020) errMsg = "Tệp đã tồn tại ở thư mục đích.";
+        else if (res?.error?.message) errMsg = res.error.message;
+        return { success: false, error: errMsg };
+      }
+
+      const taskid = res.data?.taskid || res.data?.taskId;
+      if (taskid) {
+        for (let i = 0; i < 16; i++) {
+          await new Promise((r) => setTimeout(r, 500));
+          const statusRes: any = await this.postEntry("SYNO.FileStation.CopyMove", "status", 3, {
+            taskid,
+          }).catch(() =>
+            this.postEntry("SYNO.FileStation.CopyMove", "status", 2, { taskid }).catch(() => null)
+          );
+
+          if (statusRes && statusRes.success) {
+            if (statusRes.data?.finished || statusRes.data?.progress === 1) {
+              return { success: true, taskid };
+            }
+          }
+        }
+        return { success: true, taskid };
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Lỗi kết nối khi sao chép/di chuyển." };
+    }
   }
 
   private localDockerContainers: DockerContainerDetails[] = [...mockDockerContainers];
@@ -2920,7 +3177,9 @@ class DSMClient {
                       status: "normal" as const,
                       temp: Number(diskObj.temp || (dIdx === 0 ? 20 : 44)),
                       size: diskSize,
-                      health: "100% Tuổi thọ (Tốt)",
+                      health: (typeof diskObj.remain_life === "number" || typeof diskObj.remain_life === "string") && !isNaN(Number(diskObj.remain_life))
+                        ? `${Number(diskObj.remain_life)}% Tuổi thọ`
+                        : (diskObj.status === "normal" ? "Sức khỏe tốt" : (diskObj.status || "Bình thường")),
                       driveType: "NVMe" as const,
                     };
                   })
@@ -3233,6 +3492,114 @@ class DSMClient {
     // Fallback to extended S.M.A.R.T. test if dedicated bad sector surface scan API is not enabled
     return await this.startSmartTest(diskId, "long");
   }
+
+  // ===== SynoSmartInfo (PeterSuh-Q3/SynoSmartInfo) API Integration =====
+  public async checkSynoSmartInfoStatus(): Promise<SynoSmartResult> {
+    try {
+      const isDemo = !this.session.isConnected || !this.config;
+      const res = await fetch("/api/storage/smart-info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "check",
+          isDemo,
+          dsmConfig: this.config
+            ? {
+                host: this.config.host,
+                port: this.config.port,
+                https: this.config.https,
+                sid: this.session.sid,
+                synoToken: this.session.synoToken,
+              }
+            : undefined,
+        }),
+      });
+      return await res.json();
+    } catch (err: any) {
+      return {
+        success: false,
+        source: "cgi",
+        message: err.message || "Không thể kiểm tra trạng thái SynoSmartInfo",
+        result: null,
+      };
+    }
+  }
+
+  public async getSynoSmartSystemInfo(): Promise<SynoSmartResult> {
+    try {
+      const isDemo = !this.session.isConnected || !this.config;
+      const res = await fetch("/api/storage/smart-info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "info",
+          isDemo,
+          dsmConfig: this.config
+            ? {
+                host: this.config.host,
+                port: this.config.port,
+                https: this.config.https,
+                sid: this.session.sid,
+                synoToken: this.session.synoToken,
+              }
+            : undefined,
+        }),
+      });
+      return await res.json();
+    } catch (err: any) {
+      return {
+        success: false,
+        source: "cgi",
+        message: err.message || "Lỗi lấy thông tin hệ thống SynoSmartInfo",
+        result: null,
+      };
+    }
+  }
+
+  public async runSynoSmartInfo(
+    option: string = "",
+    mode: "auto" | "cgi" | "ssh" = "auto",
+    sshConfig?: {
+      host: string;
+      port?: number;
+      username: string;
+      password?: string;
+      privateKey?: string;
+    }
+  ): Promise<SynoSmartResult> {
+    try {
+      const isDemo = !this.session.isConnected || !this.config;
+      const res = await fetch("/api/storage/smart-info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "run",
+          option,
+          mode,
+          isDemo,
+          dsmConfig: this.config
+            ? {
+                host: this.config.host,
+                port: this.config.port,
+                https: this.config.https,
+                sid: this.session.sid,
+                synoToken: this.session.synoToken,
+              }
+            : undefined,
+          sshConfig,
+        }),
+      });
+      return await res.json();
+    } catch (err: any) {
+      return {
+        success: false,
+        source: "cgi",
+        message: err.message || "Lỗi thực thi quét S.M.A.R.T.",
+        result: null,
+      };
+    }
+  }
+
 
   public async getScrubbingState(spaceId?: string): Promise<ScrubState | null> {
     if (!this.session.isConnected) return null;

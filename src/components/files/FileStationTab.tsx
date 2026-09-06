@@ -37,6 +37,8 @@ import {
   CheckCircle2,
   Link as LinkIcon,
   ShieldCheck,
+  Scissors,
+  ClipboardPaste,
 } from "lucide-react";
 
 export const FileStationTab: React.FC = () => {
@@ -81,6 +83,14 @@ export const FileStationTab: React.FC = () => {
   const [renameItem, setRenameItem] = useState<FileItem | null>(null);
   const [renameInput, setRenameInput] = useState("");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // Clipboard State (Copy / Cut / Paste)
+  const [clipboard, setClipboard] = useState<{
+    action: "copy" | "cut";
+    items: FileItem[];
+    sourcePath: string;
+  } | null>(null);
+  const [pasting, setPasting] = useState<boolean>(false);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -178,6 +188,139 @@ export const FileStationTab: React.FC = () => {
       prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path]
     );
   };
+
+  // Copy / Cut / Paste Actions
+  const handleCopy = (customItems?: FileItem[]) => {
+    let targets: FileItem[] = [];
+    if (customItems && customItems.length > 0) {
+      targets = customItems;
+    } else {
+      targets = files.filter((f) => selectedPaths.includes(f.path));
+    }
+    if (targets.length === 0) {
+      showToast("Vui lòng chọn ít nhất một tệp hoặc thư mục để sao chép.");
+      return;
+    }
+
+    setClipboard({
+      action: "copy",
+      items: targets,
+      sourcePath: currentPath,
+    });
+    showToast(`Đã sao chép ${targets.length} mục vào bộ nhớ tạm. Điều hướng đến thư mục đích và nhấn "Dán" (Ctrl+V).`);
+  };
+
+  const handleCut = (customItems?: FileItem[]) => {
+    let targets: FileItem[] = [];
+    if (customItems && customItems.length > 0) {
+      targets = customItems;
+    } else {
+      targets = files.filter((f) => selectedPaths.includes(f.path));
+    }
+    if (targets.length === 0) {
+      showToast("Vui lòng chọn ít nhất một tệp hoặc thư mục để cắt.");
+      return;
+    }
+
+    setClipboard({
+      action: "cut",
+      items: targets,
+      sourcePath: currentPath,
+    });
+    showToast(`Đã cắt ${targets.length} mục vào bộ nhớ tạm. Điều hướng đến thư mục đích và nhấn "Dán" (Ctrl+V).`);
+  };
+
+  const handleClearClipboard = () => {
+    setClipboard(null);
+    showToast("Đã hủy và xóa bộ nhớ tạm.");
+  };
+
+  const handlePaste = async (destFolder: string = currentPath) => {
+    if (!clipboard || clipboard.items.length === 0) {
+      showToast("Bộ nhớ tạm hiện đang trống.");
+      return;
+    }
+
+    // Check 1: Cannot move cut items into the exact same folder
+    if (clipboard.action === "cut" && clipboard.sourcePath === destFolder) {
+      showToast("Không thể di chuyển các mục vào chính thư mục nguồn của chúng.");
+      return;
+    }
+
+    // Check 2: Cannot paste a folder into itself or any of its subdirectories
+    for (const item of clipboard.items) {
+      if (item.isdir) {
+        if (destFolder === item.path || destFolder.startsWith(item.path + "/")) {
+          showToast(`Không thể dán thư mục "${item.name}" vào chính nó hoặc thư mục con!`);
+          return;
+        }
+      }
+    }
+
+    setPasting(true);
+    try {
+      const paths = clipboard.items.map((i) => i.path);
+      const isMove = clipboard.action === "cut";
+      const res = await dsmClient.copyMoveFiles(paths, destFolder, isMove);
+      if (res.success) {
+        showToast(
+          `Đã ${isMove ? "di chuyển" : "sao chép"} thành công ${clipboard.items.length} mục đến "${destFolder}"!`
+        );
+        if (isMove) {
+          setClipboard(null);
+        }
+        setSelectedPaths([]);
+        await loadFolder(currentPath);
+      } else {
+        showToast(`Lỗi: ${res.error || "Không thể thực hiện tác vụ sao chép/di chuyển."}`);
+      }
+    } catch (err: any) {
+      showToast(`Lỗi khi dán: ${err.message || err}`);
+    } finally {
+      setPasting(false);
+    }
+  };
+
+  // Keyboard shortcuts (Ctrl+C, Ctrl+X, Ctrl+V, Esc)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
+        if (selectedPaths.length > 0) {
+          e.preventDefault();
+          handleCopy();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "x") {
+        if (selectedPaths.length > 0) {
+          e.preventDefault();
+          handleCut();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "v") {
+        if (clipboard && clipboard.items.length > 0) {
+          e.preventDefault();
+          handlePaste();
+        }
+      } else if (e.key === "Escape") {
+        if (clipboard) {
+          setClipboard(null);
+        } else if (selectedPaths.length > 0) {
+          setSelectedPaths([]);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedPaths, clipboard, currentPath, files]);
 
   // Drag and drop upload
   const handleDragOver = (e: React.DragEvent) => {
@@ -479,6 +622,35 @@ export const FileStationTab: React.FC = () => {
               <span className="hidden md:inline">{t.files.newFolder}</span>
             </button>
 
+            {/* Paste Button */}
+            <button
+              onClick={() => handlePaste()}
+              disabled={!clipboard || clipboard.items.length === 0 || pasting}
+              className={`flex items-center space-x-1 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                clipboard && clipboard.items.length > 0
+                  ? "bg-amber-500 hover:bg-amber-600 text-white shadow-sm ring-2 ring-amber-400/40 animate-pulse"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed"
+              }`}
+              title={
+                clipboard
+                  ? `Dán ${clipboard.items.length} mục (${clipboard.action === "cut" ? "Di chuyển" : "Sao chép"}) vào ${currentPath} (Ctrl+V)`
+                  : "Bộ nhớ tạm trống (sao chép hoặc cắt mục trước)"
+              }
+            >
+              {pasting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+              ) : (
+                <ClipboardPaste className="w-3.5 h-3.5 shrink-0" />
+              )}
+              <span className="hidden sm:inline">
+                {pasting
+                  ? "Đang dán..."
+                  : clipboard
+                  ? `Dán (${clipboard.items.length})`
+                  : "Dán"}
+              </span>
+            </button>
+
             {/* Inspect Permissions Button */}
             <button
               onClick={() => {
@@ -540,6 +712,57 @@ export const FileStationTab: React.FC = () => {
         </div>
       </div>
 
+      {/* Clipboard Active Banner */}
+      {clipboard && (
+        <div className="p-3 sm:p-3.5 bg-gradient-to-r from-amber-500/15 via-sky-500/10 to-indigo-500/15 border border-amber-500/30 rounded-2xl sm:rounded-3xl flex flex-wrap items-center justify-between gap-2.5 text-xs shadow-sm animate-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center space-x-2.5 text-slate-800 dark:text-slate-100 font-medium">
+            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
+              {clipboard.action === "cut" ? (
+                <Scissors className="w-4 h-4" />
+              ) : (
+                <Copy className="w-4 h-4" />
+              )}
+            </div>
+            <div>
+              <span>
+                Bộ nhớ tạm:{" "}
+                <strong className="text-amber-600 dark:text-amber-400 font-bold">
+                  {clipboard.items.length} mục
+                </strong>{" "}
+                ({clipboard.action === "cut" ? "Cắt / Di chuyển" : "Sao chép"})
+              </span>
+              <span className="hidden md:inline text-slate-500 dark:text-slate-400 ml-2">
+                từ <code className="px-1.5 py-0.5 bg-slate-200/80 dark:bg-slate-800 rounded text-[11px] font-mono">{clipboard.sourcePath}</code>
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => handlePaste(currentPath)}
+              disabled={pasting}
+              className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-xl font-bold shadow-sm transition-all disabled:opacity-50"
+              title={`Dán vào thư mục hiện tại: ${currentPath} (Ctrl+V)`}
+            >
+              {pasting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <ClipboardPaste className="w-3.5 h-3.5" />
+              )}
+              <span>Dán vào đây</span>
+            </button>
+            <button
+              onClick={handleClearClipboard}
+              className="px-2.5 py-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors font-medium flex items-center space-x-1"
+              title="Hủy bỏ bộ nhớ tạm (Esc)"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Hủy</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Files Display */}
       {viewMode === "list" ? (
         <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
@@ -552,10 +775,13 @@ export const FileStationTab: React.FC = () => {
             ) : (
               filteredFiles.map((file) => {
                 const isSelected = selectedPaths.includes(file.path);
+                const isCut = clipboard?.action === "cut" && clipboard.items.some((i) => i.path === file.path);
                 return (
                   <div
                     key={file.path}
-                    className={`p-3.5 transition-colors flex items-center justify-between gap-3 ${
+                    className={`p-3.5 transition-all flex items-center justify-between gap-3 ${
+                      isCut ? "opacity-40 border-dashed border border-amber-500/50 bg-amber-500/5" : ""
+                    } ${
                       isSelected
                         ? "bg-sky-500/10 dark:bg-sky-500/15"
                         : "hover:bg-slate-50/50 dark:hover:bg-slate-800/40"
@@ -576,8 +802,13 @@ export const FileStationTab: React.FC = () => {
                           {getFileIcon(file)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-bold text-xs text-slate-900 dark:text-white truncate">
-                            {file.name}
+                          <p className="font-bold text-xs text-slate-900 dark:text-white truncate flex items-center gap-1.5">
+                            <span className="truncate">{file.name}</span>
+                            {isCut && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-md font-semibold shrink-0">
+                                Cắt
+                              </span>
+                            )}
                           </p>
                           <p className="text-[11px] text-slate-400 mt-0.5 font-mono">
                             {file.isdir ? (file.itemCount ? `${file.itemCount} mục` : "Thư mục") : formatBytes(file.size)} • {formatDate(file.mtime)}
@@ -587,6 +818,30 @@ export const FileStationTab: React.FC = () => {
                     </div>
 
                     <div className="flex items-center space-x-1 shrink-0">
+                      {file.isdir && clipboard && clipboard.items.length > 0 && (
+                        <button
+                          onClick={() => handlePaste(file.path)}
+                          disabled={pasting}
+                          className="p-1.5 text-amber-500 hover:text-amber-600 rounded-lg hover:bg-amber-500/10 transition-colors"
+                          title={`Dán ${clipboard.items.length} mục vào thư mục này`}
+                        >
+                          <ClipboardPaste className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleCopy([file])}
+                        className="p-1.5 text-slate-400 hover:text-sky-500 rounded-lg transition-colors"
+                        title="Sao chép"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleCut([file])}
+                        className="p-1.5 text-slate-400 hover:text-amber-500 rounded-lg transition-colors"
+                        title="Cắt"
+                      >
+                        <Scissors className="w-4 h-4" />
+                      </button>
                       {!file.isdir && (
                         <button
                           onClick={() => handleDownload(file)}
@@ -666,10 +921,13 @@ export const FileStationTab: React.FC = () => {
                 ) : (
                   filteredFiles.map((file) => {
                     const isSelected = selectedPaths.includes(file.path);
+                    const isCut = clipboard?.action === "cut" && clipboard.items.some((i) => i.path === file.path);
                     return (
                       <tr
                         key={file.path}
-                        className={`transition-colors group cursor-pointer ${
+                        className={`transition-all group cursor-pointer ${
+                          isCut ? "opacity-40 border-dashed border-y border-amber-500/50 bg-amber-500/5" : ""
+                        } ${
                           isSelected
                             ? "bg-sky-500/10 dark:bg-sky-500/15"
                             : "hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
@@ -690,6 +948,11 @@ export const FileStationTab: React.FC = () => {
                         >
                           {getFileIcon(file)}
                           <span className="truncate hover:text-sky-500 transition-colors">{file.name}</span>
+                          {isCut && (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-md font-semibold shrink-0">
+                              Cắt
+                            </span>
+                          )}
                         </td>
 
                         <td className="px-4 py-3.5 text-slate-500 dark:text-slate-400 font-medium">
@@ -711,6 +974,39 @@ export const FileStationTab: React.FC = () => {
 
                         <td className="px-4 py-3.5 text-right">
                           <div className="flex items-center justify-end space-x-1 opacity-80 group-hover:opacity-100">
+                            {file.isdir && clipboard && clipboard.items.length > 0 && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePaste(file.path);
+                                }}
+                                disabled={pasting}
+                                className="p-1.5 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                                title={`Dán ${clipboard.items.length} mục vào thư mục "${file.name}"`}
+                              >
+                                <ClipboardPaste className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopy([file]);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                              title="Sao chép (Ctrl+C)"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCut([file]);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                              title="Cắt (Ctrl+X)"
+                            >
+                              <Scissors className="w-4 h-4" />
+                            </button>
                             {!file.isdir && (
                               <button
                                 onClick={(e) => {
@@ -792,11 +1088,14 @@ export const FileStationTab: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-3.5">
           {filteredFiles.map((file) => {
             const isSelected = selectedPaths.includes(file.path);
+            const isCut = clipboard?.action === "cut" && clipboard.items.some((i) => i.path === file.path);
             return (
               <div
                 key={file.path}
                 onClick={() => (file.isdir ? handleNavigate(file.path) : setPreviewFile(file))}
                 className={`p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border transition-all flex flex-col items-center justify-center text-center cursor-pointer group relative ${
+                  isCut ? "opacity-40 border-dashed border-amber-500 bg-amber-500/5" : ""
+                } ${
                   isSelected
                     ? "bg-sky-500/10 border-sky-500 dark:bg-sky-500/15"
                     : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-sky-500/50 hover:shadow-md"
@@ -818,25 +1117,65 @@ export const FileStationTab: React.FC = () => {
                   />
                 </div>
 
-                {/* Direct Download button on hover */}
-                {!file.isdir && (
+                {/* Quick actions on hover */}
+                <div className="absolute top-2.5 right-2.5 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  {file.isdir && clipboard && clipboard.items.length > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePaste(file.path);
+                      }}
+                      disabled={pasting}
+                      className="p-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-colors"
+                      title={`Dán ${clipboard.items.length} mục vào đây`}
+                    >
+                      <ClipboardPaste className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDownload(file);
+                      handleCopy([file]);
                     }}
-                    className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-slate-100/80 dark:bg-slate-800/80 hover:bg-emerald-500 hover:text-white text-slate-500 transition-colors opacity-0 group-hover:opacity-100 z-10"
-                    title="Tải về"
+                    className="p-1.5 rounded-lg bg-slate-100/90 dark:bg-slate-800/90 hover:bg-sky-500 hover:text-white text-slate-500 transition-colors"
+                    title="Sao chép"
                   >
-                    <Download className="w-3.5 h-3.5" />
+                    <Copy className="w-3.5 h-3.5" />
                   </button>
-                )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCut([file]);
+                    }}
+                    className="p-1.5 rounded-lg bg-slate-100/90 dark:bg-slate-800/90 hover:bg-amber-500 hover:text-white text-slate-500 transition-colors"
+                    title="Cắt"
+                  >
+                    <Scissors className="w-3.5 h-3.5" />
+                  </button>
+                  {!file.isdir && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(file);
+                      }}
+                      className="p-1.5 rounded-lg bg-slate-100/90 dark:bg-slate-800/90 hover:bg-emerald-500 hover:text-white text-slate-500 transition-colors"
+                      title="Tải về"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
 
                 <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 mb-2 group-hover:scale-110 transition-transform">
                   {getFileIcon(file)}
                 </div>
-                <p className="text-xs font-bold text-slate-900 dark:text-white truncate w-full">
-                  {file.name}
+                <p className="text-xs font-bold text-slate-900 dark:text-white truncate w-full flex items-center justify-center gap-1">
+                  <span className="truncate">{file.name}</span>
+                  {isCut && (
+                    <span className="text-[9px] px-1 py-0.2 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded font-semibold shrink-0">
+                      Cắt
+                    </span>
+                  )}
                 </p>
                 <p className="text-[11px] text-slate-400 mt-0.5 font-mono">
                   {file.isdir ? (file.itemCount ? `${file.itemCount} mục` : "Thư mục") : formatBytes(file.size)}
@@ -854,6 +1193,22 @@ export const FileStationTab: React.FC = () => {
             Đã chọn {selectedPaths.length} mục
           </span>
           <div className="h-4 w-[1px] bg-slate-700" />
+          <button
+            onClick={() => handleCopy()}
+            className="flex items-center space-x-1 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm border border-slate-700"
+            title="Sao chép các mục đã chọn (Ctrl+C)"
+          >
+            <Copy className="w-3.5 h-3.5" />
+            <span>Sao chép</span>
+          </button>
+          <button
+            onClick={() => handleCut()}
+            className="flex items-center space-x-1 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-xl text-xs font-bold transition-all shadow-sm border border-slate-700"
+            title="Cắt các mục đã chọn (Ctrl+X)"
+          >
+            <Scissors className="w-3.5 h-3.5" />
+            <span>Cắt</span>
+          </button>
           <button
             onClick={handleBatchDownload}
             className="flex items-center space-x-1 px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm"

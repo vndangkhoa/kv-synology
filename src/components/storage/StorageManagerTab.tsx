@@ -21,6 +21,7 @@ import {
 } from "@/lib/dsm/types";
 import { formatBytes } from "@/lib/utils";
 import ResponsiveModal from "@/components/common/ResponsiveModal";
+import { SynoSmartInfoTab } from "./SynoSmartInfoTab";
 import {
   HardDrive,
   Database,
@@ -79,12 +80,23 @@ export function getRaidInfo(raid?: string) {
   return { name: raid, short: raid, tolerance: "—", color: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200" };
 }
 
+export function formatLifetimeSpan(hours?: number | null): string {
+  if (hours === null || hours === undefined || isNaN(hours) || hours <= 0) return "—";
+  const days = Math.floor(hours / 24);
+  const years = (hours / 8760).toFixed(1);
+  if (days < 30) return `${hours.toLocaleString()}h (${days} ngày)`;
+  const months = Math.floor(days / 30.4375);
+  if (months < 12) return `${hours.toLocaleString()}h (~${months} tháng)`;
+  const remMonths = Math.floor((days % 365) / 30);
+  return `${hours.toLocaleString()}h (~${years} năm${remMonths > 0 ? ` ${remMonths}th` : ""})`;
+}
+
 export const StorageManagerTab: React.FC = () => {
   const { session, language, t } = useAppStore();
   const isEn = language === "en";
   const [fullInfo, setFullInfo] = useState<StorageFullInfo | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"overview" | "pools" | "disks" | "caches" | "hotspare" | "scrub">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "pools" | "disks" | "smartinfo" | "caches" | "hotspare" | "scrub">("overview");
 
   // SMART & Bad sector
   const [smartInfos, setSmartInfos] = useState<Record<string, SmartInfo | null>>({});
@@ -544,7 +556,8 @@ export const StorageManagerTab: React.FC = () => {
         <div className="flex items-center gap-1.5 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl overflow-x-auto text-xs sm:text-sm font-semibold">
           <button onClick={()=>setActiveTab("overview")} className={`px-4 py-2 rounded-xl transition-all shrink-0 flex items-center gap-2 ${activeTab==="overview"?"bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm font-bold":"text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"}`}><Layers className="w-4 h-4"/>{isEn ? "Overview" : "Tổng quan"}</button>
           <button onClick={()=>setActiveTab("pools")} className={`px-4 py-2 rounded-xl transition-all shrink-0 flex items-center gap-2 ${activeTab==="pools"?"bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm font-bold":"text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"}`}><Server className="w-4 h-4"/>{isEn ? `Storage Pools (${storagePools.length || 2})` : `Kho lưu trữ (${storagePools.length || 2})`}</button>
-          <button onClick={()=>setActiveTab("disks")} className={`px-4 py-2 rounded-xl transition-all shrink-0 flex items-center gap-2 ${activeTab==="disks"?"bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm font-bold":"text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"}`}><Activity className="w-4 h-4"/>{isEn ? `HDD/SSD & S.M.A.R.T. (${allDrives.length || 4})` : `HDD/SSD & S.M.A.R.T. (${allDrives.length || 4})`}</button>
+          <button onClick={()=>setActiveTab("disks")} className={`px-4 py-2 rounded-xl transition-all shrink-0 flex items-center gap-2 ${activeTab==="disks"?"bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm font-bold":"text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"}`}><HardDrive className="w-4 h-4"/>{isEn ? `HDD/SSD (${allDrives.length || 4})` : `HDD/SSD (${allDrives.length || 4})`}</button>
+          <button onClick={()=>setActiveTab("smartinfo")} className={`px-4 py-2 rounded-xl transition-all shrink-0 flex items-center gap-2 ${activeTab==="smartinfo"?"bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm font-bold":"text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"}`}><ShieldCheck className="w-4 h-4 text-sky-500"/>{isEn ? "S.M.A.R.T. Info (SynoSmart)" : "S.M.A.R.T. Info (SynoSmart)"}</button>
           <button onClick={()=>setActiveTab("caches")} className={`px-4 py-2 rounded-xl transition-all shrink-0 flex items-center gap-2 ${activeTab==="caches"?"bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-sm font-bold":"text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"}`}><Zap className="w-4 h-4 text-amber-500"/>{isEn ? `SSD Cache ${ssdCaches.length>0 ? `(${ssdCaches.length})` : ""}` : `Bộ đệm SSD ${ssdCaches.length>0 ? `(${ssdCaches.length})` : ""}`}</button>
           <button onClick={()=>setActiveTab("hotspare")} className={`px-4 py-2 rounded-xl transition-all shrink-0 flex items-center gap-2 ${activeTab==="hotspare"?"bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm font-bold":"text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"}`}><Sliders className="w-4 h-4"/>{isEn ? "Hot Spare & Config" : "Hot Spare & Cấu hình"}</button>
           <button onClick={()=>setActiveTab("scrub")} className={`px-4 py-2 rounded-xl transition-all shrink-0 flex items-center gap-2 ${activeTab==="scrub"?"bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm font-bold":"text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"}`}><ShieldAlert className="w-4 h-4"/>{isEn ? "Data Scrubbing" : "Data Scrubbing"}</button>
@@ -843,19 +856,19 @@ export const StorageManagerTab: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs bg-slate-50/70 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
                   <div>
                     <span className="text-slate-400 block text-[11px]">Location:</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">{typeof d.location === "string" ? d.location : "khoav"}</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{typeof d.location === "string" && d.location ? d.location : (isNvme ? "M.2 Slot" : `Bay ${d.slot}`)}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[11px]">Allocation role:</span>
-                    <span className="font-semibold text-indigo-600 dark:text-indigo-400">{typeof d.allocationRole === "string" ? d.allocationRole : `Storage Pool ${d.slot <= 2 ? 1 : 2}`}</span>
+                    <span className="font-semibold text-indigo-600 dark:text-indigo-400">{typeof d.allocationRole === "string" && d.allocationRole ? d.allocationRole : "Storage Pool"}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[11px]">Serial number:</span>
-                    <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{typeof d.serial === "string" ? d.serial : "—"}</span>
+                    <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{typeof d.serial === "string" && d.serial ? d.serial : "—"}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[11px]">Firmware / 4Kn:</span>
-                    <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{typeof d.fwVersion === "string" && d.fwVersion ? d.fwVersion : "MKAOAA50"} • {d.is4Kn ? "4Kn Native" : "512e"}</span>
+                    <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{typeof d.fwVersion === "string" && d.fwVersion ? d.fwVersion : "—"} {d.is4Kn ? "• 4Kn" : ""}</span>
                   </div>
                 </div>
 
@@ -874,15 +887,21 @@ export const StorageManagerTab: React.FC = () => {
                     </p>
                   </div>
                   <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border text-center shadow-xs">
-                    <p className="text-[11px] text-slate-400 font-medium">PowerOn Hours</p>
-                    <p className="font-bold font-mono text-base mt-0.5 text-slate-900 dark:text-white">
-                      {info?.powerOnHours ? `${info.powerOnHours.toLocaleString()}h` : d.powerOnHours ? `${d.powerOnHours.toLocaleString()}h` : (d.slot === 1 ? "5,591h" : d.slot === 4 ? "26,394h" : "1,672h")}
+                    <p className="text-[11px] text-slate-400 font-medium">
+                      {d.remainLife !== undefined ? "Tuổi thọ còn lại" : "Giờ chạy / Tuổi thọ"}
+                    </p>
+                    <p className="font-bold font-mono text-xs sm:text-sm mt-0.5 text-slate-900 dark:text-white truncate" title={info?.powerOnHours || d.powerOnHours ? `${(info?.powerOnHours || d.powerOnHours || 0).toLocaleString()} giờ` : undefined}>
+                      {d.remainLife !== undefined
+                        ? `${d.remainLife}% còn lại`
+                        : (info?.powerOnHours || d.powerOnHours)
+                        ? formatLifetimeSpan(info?.powerOnHours || d.powerOnHours)
+                        : "—"}
                     </p>
                   </div>
                   <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border text-center shadow-xs">
                     <p className="text-[11px] text-slate-400 font-medium">Temperature</p>
                     <p className="font-bold font-mono text-base mt-0.5 text-amber-500">
-                      {d.temp || 46}°C / {toFahrenheit(d.temp || 46)}°F
+                      {d.temp ? `${d.temp}°C / ${toFahrenheit(d.temp)}°F` : "—"}
                     </p>
                   </div>
                 </div>
@@ -924,6 +943,9 @@ export const StorageManagerTab: React.FC = () => {
                   <button onClick={()=>handleSmartTest(did,"long")} disabled={isLoading || !session.isConnected} className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold border">
                     Extended Test
                   </button>
+                  <button onClick={()=>setActiveTab("smartinfo")} className="px-3.5 py-2 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 hover:bg-sky-100 text-xs font-semibold border border-sky-200 dark:border-sky-800 flex items-center gap-1.5 shadow-sm">
+                    <Activity className="w-3.5 h-3.5"/>SynoSmart Scan
+                  </button>
                   <button onClick={()=>openBenchmarkModal(d)} disabled={!session.isConnected} className="px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-xs font-semibold border border-indigo-200 dark:border-indigo-800 flex items-center gap-1.5 ml-auto">
                     <Gauge className="w-3.5 h-3.5"/>Kiểm tra tốc độ (Benchmark)
                   </button>
@@ -933,6 +955,9 @@ export const StorageManagerTab: React.FC = () => {
           })}
         </div>
       )}
+
+      {/* TAB: SYNO SMART INFO (PeterSuh-Q3/SynoSmartInfo) */}
+      {activeTab==="smartinfo" && <SynoSmartInfoTab />}
 
       {/* TAB 4: SSD CACHE (DIRECT FULL DISPLAY) */}
       {activeTab==="caches" && (

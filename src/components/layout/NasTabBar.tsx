@@ -34,16 +34,56 @@ export const NasTabBar: React.FC = () => {
   const [switchingId, setSwitchingId] = useState<string | null>(null);
 
   const refreshProfiles = () => {
-    setProfiles(getNasProfiles());
+    let list = getNasProfiles();
+    const cfg = dsmClient.getConfig();
+    const curHost = cfg?.host || session.hostname;
+
+    // If connected to a NAS that isn't yet saved in profiles, auto-register it
+    if (session.isConnected && curHost && curHost !== "Synology-NAS" && !list.some((p) => p.host === curHost)) {
+      const profId = `nas_${curHost.replace(/\./g, "_")}_${cfg?.port || 5001}_${cfg?.account || session.account || "admin"}`;
+      const newProf: NasProfile = {
+        id: profId,
+        name: session.hostname ? `${session.hostname} (${session.model || curHost})` : `Synology NAS (${curHost})`,
+        host: curHost,
+        port: cfg?.port || (cfg?.https ? 5001 : 5000),
+        https: cfg?.https ?? true,
+        account: cfg?.account || session.account || "admin",
+        stay7Days: true,
+        remember: true,
+        model: session.model || "DS920+",
+        versionString: session.versionString || "DSM 7.2.1",
+        lastConnectedAt: Date.now(),
+      };
+      saveNasProfile(newProf);
+      list = getNasProfiles();
+    }
+    setProfiles(list);
   };
 
   useEffect(() => {
     refreshProfiles();
-  }, [session.isConnected]);
+  }, [session.isConnected, session.hostname]);
+
+  const currentHost = dsmClient.getConfig()?.host || session.hostname || "";
+  const activeProfileId = getActiveProfileId();
+
+  // Find the single truly active profile matching current connection
+  const activeProfile = session.isConnected
+    ? profiles.find(
+        (p) =>
+          currentHost &&
+          currentHost !== "Synology-NAS" &&
+          (p.host === currentHost || currentHost.includes(p.host) || p.host.includes(currentHost))
+      ) ||
+      profiles.find((p) => p.id === activeProfileId) ||
+      profiles.find((p) => p.isCurrent) ||
+      profiles[0]
+    : null;
 
   const handleSwitchNas = async (prof: NasProfile) => {
-    if (prof.id === getActiveProfileId() && session.isConnected) return;
+    if (activeProfile?.id === prof.id && session.isConnected) return;
     setSwitchingId(prof.id);
+    setActiveProfileId(prof.id);
     try {
       dsmClient.clearCaches();
       useAppStore.setState({
@@ -100,8 +140,6 @@ export const NasTabBar: React.FC = () => {
     return null;
   }
 
-  const activeId = getActiveProfileId();
-
   return (
     <div className="w-full bg-slate-100/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-2.5 sm:px-6 py-1.5 sm:py-2 flex items-center justify-between gap-2 sm:gap-3 overflow-x-auto no-scrollbar transition-all relative z-10">
       {/* Left: Multi-NAS Instance Tabs */}
@@ -112,9 +150,8 @@ export const NasTabBar: React.FC = () => {
         </span>
 
         {profiles.map((prof) => {
-          const isActive =
-            session.isConnected &&
-            (prof.id === activeId || prof.isCurrent || (session.hostname && prof.name.includes(session.hostname)));
+          // Exactly one profile can be active at a time
+          const isActive = session.isConnected && activeProfile?.id === prof.id;
           const isSwitching = switchingId === prof.id;
 
           return (

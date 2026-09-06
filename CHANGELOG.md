@@ -6,6 +6,27 @@ Tất cả thay đổi của dự án độc lập **kv-synology** (tách từ `
 
 ---
 
+## [1.5.0] - 2026-09-06
+
+### 🚀 Tính năng mới & Nâng cấp (Added & Improved)
+- **S.M.A.R.T. Full Specs & Không Cắt Ngắn Thông Tin**:
+  - Tích hợp chuyên sâu repository PeterSuh-Q3/SynoSmartInfo với tùy chọn quét mặc định `-a` (hiển thị toàn bộ thuộc tính S.M.A.R.T. và NVMe telemetry thay vì chế độ rút gọn).
+  - Khôi phục 100% bảng thuộc tính chi tiết, mã lỗi, giá trị thô (Raw values) bị ẩn từ phiên bản DSM 7.2.1+ / 7.2.2.
+  - Thêm modal "Xem toàn bộ thông số SMART (Full Specs)" cho từng ổ đĩa với ô tìm kiếm nhanh, lọc theo trạng thái và xem bản ghi thô (Raw block).
+  - Bổ sung nút mở rộng chiều cao tối đa (Expand Full Height) trên trình xem log Terminal ANSI giúp xem log không giới hạn.
+- **Tuổi thọ Ổ đĩa Chính xác & Loại bỏ Dữ liệu Ảo (Accurate Lifetime Span, No Fake Data)**:
+  - Tính toán và hiển thị chính xác Thời gian chạy thực tế & Tuổi thọ ổ đĩa (Operating Lifetime Span) từ số giờ chạy thật (`Power-On Hours` ID 9).
+  - Hiển thị tỷ lệ phần trăm tuổi thọ SSD / NVMe còn lại (`Remaining Life`) và độ mòn tế bào nhớ (`Percentage Used`).
+  - Loại bỏ hoàn toàn tất cả các giá trị giả lập/hardcoded fallback ("100% Tuổi thọ", "5,591h", "26,394h", "khoav", "MKAOAA50") trên toàn bộ hệ thống Storage Manager.
+- **File Station - Thao tác Tệp Đầy Đủ**:
+  - Trang bị bộ công cụ Sao chép (Copy), Cắt (Cut), Dán (Paste) hoàn chỉnh cho File Station trên máy tính và thiết bị di động.
+  - Hỗ trợ phím tắt bàn phím chuẩn (`Ctrl+C`, `Ctrl+X`, `Ctrl+V`, `Esc`), thanh trạng thái bộ nhớ tạm nổi (Clipboard Banner) và dán nhanh vào thư mục con.
+- **Quản lý Đăng nhập & Đồng bộ Multi-NAS**:
+  - Đảm bảo cơ chế duy nhất 1 NAS Active: khi người dùng chọn một NAS để làm việc, toàn bộ các NAS khác luôn tự động chuyển về trạng thái In-Active.
+  - Hỗ trợ nút xóa toàn bộ danh sách đăng nhập đã lưu (Clear All) và xóa nhanh từng tài khoản (Individual Delete).
+
+---
+
 ## [1.4.0] - 2026-09-06
 
 ### 🚀 Tính năng mới (Added)

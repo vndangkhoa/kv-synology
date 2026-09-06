@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { dsmClient } from "@/lib/dsm/client";
 import { DSMConnectionConfig } from "@/lib/dsm/types";
-import { persistSession, loadPersistedCredentials, getNasProfiles, saveNasProfile, setActiveProfileId, NasProfile } from "@/lib/sessionStorage";
+import { persistSession, loadPersistedCredentials, getNasProfiles, saveNasProfile, removeNasProfile, clearAllNasProfiles, setActiveProfileId, NasProfile } from "@/lib/sessionStorage";
 import {
   X,
   Server,
@@ -21,6 +21,7 @@ import {
   BookmarkCheck,
   Shield,
   Layers,
+  Trash2,
 } from "lucide-react";
 
 import ResponsiveModal from "@/components/common/ResponsiveModal";
@@ -100,6 +101,40 @@ export const LoginModal: React.FC = () => {
     setIgnoreCert(prof.ignoreCert ?? true);
     setRemember(prof.remember ?? true);
     setStay7Days(prof.stay7Days ?? true);
+  };
+
+  const handleRemoveProfile = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const profToDelete = savedProfiles.find((p) => p.id === id);
+    const targetName = profToDelete?.name || profToDelete?.host || "thiết bị này";
+    if (!confirm(`Bạn có chắc chắn muốn xóa thông tin đăng nhập của "${targetName}"?`)) return;
+
+    removeNasProfile(id);
+    const updated = getNasProfiles();
+    setSavedProfiles(updated);
+
+    if (profToDelete && host === profToDelete.host && account === profToDelete.account) {
+      if (updated.length > 0) {
+        selectProfile(updated[0]);
+      } else {
+        setProfileName("");
+        setHost("");
+        setAccount("");
+        setPassword("");
+      }
+    }
+  };
+
+  const handleClearAllProfiles = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Bạn có chắc chắn muốn xóa TẤT CẢ các thiết bị và tài khoản đã lưu khỏi trình duyệt?")) return;
+
+    clearAllNasProfiles();
+    setSavedProfiles([]);
+    setProfileName("");
+    setHost("");
+    setAccount("");
+    setPassword("");
   };
 
   if (!isLoginModalOpen) return null;
@@ -232,24 +267,58 @@ export const LoginModal: React.FC = () => {
             </div>
           )}
 
-          {/* Saved devices - compact */}
+          {/* Saved devices */}
           {savedProfiles.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
-              {savedProfiles.map((prof) => (
+            <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-300">
+                  <Server className="w-3.5 h-3.5 text-sky-500" />
+                  <span>Thiết bị đã lưu ({savedProfiles.length})</span>
+                </div>
                 <button
-                  key={prof.id}
                   type="button"
-                  onClick={() => selectProfile(prof)}
-                  className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all flex items-center gap-1.5 ${
-                    host === prof.host && account === prof.account
-                      ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-transparent hover:border-slate-300 dark:hover:border-slate-600"
-                  }`}
+                  onClick={handleClearAllProfiles}
+                  className="text-[11px] font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                  title="Xóa toàn bộ thiết bị đã lưu"
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${host === prof.host ? "bg-sky-400" : "bg-slate-400"}`} />
-                  {prof.name || prof.host}
+                  <Trash2 className="w-3 h-3" />
+                  <span>Xóa tất cả</span>
                 </button>
-              ))}
+              </div>
+
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5 scrollbar-none">
+                {savedProfiles.map((prof) => {
+                  const isSelected = host === prof.host && account === prof.account;
+                  return (
+                    <div
+                      key={prof.id}
+                      onClick={() => selectProfile(prof)}
+                      className={`group shrink-0 pl-3 pr-1.5 py-1 rounded-full text-xs font-medium border transition-all flex items-center gap-1.5 cursor-pointer ${
+                        isSelected
+                          ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-sm"
+                          : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-sky-400" : "bg-slate-400"}`} />
+                      <span className="font-semibold">{prof.name || prof.host}</span>
+                      <span className="text-[10px] opacity-70">({prof.account})</span>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleRemoveProfile(e, prof.id)}
+                        className={`p-1 rounded-full transition-colors ml-0.5 ${
+                          isSelected
+                            ? "hover:bg-white/20 text-white/70 hover:text-white dark:hover:bg-slate-200 dark:text-slate-600 dark:hover:text-slate-900"
+                            : "hover:bg-rose-500/10 text-slate-400 hover:text-rose-500"
+                        }`}
+                        title="Xóa hồ sơ này"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

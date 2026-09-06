@@ -7,6 +7,7 @@ import {
   getNasProfiles,
   saveNasProfile,
   removeNasProfile,
+  clearAllNasProfiles,
   getActiveProfileId,
   setActiveProfileId,
   NasProfile,
@@ -35,12 +36,34 @@ export const NasSwitcherDropdown: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const refreshProfiles = () => {
-    setProfiles(getNasProfiles());
+    let list = getNasProfiles();
+    const cfg = dsmClient.getConfig();
+    const curHost = cfg?.host || session.hostname;
+
+    if (session.isConnected && curHost && curHost !== "Synology-NAS" && !list.some((p) => p.host === curHost)) {
+      const profId = `nas_${curHost.replace(/\./g, "_")}_${cfg?.port || 5001}_${cfg?.account || session.account || "admin"}`;
+      const newProf: NasProfile = {
+        id: profId,
+        name: session.hostname ? `${session.hostname} (${session.model || curHost})` : `Synology NAS (${curHost})`,
+        host: curHost,
+        port: cfg?.port || (cfg?.https ? 5001 : 5000),
+        https: cfg?.https ?? true,
+        account: cfg?.account || session.account || "admin",
+        stay7Days: true,
+        remember: true,
+        model: session.model || "DS920+",
+        versionString: session.versionString || "DSM 7.2.1",
+        lastConnectedAt: Date.now(),
+      };
+      saveNasProfile(newProf);
+      list = getNasProfiles();
+    }
+    setProfiles(list);
   };
 
   useEffect(() => {
     refreshProfiles();
-  }, [session.isConnected]);
+  }, [session.isConnected, session.hostname]);
 
   // Click outside listener
   useEffect(() => {
@@ -55,8 +78,33 @@ export const NasSwitcherDropdown: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
+  const currentHost = dsmClient.getConfig()?.host || session.hostname || "";
+  const activeProfileId = getActiveProfileId();
+
+  // Find the single active profile matching current connection
+  const activeProfile = session.isConnected
+    ? profiles.find(
+        (p) =>
+          currentHost &&
+          currentHost !== "Synology-NAS" &&
+          (p.host === currentHost || currentHost.includes(p.host) || p.host.includes(currentHost))
+      ) ||
+      profiles.find((p) => p.id === activeProfileId) ||
+      profiles.find((p) => p.isCurrent) ||
+      profiles[0]
+    : null;
+
+  const displayName = session.isConnected
+    ? (activeProfile?.name || session.hostname || session.model || "Synology NAS")
+    : "Chưa kết nối NAS";
+
   const handleSwitchNas = async (prof: NasProfile) => {
+    if (activeProfile?.id === prof.id && session.isConnected) {
+      setIsOpen(false);
+      return;
+    }
     setSwitchingId(prof.id);
+    setActiveProfileId(prof.id);
     try {
       if (prof.password) {
         const clearPassword = atob(prof.password);
@@ -78,14 +126,12 @@ export const NasSwitcherDropdown: React.FC = () => {
         refreshProfiles();
         setIsOpen(false);
       } else {
-        // Prompt login with prefilled profile
         setActiveProfileId(prof.id);
         setIsOpen(false);
         openLoginModal(true);
       }
     } catch (e: any) {
       console.error("Switch failed", e);
-      // Open login modal to re-authenticate
       openLoginModal(true);
     } finally {
       setSwitchingId(null);
@@ -96,6 +142,13 @@ export const NasSwitcherDropdown: React.FC = () => {
     e.stopPropagation();
     if (!confirm("Bạn có chắc muốn xóa thiết bị NAS này khỏi danh sách đã lưu?")) return;
     removeNasProfile(id);
+    refreshProfiles();
+  };
+
+  const handleClearAll = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Bạn có chắc muốn xóa TẤT CẢ các thiết bị NAS đã lưu khỏi danh sách?")) return;
+    clearAllNasProfiles();
     refreshProfiles();
   };
 
@@ -112,11 +165,6 @@ export const NasSwitcherDropdown: React.FC = () => {
     });
     setIsOpen(false);
   };
-
-  const currentProf = profiles.find((p) => p.isCurrent || (session.isConnected && p.host.includes(session.hostname || "")));
-  const displayName = session.isConnected
-    ? (session.hostname || currentProf?.name || session.model || "Synology NAS")
-    : "Chưa kết nối NAS";
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -167,16 +215,28 @@ export const NasSwitcherDropdown: React.FC = () => {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                openLoginModal(true);
-              }}
-              className="px-2.5 py-1 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-sm transition-all"
-            >
-              <Plus className="w-3 h-3" />
-              <span>Thêm NAS</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              {profiles.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearAll}
+                  className="text-[11px] font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 hover:underline px-2 py-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                  title="Xóa toàn bộ hồ sơ NAS đã lưu"
+                >
+                  Xóa tất cả
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  openLoginModal(true);
+                }}
+                className="px-2.5 py-1 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-sm transition-all"
+              >
+                <Plus className="w-3 h-3" />
+                <span>Thêm NAS</span>
+              </button>
+            </div>
           </div>
 
           {/* Profiles List */}
@@ -189,9 +249,7 @@ export const NasSwitcherDropdown: React.FC = () => {
               </div>
             ) : (
               profiles.map((prof) => {
-                const isActive =
-                  session.isConnected &&
-                  (prof.isCurrent || (session.hostname && prof.name.includes(session.hostname)) || prof.host === dsmClient.getConfig()?.host);
+                const isActive = session.isConnected && activeProfile?.id === prof.id;
                 const isSwitching = switchingId === prof.id;
 
                 return (

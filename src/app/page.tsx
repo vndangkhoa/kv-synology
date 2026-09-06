@@ -106,6 +106,10 @@ export default function Home() {
           dsmClient.setSession(persisted.session, persisted.config as any);
           // also ensure store reflects restored session
           setSession(persisted.session);
+          if (persisted.config?.host) {
+            const profId = `nas_${persisted.config.host.replace(/\./g, "_")}_${persisted.config.port}_${persisted.config.account}`;
+            localStorage.setItem("dsm_active_profile_id", profId);
+          }
           // verify sid still valid in background; if invalid, fallback will clear on next fetch
           // proactive check: try lightweight call, ignore error
           dsmClient.getSystemInfo().catch(() => {

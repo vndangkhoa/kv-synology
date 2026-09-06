@@ -302,13 +302,19 @@ export function getNasProfiles(): NasProfile[] {
 export function saveNasProfile(profile: NasProfile): void {
   if (!isBrowser()) return;
   try {
-    const existing = getNasProfiles();
-    const idx = existing.findIndex((p) => p.id === profile.id || (p.host === profile.host && p.port === profile.port && p.account === profile.account));
+    const existing = getNasProfiles().map((p) => ({ ...p, isCurrent: p.id === profile.id }));
+    const idx = existing.findIndex(
+      (p) =>
+        p.id === profile.id ||
+        (p.host === profile.host && p.port === profile.port && p.account === profile.account)
+    );
     let updated: NasProfile[];
     if (idx >= 0) {
-      updated = existing.map((p, i) => (i === idx ? { ...p, ...profile } : p));
+      updated = existing.map((p, i) =>
+        i === idx ? { ...p, ...profile, isCurrent: true } : { ...p, isCurrent: false }
+      );
     } else {
-      updated = [...existing, profile];
+      updated = [...existing.map((p) => ({ ...p, isCurrent: false })), { ...profile, isCurrent: true }];
     }
     localStorage.setItem(PROFILES_KEY, JSON.stringify(updated));
     setActiveProfileId(profile.id);
@@ -330,6 +336,16 @@ export function removeNasProfile(id: string): void {
         localStorage.removeItem(ACTIVE_PROFILE_KEY);
       }
     }
+  } catch {}
+}
+
+export function clearAllNasProfiles(): void {
+  if (!isBrowser()) return;
+  try {
+    localStorage.removeItem(PROFILES_KEY);
+    localStorage.removeItem(ACTIVE_PROFILE_KEY);
+    localStorage.removeItem(CREDENTIALS_KEY);
+    localStorage.removeItem(SESSION_KEY);
   } catch {}
 }
 
