@@ -6,6 +6,36 @@ Tất cả thay đổi của dự án độc lập **kv-synology** (tách từ `
 
 ---
 
+## [1.4.0] - 2026-09-06
+
+### 🚀 Tính năng mới (Added)
+- **Ứng dụng Di Động Android Native (KV Synology Android Edition)**:
+  - Phát hành phiên bản ứng dụng Android Native hoàn chỉnh trên nền tảng Jetpack Compose và Material 3.
+  - Đầy đủ 15 phân hệ quản trị DSM: Dashboard thời gian thực, File Station, Docker Container, Download Station, Storage Manager, Resource Monitor, Package Center, Services, Reverse Proxy, Firewall, ACL Permissions, Notifications, Network Traffic, SNMP Sensors, Terminal.
+  - Tích hợp trợ lý AI cục bộ (On-device Local AI Assistant) phân tích telemetry NAS ngoại tuyến mà không cần API key.
+- **Nâng cấp Toàn diện File Station trên Android**:
+  - Hỗ trợ tải tệp tin về thư mục Downloads của điện thoại.
+  - Trình chỉnh sửa văn bản tích hợp (Text Editor) trực tiếp mở và lưu file văn bản lên máy chủ NAS.
+  - Tạo và sao chép liên kết chia sẻ công khai (Sharing Links) có mật khẩu và thời hạn hết hạn.
+  - Thao tác tệp nâng cao: Cắt (Cut), Sao chép (Copy), Dán (Paste), Đổi tên và Xóa tệp/thư mục.
+- **Cải tiến Tường Lửa & Reverse Proxy trên Di Động**:
+  - Đồng bộ và lọc chính xác danh sách quy tắc Cho phép / Chặn (Allow / Deny rules) từ DSM.
+  - Hỗ trợ thêm mới và chỉnh sửa trực quan toàn bộ thông số Reverse Proxy (Source, Target, HSTS, HTTP/2, WebSocket).
+- **Quản lý Hồ sơ Đăng nhập & An toàn Mật khẩu**:
+  - Tự động ghi nhớ tài khoản và mã hóa mật khẩu an toàn với Jetpack Security `EncryptedSharedPreferences`.
+  - Danh sách máy chủ đã lưu dạng thẻ cuộn ngang với 1 chạm chọn nhanh và nút xóa `✕` từng máy chủ.
+  - Hộp thoại xóa sạch toàn bộ hồ sơ đăng nhập đã lưu (Purge All).
+  - Nút lưu cấu hình máy chủ thủ công và nút xóa trắng form nhập liệu nhanh.
+- **Cài đặt & Hệ Sinh Thái KV (Settings & KV Ecosystem)**:
+  - Thẻ thông tin giới thiệu phần mềm và hệ sinh thái KV Apps.
+  - Tích hợp liên kết mở nhanh Cổng ứng dụng KV [https://syno.vndns.net](https://syno.vndns.net) và Fanpage Facebook [fb.com/syno.vndns.net](https://fb.com/syno.vndns.net).
+  - Gỡ bỏ nút gạt On/Off Demo Mode trong Cài đặt, chuẩn hóa thẻ chỉ đọc trực quan hiển thị trạng thái phiên làm việc.
+- **Phát hành & Phân phối (Release & Distribution)**:
+  - Đóng gói bản phát hành Release APK chính thức (`kvsynology-release.apk`).
+  - Tích hợp nút tải trực tiếp Android APK trên kho gói KV Apps tại `https://pkg.khoavo.myds.me/package/kvsynology`.
+
+---
+
 ## [1.3.0] - 2026-09-05
 
 ### 🚀 Tính năng mới (Added)

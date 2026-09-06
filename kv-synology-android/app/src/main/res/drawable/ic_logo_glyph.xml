@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Canonical KV Synology brand mark: white dual-bay NAS stack with drive
+     LEDs and vent lines. Transparent background so it can sit on any
+     SynologyBlue surface (launcher, splash, login header, drawer). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,34 h52 a4,4 0 0 1 4,4 v7 a4,4 0 0 1 -4,4 H28 a4,4 0 0 1 -4,-4 v-7 a4,4 0 0 1 4,-4zM28,59 h52 a4,4 0 0 1 4,4 v7 a4,4 0 0 1 -4,4 H28 a4,4 0 0 1 -4,-4 v-7 a4,4 0 0 1 4,-4z" />
+    <path
+        android:fillColor="#0067E6"
+        android:pathData="M34.8,41.5 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0zM44.8,41.5 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0zM34.8,66.5 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0zM44.8,66.5 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0zM58,39 h16 v2.4 h-16 zM58,43.6 h16 v2.4 h-16 zM58,64 h16 v2.4 h-16 zM58,68.6 h16 v2.4 h-16 z" />
+</vector>

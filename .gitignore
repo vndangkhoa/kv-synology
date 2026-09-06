@@ -33,3 +33,13 @@ next-env.d.ts
 .DS_Store
 *.pem
 Thumbs.db
+
+# Android
+*.iml
+.gradle/
+**/build/
+/.idea/
+local.properties
+.cxx/
+captures/
+
