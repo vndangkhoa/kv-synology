@@ -20,6 +20,11 @@ Tất cả thay đổi của dự án độc lập **kv-synology** (tách từ `
 ### 📱 Ứng dụng Android
 - Bumped `versionCode = 8`, `versionName = "1.5.4"`; updater trong Cài đặt trỏ mốc `1.5.4`.
 
+### 📦 Phân phối (Distribution)
+- **Docker image `1.5.4` + `latest`** (amd64+arm64) đã đẩy lên cả 3 registry: `ghcr.io/vndangkhoa/kv-synology`, `docker.io/vndangkhoa/kv-synology`, `git.khoavo.myds.me/vndangkhoa/kv-synology`.
+- **SPK `kvsynology_x64-7.2_1.0.0-22.spk`** đã build + publish + **ACTIVE** trên `https://pkg.khoavo.myds.me/package/kvsynology` (ghim image `1.5.4`); trang tải tay `spk.khoavo.myds.me` đã refresh.
+- **APK `1.5.4`** trên GitHub/Forgejo Releases và `spk.khoavo.myds.me/kvsynology-release.apk`.
+
 ---
 
 ## [1.5.3] - 2026-09-07
