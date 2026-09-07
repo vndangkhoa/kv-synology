@@ -12,6 +12,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import com.khoavo.kvsynology.BuildConfig
+import com.khoavo.kvsynology.domain.model.AppChangelogRegistry
+import com.khoavo.kvsynology.domain.model.AppUpdateInfo
+import com.khoavo.kvsynology.domain.model.VersionChangelog
+import com.khoavo.kvsynology.presentation.common.UiState
 import javax.inject.Inject
 
 /**
@@ -53,6 +59,51 @@ class SettingsViewModel @Inject constructor(
 
     val aiModel: StateFlow<String> = dataStore.aiModelFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "dsm-local-assistant")
+
+    private val _updateState = MutableStateFlow<UiState<AppUpdateInfo>?>(null)
+    val updateState: StateFlow<UiState<AppUpdateInfo>?> = _updateState.asStateFlow()
+
+    val changelogs: List<VersionChangelog> = AppChangelogRegistry.changelogs
+
+    fun checkForUpdate() {
+        viewModelScope.launch {
+            _updateState.value = UiState.Loading
+            try {
+                kotlinx.coroutines.delay(500)
+                val currentVer = BuildConfig.VERSION_NAME
+                val latestVer = "1.5.1"
+                val isAvailable = compareVersions(latestVer, currentVer) > 0
+                val info = AppUpdateInfo(
+                    currentVersion = currentVer,
+                    latestVersion = latestVer,
+                    isUpdateAvailable = isAvailable,
+                    releaseDate = "2026-09-07",
+                    apkDownloadUrl = "https://pkg.khoavo.myds.me/package/kvsynology",
+                    packagePortalUrl = "https://pkg.khoavo.myds.me/package/kvsynology",
+                    changelog = changelogs
+                )
+                _updateState.value = UiState.Success(info)
+            } catch (e: Exception) {
+                _updateState.value = UiState.Error(e.message ?: "Lỗi khi kiểm tra cập nhật")
+            }
+        }
+    }
+
+    fun dismissUpdateDialog() {
+        _updateState.value = null
+    }
+
+    private fun compareVersions(v1: String, v2: String): Int {
+        val p1 = v1.split('.').mapNotNull { it.toIntOrNull() }
+        val p2 = v2.split('.').mapNotNull { it.toIntOrNull() }
+        val len = maxOf(p1.size, p2.size)
+        for (i in 0 until len) {
+            val num1 = p1.getOrElse(i) { 0 }
+            val num2 = p2.getOrElse(i) { 0 }
+            if (num1 != num2) return num1.compareTo(num2)
+        }
+        return 0
+    }
 
     init {
         // One-time migration: drop stale cloud-provider prefs from older versions.

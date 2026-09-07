@@ -368,38 +368,63 @@ fun ContainerCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = onInspect) {
+                TextButton(
+                    onClick = onInspect,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                ) {
                     Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text("Nhật ký & Chi tiết", fontSize = 12.sp)
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (!isRunning) {
-                        IconButton(onClick = onDelete) {
-                            Icon(Icons.Default.Delete, contentDescription = "Xóa container", tint = SynologyRose, modifier = Modifier.size(20.dp))
-                        }
+                if (!isRunning) {
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = "Xóa container", tint = SynologyRose, modifier = Modifier.size(20.dp))
                     }
-                    if (isRunning) {
-                        OutlinedButton(
-                            onClick = { onToggle("restart") },
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
-                            Text("Khởi động lại")
-                        }
-                        Button(
-                            onClick = { onToggle("stop") },
-                            colors = ButtonDefaults.buttonColors(containerColor = SynologyRose)
-                        ) {
-                            Text("Dừng")
-                        }
-                    } else {
-                        Button(
-                            onClick = { onToggle("start") },
-                            colors = ButtonDefaults.buttonColors(containerColor = SynologyEmerald)
-                        ) {
-                            Text("Khởi chạy")
-                        }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Action buttons row: responsive layout that fits all mobile widths without overflow
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (isRunning) {
+                    OutlinedButton(
+                        onClick = { onToggle("restart") },
+                        modifier = Modifier.weight(1.1f),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Khởi động lại", fontSize = 12.sp, maxLines = 1)
+                    }
+                    Button(
+                        onClick = { onToggle("stop") },
+                        modifier = Modifier.weight(0.9f),
+                        colors = ButtonDefaults.buttonColors(containerColor = SynologyRose),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Dừng", fontSize = 12.sp, maxLines = 1)
+                    }
+                } else {
+                    Button(
+                        onClick = { onToggle("start") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = SynologyEmerald),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Khởi chạy container", fontSize = 12.sp, maxLines = 1)
                     }
                 }
             }
@@ -491,18 +516,38 @@ fun ProjectCard(
             Spacer(modifier = Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                TextButton(
+                    onClick = onInspect,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Chi tiết", fontSize = 12.sp)
+                }
+
                 if (isRunning) {
                     Button(
                         onClick = { onToggle("stop") },
-                        colors = ButtonDefaults.buttonColors(containerColor = SynologyRose)
-                    ) { Text("Dừng dự án") }
+                        colors = ButtonDefaults.buttonColors(containerColor = SynologyRose),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Dừng dự án", fontSize = 12.sp)
+                    }
                 } else {
                     Button(
                         onClick = { onToggle("start") },
-                        colors = ButtonDefaults.buttonColors(containerColor = SynologyEmerald)
-                    ) { Text("Chạy dự án") }
+                        colors = ButtonDefaults.buttonColors(containerColor = SynologyEmerald),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Chạy dự án", fontSize = 12.sp)
+                    }
                 }
             }
         }
@@ -597,18 +642,42 @@ fun ProjectDetailDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss) { Text("Đóng") }
-        },
-        dismissButton = {
-            if (isRunning) {
-                OutlinedButton(onClick = { onToggle("stop") }) { Text("Dừng dự án") }
-            } else {
-                Button(
-                    onClick = { onToggle("start") },
-                    colors = ButtonDefaults.buttonColors(containerColor = SynologyEmerald)
-                ) { Text("Chạy dự án") }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text("Đóng", fontSize = 12.sp)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                if (isRunning) {
+                    Button(
+                        onClick = { onToggle("stop") },
+                        colors = ButtonDefaults.buttonColors(containerColor = SynologyRose),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Dừng dự án", fontSize = 12.sp)
+                    }
+                } else {
+                    Button(
+                        onClick = { onToggle("start") },
+                        colors = ButtonDefaults.buttonColors(containerColor = SynologyEmerald),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Chạy dự án", fontSize = 12.sp)
+                    }
+                }
             }
-        }
+        },
+        dismissButton = null
     )
 }
 
@@ -807,16 +876,51 @@ fun ContainerDetailDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("Đóng")
-            }
-        },
-        dismissButton = {
-            if (isRunning) {
-                OutlinedButton(onClick = { onToggle("restart") }) {
-                    Text("Khởi động lại")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text("Đóng", fontSize = 12.sp)
+                }
+                if (isRunning) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    OutlinedButton(
+                        onClick = { onToggle("restart") },
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Khởi động lại", fontSize = 12.sp)
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Button(
+                        onClick = { onToggle("stop") },
+                        colors = ButtonDefaults.buttonColors(containerColor = SynologyRose),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Dừng", fontSize = 12.sp)
+                    }
+                } else {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Button(
+                        onClick = { onToggle("start") },
+                        colors = ButtonDefaults.buttonColors(containerColor = SynologyEmerald),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Khởi chạy", fontSize = 12.sp)
+                    }
                 }
             }
-        }
+        },
+        dismissButton = null
     )
 }

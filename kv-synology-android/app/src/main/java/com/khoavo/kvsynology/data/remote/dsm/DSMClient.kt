@@ -22,7 +22,7 @@ class DSMClient @Inject constructor(
     private var session: DsmSession = DsmSession()
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
-    private val httpClient: OkHttpClient by lazy {
+    val httpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
@@ -2407,13 +2407,30 @@ class DSMClient @Inject constructor(
 
     fun getFileStreamUrl(filePath: String): String {
         val cfg = config ?: return ""
+        if (cfg.isDemo) {
+            val ext = filePath.substringAfterLast('.', "").lowercase()
+            return when {
+                ext in listOf("mp4", "mkv", "avi", "mov", "webm", "3gp", "ts", "m4v", "flv", "wmv") ->
+                    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+                ext in listOf("mp3", "flac", "wav", "m4a", "aac", "ogg", "wma", "opus", "mka") ->
+                    "https://actions.google.com/sounds/v1/ambiences/rain_heavy.ogg"
+                ext in listOf("jpg", "jpeg", "png", "webp", "gif", "svg", "bmp", "ico", "heic", "heif") ->
+                    "https://images.unsplash.com/photo-1544652478-6653e09f18a2?w=800"
+                else -> ""
+            }
+        }
         val scheme = if (cfg.https) "https" else "http"
-        return "$scheme://${cfg.host}:${cfg.port}/webapi/entry.cgi?api=SYNO.FileStation.Download&version=2&method=download&path=${filePath}&mode=open&_sid=${session.sid}"
+        val encodedPath = java.net.URLEncoder.encode(filePath, "UTF-8").replace("+", "%20")
+        return "$scheme://${cfg.host}:${cfg.port}/webapi/entry.cgi?api=SYNO.FileStation.Download&version=2&method=download&path=${encodedPath}&mode=open&_sid=${session.sid}"
     }
 
     fun getFileDownloadUrl(filePath: String): String {
         val cfg = config ?: return ""
+        if (cfg.isDemo) {
+            return getFileStreamUrl(filePath)
+        }
         val scheme = if (cfg.https) "https" else "http"
-        return "$scheme://${cfg.host}:${cfg.port}/webapi/entry.cgi?api=SYNO.FileStation.Download&version=2&method=download&path=${filePath}&mode=download&_sid=${session.sid}"
+        val encodedPath = java.net.URLEncoder.encode(filePath, "UTF-8").replace("+", "%20")
+        return "$scheme://${cfg.host}:${cfg.port}/webapi/entry.cgi?api=SYNO.FileStation.Download&version=2&method=download&path=${encodedPath}&mode=download&_sid=${session.sid}"
     }
 }

@@ -24,6 +24,12 @@ Tất cả thay đổi của dự án độc lập **kv-synology** (tách từ `
   - Bổ sung nút lọc `⚡ Cảnh báo` (Alerts Only) cho phép người dùng chỉ tập trung vào các dòng ổ đĩa có vấn đề, vượt ngưỡng an toàn hoặc phát sinh lỗi.
   - Bổ sung nút bật/tắt đánh số thứ tự dòng (`#`).
   - Tích hợp đồng bộ trình xem nâng cấp vào cả trang chính S.M.A.R.T. và tab xem Raw trong Modal chi tiết của từng ổ đĩa.
+- **Ứng dụng Di Động Android v1.5.1 (Native Android Phone App Enhancements)**:
+  - **Kiểm tra Cập nhật APK & Xem Nhật ký Thay đổi**: Tích hợp module kiểm tra phiên bản mới từ tab Cài đặt, so sánh số version `BuildConfig.VERSION_NAME`, hiển thị đầy đủ nhật ký phát hành (Changelog Dialog) từ v1.5.1 tới các phiên bản trước, liên kết tải trực tiếp APK từ `pkg.khoavo.myds.me` và GitHub Releases.
+  - **Trình phát Đa phương tiện Toàn diện trong File Station**: Hỗ trợ đầy đủ các định dạng Ảnh (JPG, PNG, WebP, GIF, SVG, BMP, HEIC/HEIF), Âm nhạc (MP3, FLAC, WAV, M4A, AAC, OGG, OPUS), Video (MP4, MKV, AVI, MOV, WebM, TS, M4V); cấu hình bỏ qua kiểm tra chứng chỉ SSL tự ký trên NAS; mã hóa đường dẫn UTF-8 chuẩn xác tránh lỗi ký tự tiếng Việt; bổ sung trình xem ảnh phóng to pinch-to-zoom, máy nghe nhạc đĩa than quay sinh động kèm thanh trượt thời gian và tua +/-10s, trình phát video ExoPlayer tối ưu bộ đệm.
+  - **Hệ thống Thông báo Chế độ Cơ bản (Notifications in Basic Mode)**: Kích hoạt trung tâm thông báo ngay trong chế độ cơ bản, hiển thị chấm huy hiệu số lượng thông báo chưa đọc trên biểu tượng logo app ở drawer và menu, cung cấp hộp thoại Popup xem nhanh, đánh dấu đã đọc hoặc xóa tất cả.
+  - **Giao diện Nút bấm Docker Đáp ứng Màn hình Di động (Mobile Responsive Layout)**: Tái cấu trúc các nút điều khiển Container ("Khởi động lại", "Dừng", "Khởi chạy", "Xóa", "Nhật ký & Chi tiết") và Dự án Compose theo bố cục 2 tầng co giãn thông minh, tinh chỉnh kích thước touch target và khoảng đệm để hiển thị hoàn hảo trên màn hình điện thoại mà không bị tràn viền.
+  - **Bổ sung Giám sát Tài nguyên cho Chế độ Cơ bản (Resource Monitor in Beginner Mode)**: Đưa Resource Monitor vào danh sách phân hệ của Chế độ cơ bản; hỗ trợ chạm nhanh vào bất kỳ thẻ chỉ số nào trên Bảng điều khiển (CPU, RAM, Mạng, Ổ đĩa) hoặc biểu đồ CPU để điều hướng ngay sang trang phân tích chi tiết.
 
 ---
 

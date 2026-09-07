@@ -9,6 +9,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -18,6 +19,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import com.khoavo.kvsynology.domain.model.NotificationItem
+import com.khoavo.kvsynology.presentation.common.UiState
+import com.khoavo.kvsynology.presentation.notifications.NotificationsPopup
+import com.khoavo.kvsynology.presentation.theme.SynologyAmber
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -26,6 +31,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.*
 import com.khoavo.kvsynology.R
@@ -45,6 +51,7 @@ import com.khoavo.kvsynology.presentation.login.LoginViewModel
 import com.khoavo.kvsynology.presentation.mcp.McpDocsScreen
 import com.khoavo.kvsynology.presentation.monitor.ResourceMonitorScreen
 import com.khoavo.kvsynology.presentation.monitor.ResourceMonitorViewModel
+import com.khoavo.kvsynology.presentation.notifications.NotificationsPopup
 import com.khoavo.kvsynology.presentation.notifications.NotificationsScreen
 import com.khoavo.kvsynology.presentation.notifications.NotificationsViewModel
 import com.khoavo.kvsynology.presentation.packages.PackageScreen
@@ -88,6 +95,13 @@ fun AdaptiveNavigationScaffold(
     val isLoginScreen = currentRoute == Screen.Login.route
     var showAiChatSheet by remember { mutableStateOf(false) }
 
+    val notifViewModel: NotificationsViewModel = hiltViewModel()
+    val notifState by notifViewModel.notificationsState.collectAsState()
+    val unreadNotifCount = if (notifState is UiState.Success) {
+        (notifState as UiState.Success<List<NotificationItem>>).data.count { !it.read }
+    } else 0
+    var showNotificationsPopup by remember { mutableStateOf(false) }
+
     BackHandler(enabled = drawerState.isOpen) {
         scope.launch { drawerState.close() }
     }
@@ -106,17 +120,35 @@ fun AdaptiveNavigationScaffold(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                modifier = Modifier.size(36.dp),
-                                shape = RoundedCornerShape(10.dp),
-                                color = SynologyBlue
+                            BadgedBox(
+                                badge = {
+                                    if (unreadNotifCount > 0) {
+                                        Badge(
+                                            containerColor = SynologyAmber,
+                                            contentColor = androidx.compose.ui.graphics.Color.White
+                                        ) {
+                                            Text(if (unreadNotifCount > 9) "9+" else unreadNotifCount.toString(), fontSize = 9.sp)
+                                        }
+                                    }
+                                }
                             ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Image(
-                                        painter = painterResource(R.drawable.ic_logo_glyph),
-                                        contentDescription = "Logo",
-                                        modifier = Modifier.size(26.dp)
-                                    )
+                                Surface(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clickable {
+                                            scope.launch { drawerState.close() }
+                                            showNotificationsPopup = true
+                                        },
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = SynologyBlue
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Image(
+                                            painter = painterResource(R.drawable.ic_logo_glyph),
+                                            contentDescription = "Logo",
+                                            modifier = Modifier.size(26.dp)
+                                        )
+                                    }
                                 }
                             }
                             Spacer(modifier = Modifier.width(10.dp))
@@ -149,6 +181,16 @@ fun AdaptiveNavigationScaffold(
                             NavigationDrawerItem(
                                 icon = { Icon(if (selected) screen.selectedIcon else screen.unselectedIcon, contentDescription = null) },
                                 label = { Text(screen.getTitle(strings)) },
+                                badge = {
+                                    if (screen == Screen.Notifications && unreadNotifCount > 0) {
+                                        Badge(
+                                            containerColor = SynologyAmber,
+                                            contentColor = androidx.compose.ui.graphics.Color.White
+                                        ) {
+                                            Text(if (unreadNotifCount > 9) "9+" else unreadNotifCount.toString())
+                                        }
+                                    }
+                                },
                                 selected = selected,
                                 onClick = {
                                     scope.launch { drawerState.close() }
@@ -214,7 +256,19 @@ fun AdaptiveNavigationScaffold(
                     }
                     composable(Screen.Dashboard.route) {
                         val vm: DashboardViewModel = hiltViewModel()
-                        DashboardScreen(viewModel = vm, onOpenDrawer = { scope.launch { drawerState.open() } })
+                        DashboardScreen(
+                            viewModel = vm,
+                            unreadNotificationsCount = unreadNotifCount,
+                            onOpenDrawer = { scope.launch { drawerState.open() } },
+                            onOpenNotifications = { showNotificationsPopup = true },
+                            onNavigateToMonitor = {
+                                navController.navigate(Screen.Monitor.route) {
+                                    popUpTo(Screen.Dashboard.route) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
                     }
                     composable(Screen.Files.route) {
                         val vm: FileStationViewModel = hiltViewModel()
@@ -331,6 +385,23 @@ fun AdaptiveNavigationScaffold(
         ) {
             val aiVm: AiChatViewModel = hiltViewModel()
             AiChatBottomSheet(viewModel = aiVm, onDismiss = { showAiChatSheet = false })
+        }
+
+        if (showNotificationsPopup) {
+            NotificationsPopup(
+                notificationsState = notifState,
+                onDismiss = { showNotificationsPopup = false },
+                onMarkAllRead = { notifViewModel.markAllRead() },
+                onClearAll = { notifViewModel.clearAll() },
+                onNavigateToFullNotifications = {
+                    showNotificationsPopup = false
+                    navController.navigate(Screen.Notifications.route) {
+                        popUpTo(Screen.Dashboard.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
         }
     }
 }

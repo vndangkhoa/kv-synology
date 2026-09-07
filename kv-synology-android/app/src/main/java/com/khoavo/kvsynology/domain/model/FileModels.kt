@@ -23,13 +23,13 @@ data class FileItem(
         get() = isVideo || isAudio || isImage
 
     val isVideo: Boolean
-        get() = extension in listOf("mp4", "mkv", "avi", "mov", "webm")
+        get() = extension in listOf("mp4", "mkv", "avi", "mov", "webm", "3gp", "ts", "m4v", "flv", "wmv")
 
     val isAudio: Boolean
-        get() = extension in listOf("mp3", "flac", "wav", "m4a", "aac", "ogg")
+        get() = extension in listOf("mp3", "flac", "wav", "m4a", "aac", "ogg", "wma", "opus", "mka")
 
     val isImage: Boolean
-        get() = extension in listOf("jpg", "jpeg", "png", "webp", "gif", "svg", "bmp")
+        get() = extension in listOf("jpg", "jpeg", "png", "webp", "gif", "svg", "bmp", "ico", "heic", "heif")
 
     val isText: Boolean
         get() = extension in listOf("txt", "log", "json", "yml", "yaml", "xml", "conf", "sh", "js", "ts", "md")

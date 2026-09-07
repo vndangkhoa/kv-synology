@@ -58,6 +58,6 @@ sealed class Screen(
         val primaryScreens = listOf(Dashboard, Files, Docker, Download, Storage)
         val advancedScreens = listOf(Monitor, Packages, Services, ReverseProxy, Firewall, Permissions, Notifications, Traffic, Snmp, Terminal, Mcp)
         val allScreens = listOf(Dashboard, Files, Docker, Download, Storage, Monitor, Packages, Services, ReverseProxy, Firewall, Permissions, Notifications, Traffic, Snmp, Terminal, Mcp, Settings)
-        val beginnerScreens = listOf(Dashboard, Files, Docker, Download, Storage, Settings)
+        val beginnerScreens = listOf(Dashboard, Monitor, Files, Docker, Download, Storage, Notifications, Settings)
     }
 }

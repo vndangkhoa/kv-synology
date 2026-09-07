@@ -2,6 +2,7 @@ package com.khoavo.kvsynology.presentation.dashboard
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -28,7 +29,10 @@ import com.khoavo.kvsynology.presentation.theme.*
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel,
-    onOpenDrawer: () -> Unit = {}
+    unreadNotificationsCount: Int = 0,
+    onOpenDrawer: () -> Unit = {},
+    onOpenNotifications: () -> Unit = {},
+    onNavigateToMonitor: () -> Unit = {}
 ) {
     val systemInfoState by viewModel.systemInfo.collectAsState()
     val util by viewModel.currentUtilization.collectAsState()
@@ -52,6 +56,19 @@ fun DashboardScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenNotifications) {
+                        BadgedBox(
+                            badge = {
+                                if (unreadNotificationsCount > 0) {
+                                    Badge(containerColor = SynologyAmber) {
+                                        Text(if (unreadNotificationsCount > 9) "9+" else unreadNotificationsCount.toString(), fontSize = 9.sp)
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Default.Notifications, contentDescription = "Thông báo", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
                     IconButton(onClick = { viewModel.loadDashboardData() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Làm mới", tint = MaterialTheme.colorScheme.primary)
                     }
@@ -90,11 +107,21 @@ fun DashboardScreen(
 
             // 2. Real-Time Telemetry Cards
             item {
-                Text(
-                    text = "Tải phần cứng thời gian thực",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Tải phần cứng thời gian thực",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    TextButton(onClick = onNavigateToMonitor) {
+                        Text("Tài nguyên", fontSize = 12.sp, color = SynologyBlue)
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(16.dp), tint = SynologyBlue)
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -104,13 +131,15 @@ fun DashboardScreen(
                         title = "CPU",
                         value = "${util.cpuPercent.toInt()}%",
                         color = SynologyBlue,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateToMonitor
                     )
                     MetricCard(
                         title = "RAM",
                         value = "${util.memoryPercent.toInt()}%",
                         color = SynologyEmerald,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateToMonitor
                     )
                 }
                 Spacer(modifier = Modifier.height(12.dp))
@@ -123,14 +152,16 @@ fun DashboardScreen(
                         value = "${util.networkRxBytes / 1024} KB/s",
                         subtitle = "${util.networkTxBytes / 1024} KB/s",
                         color = SynologyAmber,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateToMonitor
                     )
                     MetricCard(
                         title = "Đĩa (R / W)",
                         value = "${util.diskReadBytes / 1024} KB/s",
                         subtitle = "${util.diskWriteBytes / 1024} KB/s",
                         color = SynologyRose,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateToMonitor
                     )
                 }
             }
@@ -140,16 +171,24 @@ fun DashboardScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(160.dp),
+                        .height(160.dp)
+                        .clickable(onClick = onNavigateToMonitor),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Lịch sử CPU (20 mẫu gần nhất)",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Lịch sử CPU (20 mẫu gần nhất)",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp), tint = SynologyBlue)
+                        }
                         Spacer(modifier = Modifier.height(8.dp))
                         SparklineChart(history.map { it.cpuPercent })
                     }
@@ -294,14 +333,36 @@ fun SystemInfoCard(info: SystemInfo) {
 }
 
 @Composable
-fun MetricCard(title: String, value: String, subtitle: String? = null, color: Color, modifier: Modifier = Modifier) {
+fun MetricCard(
+    title: String,
+    value: String,
+    subtitle: String? = null,
+    color: Color,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
+) {
+    val cardModifier = if (onClick != null) modifier.clickable(onClick = onClick) else modifier
     Card(
-        modifier = modifier,
+        modifier = cardModifier,
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            Text(title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (onClick != null) {
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(4.dp))
             Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = color)
             if (subtitle != null) {
