@@ -2,11 +2,9 @@ package com.khoavo.kvsynology.presentation.files
 
 import android.content.ContentValues
 import android.content.Context
-import android.content.Intent
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khoavo.kvsynology.domain.model.FileItem
@@ -234,60 +232,14 @@ class FileStationViewModel @Inject constructor(
         _createdShareLink.value = null
     }
 
-    fun shareFileDirectly(context: Context, item: FileItem) {
-        viewModelScope.launch {
-            _userMessage.emit("Đang chuẩn bị tệp để chia sẻ...")
-            try {
-                val bytes = repository.downloadFileBytes(item.path)
-                if (bytes.isEmpty()) {
-                    _userMessage.emit("Không thể tải tệp để chia sẻ")
-                    return@launch
-                }
-
-                val cacheDir = File(context.cacheDir, "shared_cache").apply { mkdirs() }
-                val targetFile = File(cacheDir, item.name)
-                withContext(Dispatchers.IO) {
-                    targetFile.writeBytes(bytes)
-                }
-
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    targetFile
-                )
-
-                val mime = when {
-                    item.isImage -> "image/*"
-                    item.isVideo -> "video/*"
-                    item.isAudio -> "audio/*"
-                    item.isText -> "text/plain"
-                    else -> "*/*"
-                }
-
-                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = mime
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    putExtra(Intent.EXTRA_SUBJECT, item.name)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-
-                val chooser = Intent.createChooser(shareIntent, "Chia sẻ ${item.name} qua:").apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                context.startActivity(chooser)
-            } catch (e: Exception) {
-                _userMessage.emit("Lỗi chia sẻ: ${e.message}")
-            }
-        }
-    }
-
     // --- Download ---
 
     fun downloadFile(context: Context, item: FileItem) {
         viewModelScope.launch {
             _userMessage.emit("Đang tải \"${item.name}\"...")
             try {
+                var targetUri: android.net.Uri? = null
+                var targetFile: File? = null
                 val written = withContext(Dispatchers.IO) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         val values = ContentValues().apply {
@@ -297,6 +249,7 @@ class FileStationViewModel @Inject constructor(
                         }
                         val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
                             ?: throw IllegalStateException("Cannot create MediaStore entry")
+                        targetUri = uri
                         context.contentResolver.openOutputStream(uri)?.use { os ->
                             repository.downloadFileToStream(item.path, os)
                         } ?: throw IllegalStateException("Cannot open output stream")
@@ -304,6 +257,7 @@ class FileStationViewModel @Inject constructor(
                         val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "KVSynology")
                         dir.mkdirs()
                         val file = File(dir, item.name)
+                        targetFile = file
                         FileOutputStream(file).use { fos ->
                             repository.downloadFileToStream(item.path, fos)
                         }
@@ -311,6 +265,11 @@ class FileStationViewModel @Inject constructor(
                 }
 
                 if (written < 0) {
+                    // Don't leave a 0-byte / error-page stub behind.
+                    withContext(Dispatchers.IO) {
+                        targetUri?.let { runCatching { context.contentResolver.delete(it, null, null) } }
+                        targetFile?.let { runCatching { if (it.exists()) it.delete() } }
+                    }
                     _userMessage.emit("Không thể tải \"${item.name}\" (máy chủ từ chối hoặc mất kết nối)")
                 } else {
                     _userMessage.emit("Đã lưu \"${item.name}\" (${written / 1024} KB) vào thư mục Tải về (Downloads/KVSynology)")

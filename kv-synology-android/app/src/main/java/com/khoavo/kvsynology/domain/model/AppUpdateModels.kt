@@ -24,6 +24,20 @@ data class VersionChangelog(
 object AppChangelogRegistry {
     val changelogs: List<VersionChangelog> = listOf(
         VersionChangelog(
+            version = "1.5.4",
+            releaseDate = "2026-09-07",
+            highlights = listOf(
+                "Tải tệp File Station sửa đúng chuẩn DSM: URL dạng path=\"...\" mode=\"...\" kèm Cookie phiên.",
+                "Từ chối khéo trang lỗi JSON của DSM (HTTP 200 giả): báo thất bại, không lưu tệp rác.",
+                "Bỏ nút Chia sẻ tệp trực tiếp, chỉ giữ Chia sẻ liên kết DSM.",
+                "Thông báo lỗi video gọn, tiếng Việt khi tệp hỏng/không phải video."
+            ),
+            details = listOf(
+                "Kiểm chứng trên máy chủ DSM giả lập: tải 40MB nguyên vẹn byte, cookie bắt buộc, lỗi 408 bị chặn.",
+                "Tệp tải lỗi bị xóa khỏi Downloads, không để lại stub 0-byte."
+            )
+        ),
+        VersionChangelog(
             version = "1.5.3",
             releaseDate = "2026-09-07",
             highlights = listOf(

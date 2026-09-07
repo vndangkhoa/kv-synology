@@ -57,8 +57,7 @@ fun FilePreviewDialog(
     streamUrl: String,
     onDismiss: () -> Unit,
     onEdit: (() -> Unit)? = null,
-    onDownload: () -> Unit = {},
-    onShare: () -> Unit = {}
+    onDownload: () -> Unit = {}
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -119,9 +118,6 @@ fun FilePreviewDialog(
                         }
                         IconButton(onClick = onDownload) {
                             Icon(Icons.Default.Download, contentDescription = "Tải xuống")
-                        }
-                        IconButton(onClick = onShare) {
-                            Icon(Icons.Default.Share, contentDescription = "Chia sẻ")
                         }
                         IconButton(onClick = onDismiss) {
                             Icon(Icons.Default.Close, contentDescription = "Đóng")
@@ -707,8 +703,13 @@ private fun describePlaybackError(error: PlaybackException): String {
         if (cause is javax.net.ssl.SSLException) {
             return "Lỗi chứng chỉ HTTPS. Bật 'Bỏ qua lỗi SSL tự ký' khi đăng nhập."
         }
-        if (msg != null && !msg.equals("Source error", ignoreCase = true)) {
-            return msg
+        if (msg != null) {
+            if (msg.contains("extractor", ignoreCase = true)) {
+                return "Tệp không phải video hợp lệ hoặc đã hỏng. Hãy tải về và mở bằng ứng dụng khác."
+            }
+            if (!msg.equals("Source error", ignoreCase = true)) {
+                return msg
+            }
         }
         cause = cause.cause
         depth++

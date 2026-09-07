@@ -6,6 +6,22 @@ Tất cả thay đổi của dự án độc lập **kv-synology** (tách từ `
 
 ---
 
+## [1.5.4] - 2026-09-07
+
+### 🐛 Sửa lỗi (Fixed) — kiểm chứng bằng máy chủ DSM giả lập + Emulator
+- **Tải tệp File Station vẫn thất bại trên NAS thật**:
+  - URL tải/phát chuyển sang chuẩn DSM (`path="/dir/file"`, `mode="open"/"download"` kèm quote, đúng như DSM web UI) thay vì dạng không quote.
+  - Chặn trang lỗi JSON của DSM (`{"success":false,...}` trả về HTTP 200): kiểm tra `Content-Type: application/json`, ghi log mã lỗi, báo thất bại — không còn lưu tệp rác.
+  - Tải lỗi tự xóa stub khỏi Downloads (MediaStore `delete` / `file.delete`), không để lại tệp 0-byte.
+  - Kiểm chứng end-to-end với DSM giả (login thật, Cookie bắt buộc): tải 40MB **nguyên vẹn từng byte**, tải tệp bị từ chối báo đúng + sạch, hộp thoại liên kết DSM hiển thị đúng.
+- **Gọn menu Chia sẻ theo yêu cầu**: xóa "Chia sẻ tệp" trực tiếp (menu overflow + nút header preview), chỉ giữ **"Chia sẻ liên kết DSM"**.
+- **Lỗi video thân thiện**:Extractor không đọc được → "Tệp không phải video hợp lệ hoặc đã hỏng..." (đã chụp màn hình xác nhận, không crash).
+
+### 📱 Ứng dụng Android
+- Bumped `versionCode = 8`, `versionName = "1.5.4"`; updater trong Cài đặt trỏ mốc `1.5.4`.
+
+---
+
 ## [1.5.3] - 2026-09-07
 
 ### 🐛 Sửa lỗi (Fixed) — kiểm chứng trên Emulator (API 17, Demo Mode)

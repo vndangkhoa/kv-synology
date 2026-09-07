@@ -180,7 +180,6 @@ fun FileStationScreen(
                                     onEdit = if (!file.isdir) { { viewModel.startEditing(file) } } else null,
                                     onCut = { viewModel.cutItem(file) },
                                     onCopy = { viewModel.copyItem(file) },
-                                    onShareFile = { viewModel.shareFileDirectly(context, file) },
                                     onShareLink = { viewModel.createShareLink(file) },
                                     onRename = {
                                         itemToRename = file
@@ -277,8 +276,7 @@ fun FileStationScreen(
                 viewModel.dismissPreview()
                 viewModel.startEditing(file)
             } } else null,
-            onDownload = { viewModel.downloadFile(context, file) },
-            onShare = { viewModel.shareFileDirectly(context, file) }
+            onDownload = { viewModel.downloadFile(context, file) }
         )
     }
 
@@ -464,7 +462,6 @@ fun FileRowItem(
     onEdit: (() -> Unit)?,
     onCut: () -> Unit,
     onCopy: () -> Unit,
-    onShareFile: () -> Unit,
     onShareLink: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit
@@ -544,14 +541,6 @@ fun FileRowItem(
                                 leadingIcon = { Icon(Icons.Default.EditNote, contentDescription = null) }
                             )
                         }
-                        DropdownMenuItem(
-                            text = { Text("Chia sẻ tệp") },
-                            onClick = {
-                                expandedMenu = false
-                                onShareFile()
-                            },
-                            leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) }
-                        )
                         DropdownMenuItem(
                             text = { Text("Chia sẻ liên kết DSM") },
                             onClick = {

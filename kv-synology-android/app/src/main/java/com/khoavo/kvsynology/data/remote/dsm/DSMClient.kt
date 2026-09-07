@@ -604,8 +604,17 @@ class DSMClient @Inject constructor(
             httpClient.newCall(reqBuilder.build()).execute().use { res ->
                 if (!res.isSuccessful) return@withContext -1L
                 val body = res.body ?: return@withContext -1L
-                // Guard: DSM answers errors as small JSON with 200 OK sometimes;
-                // a video/audio/image that is <2KB and parses as {"success":...} is an error page.
+                // DSM answers API errors as HTTP 200 + application/json
+                // (e.g. {"success":false,"error":{"code":408}}). Without this
+                // guard we'd save the error page as the "downloaded" file.
+                val contentType = res.header("Content-Type", "").orEmpty()
+                if (contentType.contains("json", ignoreCase = true)) {
+                    val errText = try {
+                        body.string()
+                    } catch (_: Exception) { "" }
+                    android.util.Log.w("DSMDownload", "server error page for $path: ${errText.take(200)}")
+                    return@withContext -1L
+                }
                 val source = body.source()
                 val buffer = okio.Buffer()
                 var total = 0L
@@ -2481,8 +2490,11 @@ class DSMClient @Inject constructor(
             }
         }
         val scheme = if (cfg.https) "https" else "http"
-        val encodedPath = java.net.URLEncoder.encode(filePath, "UTF-8").replace("+", "%20")
-        return "$scheme://${cfg.host}:${cfg.port}/webapi/entry.cgi?api=SYNO.FileStation.Download&version=2&method=download&path=${encodedPath}&mode=open&_sid=${session.sid}"
+        // Canonical DSM form: string params are JSON-quoted, exactly like the
+        // DSM web UI sends them (path="/dir/file", mode="open"). Unquoted
+        // values are rejected by stricter DSM builds for mode=download.
+        val encodedPath = java.net.URLEncoder.encode("\"$filePath\"", "UTF-8").replace("+", "%20")
+        return "$scheme://${cfg.host}:${cfg.port}/webapi/entry.cgi?api=SYNO.FileStation.Download&version=2&method=download&path=${encodedPath}&mode=%22open%22&_sid=${session.sid}"
     }
 
     fun getFileDownloadUrl(filePath: String): String {
@@ -2491,7 +2503,7 @@ class DSMClient @Inject constructor(
             return getFileStreamUrl(filePath)
         }
         val scheme = if (cfg.https) "https" else "http"
-        val encodedPath = java.net.URLEncoder.encode(filePath, "UTF-8").replace("+", "%20")
-        return "$scheme://${cfg.host}:${cfg.port}/webapi/entry.cgi?api=SYNO.FileStation.Download&version=2&method=download&path=${encodedPath}&mode=download&_sid=${session.sid}"
+        val encodedPath = java.net.URLEncoder.encode("\"$filePath\"", "UTF-8").replace("+", "%20")
+        return "$scheme://${cfg.host}:${cfg.port}/webapi/entry.cgi?api=SYNO.FileStation.Download&version=2&method=download&path=${encodedPath}&mode=%22download%22&_sid=${session.sid}"
     }
 }
