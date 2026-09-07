@@ -24,6 +24,20 @@ data class VersionChangelog(
 object AppChangelogRegistry {
     val changelogs: List<VersionChangelog> = listOf(
         VersionChangelog(
+            version = "1.5.2",
+            releaseDate = "2026-09-07",
+            highlights = listOf(
+                "Thanh điều hướng dưới chỉ hiển thị biểu tượng (Icons-only bottom nav), gọn gàng trên màn hình điện thoại.",
+                "Sửa lỗi File Station phát video chỉ có tiếng mà không có hình (đen màn hình).",
+                "Củng cố phát Ảnh/Nhạc/Video: gửi Cookie phiên DSM + User-Agent, tự nhận diện MIME theo đuôi tệp."
+            ),
+            details = listOf(
+                "Gắn ExoPlayer vào PlayerView qua update lambda thay vì factory (nguyên nhân gốc của màn hình đen).",
+                "PlayerView cấu hình RESIZE_MODE_FIT, giữ màn hình sáng khi xem video.",
+                "Ảnh tải qua Coil ImageRequest có kèm Cookie xác thực phiên DSM."
+            )
+        ),
+        VersionChangelog(
             version = "1.5.1",
             releaseDate = "2026-09-07",
             highlights = listOf(

@@ -1,6 +1,6 @@
 {
   "name": "dsm-helper-webapp",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "DSM Helper Web Application - Synology NAS Manager (Tiếng Việt & English)",
   "private": true,
   "license": "GPL-3.0-only",

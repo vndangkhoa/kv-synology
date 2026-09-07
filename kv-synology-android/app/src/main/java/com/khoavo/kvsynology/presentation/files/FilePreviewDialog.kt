@@ -39,8 +39,10 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil.compose.SubcomposeAsyncImage
+import coil.request.ImageRequest
 import com.khoavo.kvsynology.domain.model.FileItem
 import com.khoavo.kvsynology.presentation.theme.SynologyBlue
 import com.khoavo.kvsynology.presentation.theme.SynologyEmerald
@@ -160,8 +162,24 @@ fun FilePreviewDialog(
  */
 @Composable
 private fun PhotoViewer(streamUrl: String, fileName: String) {
+    val context = LocalContext.current
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
+
+    // Authenticated Coil request: DSM stream URL carries _sid in query,
+    // but also send Cookie + UA so permission-locked / HTTPS NAS hosts load.
+    val imageRequest = remember(streamUrl) {
+        ImageRequest.Builder(context)
+            .data(streamUrl)
+            .apply {
+                extractSid(streamUrl)?.let { sid ->
+                    addHeader("Cookie", "id=$sid")
+                }
+                addHeader("User-Agent", "DSMHelper/1.3")
+            }
+            .crossfade(true)
+            .build()
+    }
 
     Box(
         modifier = Modifier
@@ -188,7 +206,7 @@ private fun PhotoViewer(streamUrl: String, fileName: String) {
         contentAlignment = Alignment.Center
     ) {
         SubcomposeAsyncImage(
-            model = streamUrl,
+            model = imageRequest,
             contentDescription = fileName,
             modifier = Modifier
                 .fillMaxSize()
@@ -238,12 +256,16 @@ private fun AudioPlayer(file: FileItem, streamUrl: String) {
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(15000)
             .setReadTimeoutMs(20000)
+            .setDefaultRequestProperties(buildExoHeaders(streamUrl))
         val mediaSourceFactory = DefaultMediaSourceFactory(context).setDataSourceFactory(httpSourceFactory)
 
         val player = ExoPlayer.Builder(context)
             .setMediaSourceFactory(mediaSourceFactory)
             .build().apply {
-                val item = MediaItem.fromUri(streamUrl)
+                val item = androidx.media3.common.MediaItem.Builder()
+                    .setUri(streamUrl)
+                    .apply { guessAudioMime(file.extension)?.let { setMimeType(it) } }
+                    .build()
                 setMediaItem(item)
                 prepare()
                 playWhenReady = true
@@ -471,6 +493,12 @@ private fun AudioPlayer(file: FileItem, streamUrl: String) {
 
 /**
  * Video player powered by ExoPlayer + PlayerView with buffering indicators and error recovery.
+ *
+ * Previous bug (sound but no video): the AndroidView factory captured
+ * `exoPlayer == null` at composition time and never attached the player
+ * created later in DisposableEffect to the PlayerView surface. Audio kept
+ * playing in the background while the surface stayed black. Fixed by
+ * binding via the `update` lambda: `view.player = exoPlayer`.
  */
 @OptIn(UnstableApi::class)
 @Composable
@@ -485,12 +513,16 @@ private fun VideoPlayer(streamUrl: String, fileName: String) {
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(15000)
             .setReadTimeoutMs(20000)
+            .setDefaultRequestProperties(buildExoHeaders(streamUrl))
         val mediaSourceFactory = DefaultMediaSourceFactory(context).setDataSourceFactory(httpSourceFactory)
 
         val player = ExoPlayer.Builder(context)
             .setMediaSourceFactory(mediaSourceFactory)
             .build().apply {
-                val mediaItem = MediaItem.fromUri(streamUrl)
+                val mediaItem = androidx.media3.common.MediaItem.Builder()
+                    .setUri(streamUrl)
+                    .apply { guessVideoMime(fileName)?.let { setMimeType(it) } }
+                    .build()
                 setMediaItem(mediaItem)
                 prepare()
                 playWhenReady = true
@@ -515,13 +547,27 @@ private fun VideoPlayer(streamUrl: String, fileName: String) {
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
-                    player = exoPlayer
                     useController = true
+                    controllerShowTimeoutMs = 3000
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                    keepScreenOn = true
+                    setShutterBackgroundColor(android.graphics.Color.BLACK)
                     layoutParams = FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
                 }
+            },
+            update = { view ->
+                // Critical: attach the (async-created) player to the surface.
+                // Without this the video surface stays black while audio plays.
+                if (view.player !== exoPlayer) {
+                    view.player = exoPlayer
+                }
+                view.keepScreenOn = true
+            },
+            onRelease = { view ->
+                view.player = null
             },
             modifier = Modifier.fillMaxSize()
         )
@@ -598,6 +644,45 @@ private fun TextFallbackPreview(file: FileItem, onEdit: (() -> Unit)?) {
                 }
             }
         }
+    }
+}
+
+private fun extractSid(streamUrl: String): String? =
+    Regex("[?&]_sid=([^&]+)").find(streamUrl)?.groupValues?.getOrNull(1)
+
+private fun buildExoHeaders(streamUrl: String): Map<String, String> {
+    val headers = mutableMapOf("User-Agent" to "DSMHelper/1.3")
+    extractSid(streamUrl)?.let { sid ->
+        if (sid.isNotBlank()) headers["Cookie"] = "id=$sid"
+    }
+    return headers
+}
+
+private fun guessVideoMime(fileName: String): String? {
+    return when (fileName.substringAfterLast('.', "").lowercase()) {
+        "mp4", "m4v", "mov" -> "video/mp4"
+        "webm" -> "video/webm"
+        "mkv" -> "video/x-matroska"
+        "avi" -> "video/x-msvideo"
+        "3gp" -> "video/3gpp"
+        "ts", "m2ts" -> "video/mp2t"
+        "flv" -> "video/x-flv"
+        "wmv" -> "video/x-ms-wmv"
+        else -> null
+    }
+}
+
+private fun guessAudioMime(extension: String): String? {
+    return when (extension.lowercase()) {
+        "mp3" -> "audio/mpeg"
+        "aac" -> "audio/aac"
+        "m4a" -> "audio/mp4"
+        "wav" -> "audio/wav"
+        "ogg", "opus" -> "audio/ogg"
+        "flac" -> "audio/flac"
+        "wma" -> "audio/x-ms-wma"
+        "mka" -> "audio/x-matroska"
+        else -> null
     }
 }
 

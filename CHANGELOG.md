@@ -6,6 +6,27 @@ Tất cả thay đổi của dự án độc lập **kv-synology** (tách từ `
 
 ---
 
+## [1.5.2] - 2026-09-07
+
+### 🐛 Sửa lỗi (Fixed)
+- **File Station phát video chỉ có tiếng mà không có hình (Video Black Screen)**:
+  - Nguyên nhân gốc: `AndroidView(factory = ...)` chụp `exoPlayer == null` tại thời điểm khởi tạo và không bao giờ gắn player được tạo sau đó vào bề mặt hiển thị `PlayerView` — âm thanh vẫn phát nền trong khi màn hình đen.
+  - Khắc phục bằng cách gắn player qua `update = { view -> view.player = exoPlayer }` kèm `onRelease = { view.player = null }`.
+  - Cấu hình `PlayerView` chuẩn phát video: `RESIZE_MODE_FIT`, hiện/ẩn controller sau 3s, nền đen, giữ màn hình sáng khi xem.
+- **Củng cố phát Ảnh / Nhạc / Video qua HTTPS NAS tự ký**:
+  - Gửi kèm `Cookie: id=<sid>` (trích từ `_sid` trong URL stream) + `User-Agent: DSMHelper/1.3` cho cả ExoPlayer (`DefaultHttpDataSource`) và Coil (`ImageRequest`).
+  - Tự nhận diện MIME theo đuôi tệp (`guessVideoMime`/`guessAudioMime`: mp4/mkv/avi/mov/webm/ts/flv/wmv, mp3/flac/wav/m4a/aac/ogg/opus) để tránh rơi vào trích xuất chỉ-audio.
+
+### 🎨 Giao diện (Changed)
+- **Thanh điều hướng dưới chỉ hiển thị biểu tượng (Icons-Only Bottom Nav)**:
+  - Gỡ bỏ nhãn chữ dưới mỗi tab (`label = null`, `alwaysShowLabel = false`), giữ tên màn hình trong `contentDescription` cho trợ năng.
+  - Áp dụng cho 5 tab chính: Tổng quan, Tập tin, Docker, Tải xuống, Lưu trữ.
+
+### 📱 Ứng dụng Android
+- Bumped `versionCode = 6`, `versionName = "1.5.2"`; module kiểm tra cập nhật trong Cài đặt trỏ mốc mới nhất `1.5.2` kèm nhật ký thay đổi.
+
+---
+
 ## [1.5.1] - 2026-09-07
 
 ### 🚀 Cải tiến & Nâng cấp (Added & Improved)

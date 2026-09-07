@@ -218,8 +218,9 @@ fun AdaptiveNavigationScaffold(
                         Screen.primaryScreens.forEach { screen ->
                             val selected = currentRoute == screen.route
                             NavigationBarItem(
-                                icon = { Icon(if (selected) screen.selectedIcon else screen.unselectedIcon, contentDescription = null) },
-                                label = { Text(screen.getTitle(strings)) },
+                                icon = { Icon(if (selected) screen.selectedIcon else screen.unselectedIcon, contentDescription = screen.getTitle(strings)) },
+                                label = null,
+                                alwaysShowLabel = false,
                                 selected = selected,
                                 onClick = {
                                     navController.navigate(screen.route) {
