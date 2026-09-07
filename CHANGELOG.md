@@ -6,6 +6,27 @@ Tất cả thay đổi của dự án độc lập **kv-synology** (tách từ `
 
 ---
 
+## [1.5.1] - 2026-09-07
+
+### 🚀 Cải tiến & Nâng cấp (Added & Improved)
+- **Căn lề & Định dạng Bản ghi S.M.A.R.T. Thô (Justified, Organized & Highlighted SMART Output)**:
+  - Phân tích và căn lề 10 cột cố định cho bảng thuộc tính S.M.A.R.T. (`ID#`, `ATTRIBUTE NAME`, `FLAG`, `VAL`, `WORST`, `THRESH`, `TYPE`, `UPDATED`, `STATUS`, `RAW VALUE`) ngay hàng thẳng lối, giải quyết dứt điểm hiện tượng xô lệch, thụt thò ký tự của terminal raw monospace.
+  - Thiết kế thẻ hiển thị sang trọng cho Máy chủ NAS (`Host Banner`) và từng Ổ đĩa (`Drive Header`) với Slot, Model, S/N và đường dẫn thiết bị (`/dev/sataX`, `/dev/nvmeXn1`).
+  - Căn lề hai cột đối xứng cho toàn bộ thông số đo đạc NVMe / SAS kèm chấm bullet và huy hiệu chỉ số.
+- **Tô màu Phân biệt Chỉ số Quan trọng (Diagnostic Color Coding)**:
+  - 🟢 **Xanh lá (An toàn)**: Đánh dấu trạng thái `PASSED`, `OK`, 0 bad sectors.
+  - 🟡 **Vàng hổ phách (Cảnh báo)**: Nổi bật nhiệt độ cảm biến (°C) và lỗi giao tiếp cáp SATA `UDMA CRC Error Count` (ID 199).
+  - 🔴 **Đỏ hồng (Nguy hiểm)**: Đánh dấu tức thì khi phát hiện Sector hỏng `Reallocated Sectors` (ID 5), `Pending Sectors` (ID 197), `Offline Uncorrectable` (ID 198) hoặc trạng thái `FAILING_NOW`.
+  - 🟣 **Tím**: Nổi bật tỷ lệ hao mòn cell nhớ SSD / NVMe (`Percentage Used`).
+  - 🔵 **Xanh da trời**: Nổi bật tổng thời gian đĩa đã hoạt động (`Power-On Hours` ID 9).
+- **Bộ công cụ Trình xem Đa năng (Multi-mode Toolbar Controls)**:
+  - Bổ sung nút chuyển đổi linh hoạt giữa chế độ `Căn lề & Tô màu` (Formatted) và `Terminal Gốc` (Raw ANSI).
+  - Bổ sung nút lọc `⚡ Cảnh báo` (Alerts Only) cho phép người dùng chỉ tập trung vào các dòng ổ đĩa có vấn đề, vượt ngưỡng an toàn hoặc phát sinh lỗi.
+  - Bổ sung nút bật/tắt đánh số thứ tự dòng (`#`).
+  - Tích hợp đồng bộ trình xem nâng cấp vào cả trang chính S.M.A.R.T. và tab xem Raw trong Modal chi tiết của từng ổ đĩa.
+
+---
+
 ## [1.5.0] - 2026-09-06
 
 ### 🚀 Tính năng mới & Nâng cấp (Added & Improved)

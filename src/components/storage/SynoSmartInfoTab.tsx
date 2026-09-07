@@ -58,7 +58,6 @@ export const SynoSmartInfoTab: React.FC = () => {
   const [selectedDriveForSpecs, setSelectedDriveForSpecs] = useState<SynoSmartDriveSummary | null>(null);
   const [specsFilter, setSpecsFilter] = useState("");
   const [specsViewMode, setSpecsViewMode] = useState<"table" | "raw">("table");
-  const [copiedDriveRaw, setCopiedDriveRaw] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"ALL" | "OK" | "WARN" | "FAIL">("ALL");
 
   // Package check & detection state
@@ -734,6 +733,7 @@ ${clean}
               : `Báo cáo chi tiết S.M.A.R.T. [Nguồn: ${smartResult.source.toUpperCase()}]`
           }
           isScanning={loading}
+          isEn={isEn}
         />
       ) : (
         <div className="p-12 text-center rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
@@ -1199,31 +1199,14 @@ ${clean}
               </div>
             )}
 
-            {/* TAB CONTENT 2: RAW MONOSPACE OUTPUT FOR THIS DRIVE */}
+            {/* TAB CONTENT 2: RAW OUTPUT FOR THIS DRIVE (JUSTIFIED & COLOR-CODED) */}
             {specsViewMode === "raw" && (
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs text-slate-500">
-                  <span>{selectedDriveForSpecs.rawLines?.length || 0} dòng dữ liệu thô từ smartctl</span>
-                  <button
-                    onClick={() => {
-                      const text = selectedDriveForSpecs.rawLines?.join("\n") || "";
-                      navigator.clipboard.writeText(text);
-                      setCopiedDriveRaw(true);
-                      setTimeout(() => setCopiedDriveRaw(false), 2000);
-                    }}
-                    className="px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5 transition-colors font-semibold"
-                  >
-                    {copiedDriveRaw ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedDriveRaw ? "Đã sao chép" : "Chép bản ghi thô"}</span>
-                  </button>
-                </div>
-                <div className="p-4 rounded-2xl bg-slate-950 text-slate-100 font-mono text-xs max-h-[460px] overflow-auto whitespace-pre leading-relaxed select-text border border-slate-800">
-                  {selectedDriveForSpecs.rawLines?.map((line, lIdx) => (
-                    <div key={lIdx} className="hover:bg-slate-900/60 px-1 py-0.5 rounded">
-                      {line}
-                    </div>
-                  ))}
-                </div>
+              <div className="pt-1">
+                <SynoSmartAnsiViewer
+                  rawAnsi={selectedDriveForSpecs.rawLines?.join("\n") || ""}
+                  title={`${selectedDriveForSpecs.slot} (${selectedDriveForSpecs.model}) - S.M.A.R.T.`}
+                  isEn={isEn}
+                />
               </div>
             )}
 
