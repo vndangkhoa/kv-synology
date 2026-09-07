@@ -44,6 +44,7 @@ import androidx.media3.ui.PlayerView
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.khoavo.kvsynology.domain.model.FileItem
+import com.khoavo.kvsynology.presentation.theme.SynologyAmber
 import com.khoavo.kvsynology.presentation.theme.SynologyBlue
 import com.khoavo.kvsynology.presentation.theme.SynologyEmerald
 import com.khoavo.kvsynology.presentation.theme.SynologyRose
@@ -507,6 +508,7 @@ private fun VideoPlayer(streamUrl: String, fileName: String) {
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     var isBuffering by remember { mutableStateOf(true) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
+    var audioOnlyHint by remember { mutableStateOf(false) }
 
     DisposableEffect(streamUrl) {
         val httpSourceFactory = DefaultHttpDataSource.Factory()
@@ -531,8 +533,20 @@ private fun VideoPlayer(streamUrl: String, fileName: String) {
                         isBuffering = state == Player.STATE_BUFFERING
                         if (state == Player.STATE_READY) errorMsg = null
                     }
+                    override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                        // "Sound but no video" diagnosis: the container/DRM gave us
+                        // no playable video track (e.g. HEVC/MKV the phone can't
+                        // decode). Audio keeps playing on a black surface.
+                        val hasVideo = tracks.groups.any { g ->
+                            (0 until g.length).any { i ->
+                                g.getTrackFormat(i).sampleMimeType?.startsWith("video/") == true &&
+                                    g.isTrackSelected(i)
+                            }
+                        }
+                        audioOnlyHint = !hasVideo && this@apply.playbackState == Player.STATE_READY
+                    }
                     override fun onPlayerError(error: PlaybackException) {
-                        errorMsg = error.message ?: "Không thể giải mã luồng video"
+                        errorMsg = describePlaybackError(error)
                     }
                 })
             }
@@ -574,6 +588,30 @@ private fun VideoPlayer(streamUrl: String, fileName: String) {
 
         if (isBuffering && errorMsg == null) {
             CircularProgressIndicator(color = SynologyBlue, modifier = Modifier.size(48.dp))
+        }
+
+        // Codec diagnosis banner: audio plays but the phone cannot decode video.
+        if (audioOnlyHint && errorMsg == null) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = Color.Black.copy(alpha = 0.8f),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 12.dp, start = 16.dp, end = 16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.MusicNote, contentDescription = null, tint = SynologyAmber, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Chỉ phát được tiếng: máy không giải mã được hình ảnh (thử MP4/H.264)",
+                        fontSize = 11.sp,
+                        color = Color.White
+                    )
+                }
+            }
         }
 
         if (errorMsg != null) {
@@ -644,6 +682,44 @@ private fun TextFallbackPreview(file: FileItem, onEdit: (() -> Unit)?) {
                 }
             }
         }
+    }
+}
+
+/**
+ * Human-readable cause chain for ExoPlayer failures. The raw
+ * `PlaybackException.message` is just "Source error" / "Renderer error",
+ * which hides the real problem (HTTP 403, timeout, unsupported codec...).
+ */
+private fun describePlaybackError(error: PlaybackException): String {
+    var cause: Throwable? = error.cause
+    var depth = 0
+    while (cause != null && depth < 4) {
+        val msg = cause.message?.takeIf { it.isNotBlank() }
+        if (cause is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
+            return "Máy chủ từ chối (HTTP ${cause.responseCode}). Kiểm tra quyền truy cập tệp."
+        }
+        if (cause is java.net.UnknownHostException) {
+            return "Không tìm thấy máy chủ. Kiểm tra địa chỉ NAS / mạng."
+        }
+        if (cause is java.net.SocketTimeoutException || cause is java.net.ConnectException) {
+            return "Hết thời gian kết nối tới NAS. Thử lại."
+        }
+        if (cause is javax.net.ssl.SSLException) {
+            return "Lỗi chứng chỉ HTTPS. Bật 'Bỏ qua lỗi SSL tự ký' khi đăng nhập."
+        }
+        if (msg != null && !msg.equals("Source error", ignoreCase = true)) {
+            return msg
+        }
+        cause = cause.cause
+        depth++
+    }
+    return when (error.errorCode) {
+        PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
+        PlaybackException.ERROR_CODE_DECODING_FAILED,
+        PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED -> "Thiết bị không giải mã được định dạng này."
+        PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+        PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> "Lỗi mạng khi tải luồng video."
+        else -> error.message ?: "Không thể giải mã luồng video"
     }
 }
 

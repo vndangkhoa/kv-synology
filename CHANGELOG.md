@@ -6,6 +6,25 @@ Tất cả thay đổi của dự án độc lập **kv-synology** (tách từ `
 
 ---
 
+## [1.5.3] - 2026-09-07
+
+### 🐛 Sửa lỗi (Fixed) — kiểm chứng trên Emulator (API 17, Demo Mode)
+- **Video File Station không phát được (đã tái hiện & sửa trên emulator)**:
+  - URL demo `BigBuckBunny.mp4` của Google đã chết (HTTP 403 — Google gỡ sample bucket), `rain_heavy.ogg` cũng 404. Thay bằng `MDN flower.mp4` và `SoundHelix MP3` (đã kiểm tra HTTP 206).
+  - Kiểm chứng end-to-end trên emulator: video phát **có hình + tiếng** (screenshot khung hình hoa, 00:05), nhạc phát (00:05/06:12), ảnh tải qua Coil — logcat sạch lỗi ExoPlayer.
+- **Tải tệp File Station không hoạt động với tệp lớn**:
+  - Nguyên nhân: `body.bytes()` nạp toàn bộ tệp vào RAM → OOM/crash với video nhiều GB.
+  - Viết lại `downloadFileToStream()`: chép 256KB/chunk trực tiếp vào MediaStore (`Downloads/KVSynology`), báo dung lượng đã lưu, trả `-1` khi máy chủ từ chối.
+  - Bổ sung header `Cookie: id=<sid>` + `X-SYNO-TOKEN` cho mọi endpoint tải/nội dung (`downloadFileBytes`, `downloadFileToStream`, `getFileContent`) — trước đây chỉ có `User-Agent`.
+- **Chẩn đoán phát video rõ ràng**:
+  - `describePlaybackError()`: dịch cause chain thành tiếng Việt (HTTP 403 = mất quyền, timeout, SSL tự ký, codec).
+  - Banner "Chỉ phát được tiếng" khi `onTracksChanged` không thấy video track ở `STATE_READY` (trường hợp MKV/HEVC máy không giải mã nổi — đúng triệu chứng "có tiếng, không hình" trên NAS thật).
+
+### 📱 Ứng dụng Android
+- Bumped `versionCode = 7`, `versionName = "1.5.3"`; updater trong Cài đặt trỏ mốc `1.5.3`.
+
+---
+
 ## [1.5.2] - 2026-09-07
 
 ### 🐛 Sửa lỗi (Fixed)

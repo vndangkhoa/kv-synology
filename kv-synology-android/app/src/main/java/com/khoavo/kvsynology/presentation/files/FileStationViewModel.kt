@@ -288,13 +288,7 @@ class FileStationViewModel @Inject constructor(
         viewModelScope.launch {
             _userMessage.emit("Đang tải \"${item.name}\"...")
             try {
-                val bytes = repository.downloadFileBytes(item.path)
-                if (bytes.isEmpty()) {
-                    _userMessage.emit("Không thể tải \"${item.name}\"")
-                    return@launch
-                }
-
-                withContext(Dispatchers.IO) {
+                val written = withContext(Dispatchers.IO) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         val values = ContentValues().apply {
                             put(MediaStore.MediaColumns.DISPLAY_NAME, item.name)
@@ -302,22 +296,25 @@ class FileStationViewModel @Inject constructor(
                             put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/KVSynology")
                         }
                         val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                        if (uri != null) {
-                            context.contentResolver.openOutputStream(uri)?.use { os ->
-                                os.write(bytes)
-                            }
-                        } else {
-                            throw IllegalStateException("Cannot create MediaStore entry")
-                        }
+                            ?: throw IllegalStateException("Cannot create MediaStore entry")
+                        context.contentResolver.openOutputStream(uri)?.use { os ->
+                            repository.downloadFileToStream(item.path, os)
+                        } ?: throw IllegalStateException("Cannot open output stream")
                     } else {
                         val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "KVSynology")
                         dir.mkdirs()
                         val file = File(dir, item.name)
-                        FileOutputStream(file).use { it.write(bytes) }
+                        FileOutputStream(file).use { fos ->
+                            repository.downloadFileToStream(item.path, fos)
+                        }
                     }
                 }
 
-                _userMessage.emit("Đã lưu \"${item.name}\" vào thư mục Tải về (Downloads/KVSynology)")
+                if (written < 0) {
+                    _userMessage.emit("Không thể tải \"${item.name}\" (máy chủ từ chối hoặc mất kết nối)")
+                } else {
+                    _userMessage.emit("Đã lưu \"${item.name}\" (${written / 1024} KB) vào thư mục Tải về (Downloads/KVSynology)")
+                }
             } catch (e: Exception) {
                 _userMessage.emit("Lỗi tải xuống: ${e.message}")
             }

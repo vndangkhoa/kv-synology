@@ -24,6 +24,19 @@ data class VersionChangelog(
 object AppChangelogRegistry {
     val changelogs: List<VersionChangelog> = listOf(
         VersionChangelog(
+            version = "1.5.3",
+            releaseDate = "2026-09-07",
+            highlights = listOf(
+                "Sửa dứt điểm video không phát được: thay URL demo đã chết (Google sample bucket 403), kiểm chứng phát hình + tiếng trên emulator.",
+                "Tải tệp File Station viết lại dạng streaming: không còn out-of-memory với video lớn, kèm xác thực Cookie đầy đủ.",
+                "Video báo lỗi rõ nguyên nhân (HTTP 403, timeout, SSL, codec) và cảnh báo khi máy chỉ giải mã được tiếng."
+            ),
+            details = listOf(
+                "Demo video dùng MDN flower.mp4, demo nhạc dùng SoundHelix MP3 (ổn định).",
+                "Download dùng downloadFileToStream 256KB/chunk thẳng vào MediaStore."
+            )
+        ),
+        VersionChangelog(
             version = "1.5.2",
             releaseDate = "2026-09-07",
             highlights = listOf(

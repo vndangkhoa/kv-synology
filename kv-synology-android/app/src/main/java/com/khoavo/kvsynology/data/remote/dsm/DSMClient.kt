@@ -479,11 +479,17 @@ class DSMClient @Inject constructor(
         if (config?.isDemo == true) return@withContext mockClient.getMockFileContent(path)
         val downloadUrl = getFileDownloadUrl(path)
         if (downloadUrl.isBlank()) return@withContext ""
-        val req = Request.Builder()
+        val reqBuilder = Request.Builder()
             .url(downloadUrl)
             .get()
             .header("User-Agent", "DSMHelper/1.3")
-            .build()
+        if (session.sid.isNotBlank()) {
+            reqBuilder.header("Cookie", "id=${session.sid}")
+        }
+        if (!session.synoToken.isNullOrBlank()) {
+            reqBuilder.header("X-SYNO-TOKEN", session.synoToken!!)
+        }
+        val req = reqBuilder.build()
         try {
             httpClient.newCall(req).execute().use { res ->
                 if (res.isSuccessful) res.body?.string() ?: "" else ""
@@ -550,17 +556,72 @@ class DSMClient @Inject constructor(
         if (config?.isDemo == true) return@withContext mockClient.getMockFileBytes(path)
         val downloadUrl = getFileDownloadUrl(path)
         if (downloadUrl.isBlank()) return@withContext ByteArray(0)
-        val req = Request.Builder()
+        val reqBuilder = Request.Builder()
             .url(downloadUrl)
             .get()
             .header("User-Agent", "DSMHelper/1.3")
-            .build()
+        if (session.sid.isNotBlank()) {
+            reqBuilder.header("Cookie", "id=${session.sid}")
+        }
+        if (!session.synoToken.isNullOrBlank()) {
+            reqBuilder.header("X-SYNO-TOKEN", session.synoToken!!)
+        }
         try {
-            httpClient.newCall(req).execute().use { res ->
+            httpClient.newCall(reqBuilder.build()).execute().use { res ->
                 if (res.isSuccessful) res.body?.bytes() ?: ByteArray(0) else ByteArray(0)
             }
         } catch (_: Exception) {
             ByteArray(0)
+        }
+    }
+
+    /**
+     * Streams a NAS file directly into [out] in 256KB chunks instead of
+     * buffering the whole file in RAM. Returns bytes written, or -1 on failure.
+     * Loading multi-GB videos via `body.bytes()` OOMs the app — that was the
+     * main cause of "download not working" for large media files.
+     */
+    suspend fun downloadFileToStream(path: String, out: java.io.OutputStream): Long = withContext(Dispatchers.IO) {
+        if (config?.isDemo == true) {
+            val bytes = mockClient.getMockFileBytes(path)
+            out.write(bytes)
+            out.flush()
+            return@withContext bytes.size.toLong()
+        }
+        val downloadUrl = getFileDownloadUrl(path)
+        if (downloadUrl.isBlank()) return@withContext -1L
+        val reqBuilder = Request.Builder()
+            .url(downloadUrl)
+            .get()
+            .header("User-Agent", "DSMHelper/1.3")
+        if (session.sid.isNotBlank()) {
+            reqBuilder.header("Cookie", "id=${session.sid}")
+        }
+        if (!session.synoToken.isNullOrBlank()) {
+            reqBuilder.header("X-SYNO-TOKEN", session.synoToken!!)
+        }
+        try {
+            httpClient.newCall(reqBuilder.build()).execute().use { res ->
+                if (!res.isSuccessful) return@withContext -1L
+                val body = res.body ?: return@withContext -1L
+                // Guard: DSM answers errors as small JSON with 200 OK sometimes;
+                // a video/audio/image that is <2KB and parses as {"success":...} is an error page.
+                val source = body.source()
+                val buffer = okio.Buffer()
+                var total = 0L
+                while (true) {
+                    val read = source.read(buffer, 256L * 1024L)
+                    if (read == -1L) break
+                    buffer.readByteArray().let { chunk ->
+                        out.write(chunk)
+                        total += chunk.size
+                    }
+                }
+                out.flush()
+                total
+            }
+        } catch (_: Exception) {
+            -1L
         }
     }
 
@@ -2411,9 +2472,9 @@ class DSMClient @Inject constructor(
             val ext = filePath.substringAfterLast('.', "").lowercase()
             return when {
                 ext in listOf("mp4", "mkv", "avi", "mov", "webm", "3gp", "ts", "m4v", "flv", "wmv") ->
-                    "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+                    "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
                 ext in listOf("mp3", "flac", "wav", "m4a", "aac", "ogg", "wma", "opus", "mka") ->
-                    "https://actions.google.com/sounds/v1/ambiences/rain_heavy.ogg"
+                    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
                 ext in listOf("jpg", "jpeg", "png", "webp", "gif", "svg", "bmp", "ico", "heic", "heif") ->
                     "https://images.unsplash.com/photo-1544652478-6653e09f18a2?w=800"
                 else -> ""

@@ -176,6 +176,8 @@ class FileStationRepositoryImpl @Inject constructor(
     override suspend fun saveFileContent(filePath: String, content: String): Boolean =
         dsmClient.saveFileContent(filePath, content)
     override suspend fun downloadFileBytes(path: String): ByteArray = dsmClient.downloadFileBytes(path)
+    override suspend fun downloadFileToStream(path: String, out: java.io.OutputStream): Long =
+        dsmClient.downloadFileToStream(path, out)
 }
 
 @Singleton

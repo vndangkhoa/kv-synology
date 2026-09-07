@@ -71,7 +71,7 @@ class SettingsViewModel @Inject constructor(
             try {
                 kotlinx.coroutines.delay(500)
                 val currentVer = BuildConfig.VERSION_NAME
-                val latestVer = "1.5.2"
+                val latestVer = "1.5.3"
                 val isAvailable = compareVersions(latestVer, currentVer) > 0
                 val info = AppUpdateInfo(
                     currentVersion = currentVer,

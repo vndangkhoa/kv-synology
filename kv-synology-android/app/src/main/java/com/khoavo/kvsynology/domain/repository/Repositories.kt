@@ -38,6 +38,8 @@ interface FileStationRepository {
     suspend fun getFileContent(path: String): String
     suspend fun saveFileContent(filePath: String, content: String): Boolean
     suspend fun downloadFileBytes(path: String): ByteArray
+    /** Streams NAS file into [out]; returns bytes written or -1 on failure. */
+    suspend fun downloadFileToStream(path: String, out: java.io.OutputStream): Long
 }
 
 interface DockerRepository {
