@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { dsmClient } from "@/lib/dsm/client";
 import { DSMProcess, StorageVolume } from "@/lib/dsm/types";
-import { mockStorageVolumes } from "@/lib/dsm/mockData";
 import { formatBytes, formatSpeed, formatUptime } from "@/lib/utils";
 import {
   Cpu,
@@ -775,7 +774,7 @@ export const ResourceMonitorTab: React.FC = () => {
 
       {/* Storage Volume Complete Overview (All storages & SSD Cache shown at full) */}
       {(() => {
-        const activeVols = volumes.length > 0 ? [...volumes] : [...mockStorageVolumes];
+        const activeVols = volumes;
         const totalCap = activeVols.reduce((a, v) => a + (v.totalBytes || 0), 0);
         const totalUsed = activeVols.reduce((a, v) => a + (v.usedBytes || 0), 0);
         const totalFree = Math.max(totalCap - totalUsed, 0);

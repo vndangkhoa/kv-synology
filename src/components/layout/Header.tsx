@@ -227,11 +227,11 @@ export const Header: React.FC = () => {
           </button>
         )}
 
-        {/* Connect Button (When Disconnected) */}
+        {/* Buttons When Disconnected */}
         {!session.isConnected && (
           <button
             onClick={() => openLoginModal(true)}
-            className="px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs font-bold rounded-xl bg-sky-600 hover:bg-sky-500 text-white shadow-sm transition-all shrink-0"
+            className="px-3 sm:px-3.5 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white shadow-sm transition-all shrink-0 cursor-pointer"
           >
             {t.common.connect}
           </button>

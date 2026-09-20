@@ -64,6 +64,7 @@ export const en = {
     firewall: "Firewall & Security",
     permissions: "Permission Inspector",
     notifications: "Notifications",
+    reports: "Operational Reports",
     terminal: "SSH Terminal",
     mcp: "API & MCP (AI Agent)",
     settings: "Settings & System",

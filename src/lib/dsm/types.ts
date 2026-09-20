@@ -903,4 +903,235 @@ export interface SynoSmartResult {
   } | null;
 }
 
+// ==================== HEALTH & OPERATIONAL REPORTS ====================
+export type ReportPeriod = "weekly" | "monthly";
+
+export interface PowerReportData {
+  outagesCount: number;             // Số lần mất điện lưới (UPS kích hoạt)
+  improperShutdowns: number;        // Số lần sập nguồn đột ngột (không qua UPS)
+  totalBatterySeconds: number;      // Tổng số giây chạy bằng pin UPS
+  estimatedKWh: number;             // Điện năng tiêu thụ ước tính (kWh)
+  estimatedCostVND: number;         // Tiền điện ước tính (VNĐ)
+  averageWattage: number;           // Công suất trung bình (W)
+  upsConnected: boolean;            // Có kết nối UPS không
+  upsModel?: string;                // Model UPS
+  upsBatteryPercent?: number;       // Pin UPS hiện tại %
+  upsLoadPercent?: number;          // Tải UPS %
+  powerHistory: { label: string; kwh: number; outages: number }[];
+}
+
+export interface NetworkReportData {
+  outagesCount: number;             // Số lần rớt mạng (LAN link down hoặc WAN disconnected)
+  downtimeMinutes: number;          // Tổng số phút mất kết nối
+  uptimePercent: number;            // Tỷ lệ khả dụng mạng (ví dụ 99.98%)
+  averageLatencyMs: number;         // Độ trễ ping trung bình
+  totalRxGB: number;                // Tổng dữ liệu tải về (GB)
+  totalTxGB: number;                // Tổng dữ liệu tải lên (GB)
+  dnsFailures: number;              // Số lần lỗi phân giải tên miền
+  recentEvents: { time: string; event: string; duration?: string; type: "lan" | "wan" | "dns" }[];
+}
+
+export interface DriveHealthItem {
+  slot: string;
+  model: string;
+  type: "HDD" | "NVMe" | "SSD";
+  status: "normal" | "warning" | "critical";
+  tempC: number;
+  maxTempC: number;
+  reallocatedSectors: number;       // ID 5: Bad sector đã remap
+  pendingSectors: number;           // ID 197: Sector chờ xử lý
+  uncorrectableSectors: number;     // ID 198: Bad sector không thể sửa
+  crcErrors: number;                // ID 199: Lỗi cáp/khe cắm
+  powerOnHours: number;             // ID 9: Tổng giờ hoạt động
+  healthLabel: string;
+}
+
+export interface StorageHealthReportData {
+  poolsStatus: "normal" | "warning" | "critical";
+  volumesCount: number;
+  totalStorageBytes: number;
+  usedStorageBytes: number;
+  freeStorageBytes: number;
+  usedPercent: number;
+  scrubbingDone: boolean;
+  drives: DriveHealthItem[];
+}
+
+export interface SsdWearDetail {
+  slot: string;
+  model: string;
+  lifeLeftPercent: number;          // % tuổi thọ còn lại
+  tbwWrittenInPeriod: number;       // Dung lượng ghi thêm trong kỳ (TB)
+  totalTbwWritten: number;          // Tổng dung lượng đã ghi (TB)
+  ratedTbw: number;                 // TBW định mức của hãng
+  wearRatePercentPerMonth: number;  // Tốc độ hao mòn %/tháng
+  estimatedYearsRemaining: number;  // Dự báo số năm còn lại
+}
+
+export interface HddWearDetail {
+  slot: string;
+  model: string;
+  powerOnHours: number;
+  powerOnYears: number;
+  loadCycleCount: number;           // ID 193: Số chu kỳ đỗ đầu từ
+  ratedLoadCycles: number;          // Định mức thiết kế (thường 300,000 - 600,000)
+  hibernationRiskLevel: "low" | "medium" | "high"; // Cảnh báo nguy cơ ngủ đông liên tục
+  startStopCount: number;           // ID 4
+  powerCycleCount: number;          // ID 12
+}
+
+export interface DiskWearReportData {
+  ssds: SsdWearDetail[];
+  hdds: HddWearDetail[];
+  overallDriveEnduranceStatus: "excellent" | "good" | "warning" | "critical";
+  hibernationRecommendation?: string;
+}
+
+export interface AttackingCountryItem {
+  countryCode: string;
+  countryName: string;
+  attackCount: number;
+  flagEmoji: string;
+}
+
+export interface SecurityReportData {
+  failedLoginsCount: number;        // Số lượt thử mật khẩu thất bại
+  blockedIpsCount: number;          // Số IP bị AutoBlock trong kỳ
+  dosProtectionTriggers: number;    // Số lần chặn tấn công DoS
+  topAttackingCountries: AttackingCountryItem[];
+  targetedServices: { service: string; count: number; percent: number }[];
+  recentAttackers: { ip: string; country: string; time: string; attempts: number; service: string }[];
+  bruteForceBlockedRate: number;    // Tỷ lệ chặn thành công (ví dụ 100%)
+}
+
+export interface VulnerabilityItem {
+  id: string;
+  category: "account" | "network" | "system" | "package";
+  severity: "critical" | "warning" | "info";
+  title: string;
+  description: string;
+  recommendation: string;
+  fixed: boolean;
+}
+
+export interface VulnerabilityReportData {
+  securityAdvisorScore: number;     // 0 - 100
+  securityAdvisorStatus: "good" | "warning" | "danger";
+  defaultAdminDisabled: boolean;
+  twoFactorEnabled: boolean;
+  defaultSshPortChanged: boolean;
+  sshPort: number;
+  httpExposedToWan: boolean;
+  dsmUpdateAvailable: boolean;
+  dsmCurrentVersion: string;
+  dsmLatestVersion?: string;
+  vulnerablePackagesCount: number;
+  findings: VulnerabilityItem[];
+}
+
+export interface ExecutiveHealthScore {
+  score: number;                    // 0 - 100
+  grade: "A+" | "A" | "B" | "C" | "D";
+  statusText: string;
+  summaryHighlights: string[];
+  powerScore: number;               // max 20
+  storageScore: number;             // max 30
+  securityScore: number;            // max 25
+  networkScore: number;             // max 15
+  wearScore: number;                // max 10
+}
+
+export interface DailyOperationalEvent {
+  time: string;                     // e.g. "14:23"
+  level: "info" | "warning" | "critical";
+  category: "power" | "network" | "storage" | "security" | "backup" | "system";
+  message: string;
+}
+
+export interface DailyOperationalRecord {
+  date: string;                     // "18/09" or "18/09/2026"
+  fullDate: string;                 // "18/09/2026"
+  dayOfWeek: string;                // "Thứ Hai", "Thứ Ba", ...
+  status: "optimal" | "warning" | "critical";
+  power: {
+    kwh: number;
+    costVND: number;
+    peakWatts: number;
+    outagesCount: number;
+    batteryRuntimeSec: number;
+  };
+  network: {
+    rxGB: number;
+    txGB: number;
+    peakSpeedMBs: number;
+    avgLatencyMs: number;
+    outagesCount: number;
+    downtimeMinutes: number;
+  };
+  storage: {
+    maxTempC: number;
+    hottestDrive: string;
+    newBadSectors: number;
+    ssdCacheWrittenGB: number;
+  };
+  security: {
+    failedLogins: number;
+    blockedIpsCount: number;
+    blockedIps: { ip: string; country: string; service: string; time: string }[];
+  };
+  system: {
+    peakCpuPercent: number;
+    peakMemPercent: number;
+  };
+  events: DailyOperationalEvent[];
+}
+
+export interface ReportSummary {
+  period: ReportPeriod;
+  startDate: string;
+  endDate: string;
+  generatedAt: string;
+  hostName: string;
+  model: string;
+  dsmVersion: string;
+  uptimeString: string;
+  healthScore: ExecutiveHealthScore;
+  power: PowerReportData;
+  network: NetworkReportData;
+  storage: StorageHealthReportData;
+  diskWear: DiskWearReportData;
+  security: SecurityReportData;
+  vulnerabilities: VulnerabilityReportData;
+  dailyRecords: DailyOperationalRecord[];
+}
+
+// ==================== NOTIFICATION ROUTING & CHANNELS ====================
+export interface NotificationRoutingRule {
+  level: NotificationLevel;
+  channels: {
+    telegram: boolean;
+    webPush: boolean;
+    webhook: boolean;
+    inAppTray: boolean;
+  };
+  soundAlert: boolean;
+}
+
+export interface QuietHoursConfig {
+  enabled: boolean;
+  startTime: string; // "23:00"
+  endTime: string;   // "07:00"
+  allowCritical: boolean;
+}
+
+export interface ScheduledReportConfig {
+  weeklyReport: boolean;     // Thứ Hai hàng tuần
+  monthlyReport: boolean;    // Ngày 01 hàng tháng
+  sendToTelegram: boolean;
+  sendToWebhook: boolean;
+  telegramChatId?: string;
+  webhookUrl?: string;
+}
+
+
 

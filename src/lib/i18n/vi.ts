@@ -64,6 +64,7 @@ export const vi = {
     firewall: "Tường lửa & Bảo mật",
     permissions: "Kiểm tra Phân quyền",
     notifications: "Thông báo",
+    reports: "Báo cáo Vận hành",
     terminal: "SSH Terminal",
     mcp: "API & MCP (AI Agent)",
     settings: "Cài đặt & Hệ thống",

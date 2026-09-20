@@ -4,7 +4,7 @@ import { DSMSession, SystemInfo, SystemUtilization, NotificationItem, AppNotifyI
 import { dsmClient } from "../dsm/client";
 import { clearPersistedSession } from "../sessionStorage";
 
-export type NavTab = "dashboard" | "monitor" | "snmp" | "traffic" | "files" | "docker" | "download" | "storage" | "packages" | "services" | "reverse-proxy" | "firewall" | "permissions" | "notifications" | "terminal" | "mcp" | "settings";
+export type NavTab = "dashboard" | "monitor" | "snmp" | "traffic" | "files" | "docker" | "download" | "storage" | "packages" | "services" | "reverse-proxy" | "firewall" | "permissions" | "notifications" | "reports" | "terminal" | "mcp" | "settings";
 export type ThemeMode = "system" | "light" | "gemini" | "dark";
 export type ExperienceMode = "beginner" | "advance";
 
@@ -33,8 +33,12 @@ interface AppState {
   notifications: NotificationItem[];
   appNotifications: AppNotifyItem[];
   notificationsLoading: boolean;
+  isDemoMode: boolean;
   
   // Actions
+  enableDemoMode: () => void;
+  disableDemoMode: () => void;
+  toggleDemoMode: () => void;
   setLanguage: (lang: Language) => void;
   setTheme: (theme: ThemeMode) => void;
   setExperienceMode: (mode: ExperienceMode) => void;
@@ -119,7 +123,32 @@ export const useAppStore = create<AppState>((set, get) => ({
   notifications: [],
   appNotifications: [],
   notificationsLoading: false,
+  isDemoMode: false,
   t: translations["vi"],
+
+  // Demo mode is completely disabled — redirects to login modal
+  enableDemoMode: () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("dsm_is_demo_mode");
+    }
+    set({ isDemoMode: false });
+    get().openLoginModal(true);
+  },
+
+  disableDemoMode: () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("dsm_is_demo_mode");
+    }
+    set({ isDemoMode: false });
+    get().logout();
+  },
+
+  toggleDemoMode: () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("dsm_is_demo_mode");
+    }
+    get().openLoginModal(true);
+  },
 
   setLanguage: (lang: Language) => {
     if (typeof window !== "undefined") {

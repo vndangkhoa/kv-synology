@@ -16,7 +16,6 @@ import {
 } from "@/lib/snmp/storage";
 import { querySnmp } from "@/lib/snmp/client";
 import { dsmClient } from "@/lib/dsm/client";
-import { mockStorageVolumes } from "@/lib/dsm/mockData";
 import { StorageVolume } from "@/lib/dsm/types";
 import { Sparkline, DualSparkline } from "@/components/common/Sparkline";
 import { ResponsiveModal } from "@/components/common/ResponsiveModal";
@@ -114,7 +113,7 @@ export const SnmpTab: React.FC = () => {
   const readingsRef = useRef<ReadingsMap>({});
 
   const activeVols = useMemo(() => {
-    return volumes.length > 0 ? volumes : mockStorageVolumes;
+    return volumes;
   }, [volumes]);
 
   useEffect(() => {

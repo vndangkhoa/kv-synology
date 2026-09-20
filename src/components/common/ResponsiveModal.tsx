@@ -82,6 +82,11 @@ export const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
       <div
         className={`bg-white dark:bg-slate-900 w-full ${MAX_WIDTH_CLASS[maxWidth]} max-h-[92vh] sm:max-h-[88vh] rounded-t-2xl sm:rounded-2xl border border-slate-200/70 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden mb-0 sm:my-auto animate-in slide-in-from-bottom-4 sm:fade-in duration-200 ${panelClassName}`}
       >
+        {/* Mobile Drag Handle */}
+        <div className="sm:hidden flex items-center justify-center pt-2.5 pb-1 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
+          <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+        </div>
+
         {(title || icon) && (
           <div className="flex items-center justify-between gap-3 px-3.5 sm:px-5 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">

@@ -66,24 +66,6 @@ import {
   ReverseProxyHealthInfo,
 } from "./types";
 import {
-  mockStorageVolumes,
-  mockPackages,
-  mockServices,
-  mockNotifications,
-  mockAppNotifications,
-  mockFirewallConfig,
-  mockFirewallRules,
-  mockAutoBlockConfig,
-  mockBlockedIps,
-  mockDockerContainers,
-  mockDockerProjects,
-  mockDockerImages,
-  mockDsmUsers,
-  mockDsmGroups,
-  mockFolderAcls,
-  mockSecurityAuditItems,
-  mockReverseProxyRules,
-  mockFiles,
   fullAclRights,
   rwAclRights,
   roAclRights,
@@ -122,6 +104,10 @@ class DSMClient {
 
   public getSession(): DSMSession {
     return this.session;
+  }
+
+  public isDemoSession(): boolean {
+    return false;
   }
 
   public getConfig(): DSMConnectionConfig | null {
@@ -318,12 +304,26 @@ class DSMClient {
   }
 
   public clearCaches() {
-    this.localDockerContainers = [...mockDockerContainers];
-    this.localDockerProjects = [...mockDockerProjects];
-    this.localDockerImages = [...mockDockerImages];
-    this.localFirewallConfig = { ...mockFirewallConfig };
-    this.localAutoBlockConfig = { ...mockAutoBlockConfig };
-    this.localBlockedIps = [...mockBlockedIps];
+    this.localDockerContainers = [];
+    this.localDockerProjects = [];
+    this.localDockerImages = [];
+    this.localFirewallConfig = {
+      enabled: false,
+      defaultProfile: "default",
+      allowUnmatched: true,
+      rules: [],
+    };
+    this.localAutoBlockConfig = {
+      enabled: false,
+      attempts: 5,
+      withinMinutes: 5,
+      enableUnblock: false,
+      unblockDays: 0,
+      blockedCount: 0,
+      allowedCount: 0,
+    };
+    this.localBlockedIps = [];
+    this.localFiles = {};
   }
 
   public logout() {
@@ -340,19 +340,9 @@ class DSMClient {
   }
 
   public async getSystemInfo(): Promise<SystemInfo> {
-    const fallback: SystemInfo = {
-      model: this.session.model || "Synology NAS",
-      serial: "N/A",
-      version: this.session.versionString || "DSM 7.2",
-      uptime: 0,
-      temperature: 40,
-      time: new Date().toISOString(),
-      ramTotal: 16384,
-      ramUsed: 2048,
-      cpuModel: "Intel x86_64",
-      cpuCores: 4,
-    };
-    if (!this.session.isConnected) return fallback;
+    if (!this.session.isConnected) {
+      throw new Error("Chưa kết nối Synology DSM");
+    }
     try {
       let data = await this.postEntry("SYNO.Core.System", "info", 1).catch(() => null);
       if (!data?.success) {
@@ -405,7 +395,7 @@ class DSMClient {
         return info;
       }
     } catch (_) {}
-    return fallback;
+    throw new Error("Không thể kết nối lấy thông tin hệ thống từ DSM.");
   }
 
   public async getUtilization(): Promise<SystemUtilization> {
@@ -413,7 +403,7 @@ class DSMClient {
       cpuPercent: 0,
       memoryPercent: 0,
       memoryUsedMB: 0,
-      memoryTotalMB: 16384,
+      memoryTotalMB: 0,
       networkRxBytes: 0,
       networkTxBytes: 0,
       diskReadBytes: 0,
@@ -513,11 +503,11 @@ class DSMClient {
     return this.getFiles(folderPath);
   }
 
-  private localFiles: Record<string, FileItem[]> = JSON.parse(JSON.stringify(mockFiles));
+  private localFiles: Record<string, FileItem[]> = {};
 
   public async getFiles(folderPath: string): Promise<FileItem[]> {
     if (!this.session.isConnected) {
-      return this.localFiles[folderPath] || [];
+      return [];
     }
 
     try {
@@ -953,11 +943,11 @@ class DSMClient {
     }
   }
 
-  private localDockerContainers: DockerContainerDetails[] = [...mockDockerContainers];
+  private localDockerContainers: DockerContainerDetails[] = [];
 
   public async getDockerContainers(): Promise<DockerContainerDetails[]> {
     if (!this.session.isConnected) {
-      return this.localDockerContainers;
+      return [];
     }
     try {
       let data = await this.postEntry("SYNO.Docker.Container", "list", 1, {
@@ -1331,9 +1321,10 @@ class DSMClient {
   }
 
   // ==================== DOCKER PROJECTS / STACKS (COMPOSE) ====================
-  private localDockerProjects: DockerProject[] = [...mockDockerProjects];
+  private localDockerProjects: DockerProject[] = [];
 
   public async getDockerProjects(): Promise<DockerProject[]> {
+    if (!this.session.isConnected) return [];
     if (this.session.isConnected) {
       const endpoints: Array<{ api: string; method: string; version: number; params: Record<string, string> }> = [
         { api: "SYNO.Docker.Project", method: "list", version: 1, params: { type: '"all"', limit: "-1", offset: "0" } },
@@ -1468,27 +1459,7 @@ class DSMClient {
 
       return discoveredProjects;
     }
-
-    // Offline / demo aggregation
-    for (const proj of this.localDockerProjects) {
-      const pName = proj.name.toLowerCase();
-      const memberContainers = this.localDockerContainers.filter((c) => {
-        const cName = c.name.toLowerCase();
-        return cName.startsWith(pName) || proj.services.some((s) => s.name.toLowerCase() === cName);
-      });
-      const totalCpu = Number(memberContainers.reduce((acc, curr) => acc + (curr.cpuUsage || 0), 0).toFixed(1));
-      const totalRamMB = Number(
-        memberContainers.reduce((acc, curr) => {
-          const memVal = parseFloat(curr.memoryUsage) || (curr.stats?.memoryUsageMB || 0);
-          return acc + (curr.memoryUsage.includes("GB") ? memVal * 1024 : memVal);
-        }, 0).toFixed(1)
-      );
-      proj.totalCpuPercent = totalCpu || 1.4;
-      proj.totalMemoryUsageMB = totalRamMB || 240;
-      proj.totalMemoryFormatted = proj.totalMemoryUsageMB >= 1024 ? `${(proj.totalMemoryUsageMB / 1024).toFixed(2)} GB` : `${proj.totalMemoryUsageMB.toFixed(1)} MB`;
-      proj.containers = memberContainers;
-    }
-    return this.localDockerProjects;
+    return [];
   }
 
   public async getDockerProjectYaml(nameOrId: string, projectPath?: string): Promise<string> {
@@ -1666,9 +1637,10 @@ class DSMClient {
   }
 
   // ==================== DOCKER IMAGES ====================
-  private localDockerImages: DockerImage[] = [...mockDockerImages];
+  private localDockerImages: DockerImage[] = [];
 
   public async getDockerImages(): Promise<DockerImage[]> {
+    if (!this.session.isConnected) return [];
     if (this.session.isConnected) {
       const endpoints: Array<{ api: string; method: string; version: number }> = [
         { api: "SYNO.Docker.Image", method: "list", version: 1 },
@@ -1698,9 +1670,8 @@ class DSMClient {
           }
         } catch (_) {}
       }
-      return [];
     }
-    return this.localDockerImages;
+    return [];
   }
 
   public async pullDockerImage(repository: string, tag = "latest"): Promise<boolean> {
@@ -2958,7 +2929,7 @@ class DSMClient {
 
   public async getStorageVolumes(): Promise<StorageVolume[]> {
     if (!this.session.isConnected) {
-      return mockStorageVolumes;
+      return [];
     }
     try {
       const res = await this.postEntry("SYNO.Storage.CGI.Storage", "load_info", 1);
@@ -3258,7 +3229,7 @@ class DSMClient {
         }
       }
     } catch (_) {}
-    return mockStorageVolumes;
+    return [];
   }
 
   // ===== SMART & Bad Sector Production APIs =====
@@ -3705,11 +3676,11 @@ class DSMClient {
   public async getStorageFullInfo(): Promise<StorageFullInfo> {
     if (!this.session.isConnected) {
       return {
-        volumes: mockStorageVolumes,
+        volumes: [],
         storagePools: [],
         ssdCaches: [],
         hotSpares: [],
-        disks: mockStorageVolumes.flatMap(v => v.drives || []),
+        disks: [],
       };
     }
 
@@ -4038,33 +4009,7 @@ class DSMClient {
     const volNum = cleanPath.replace(/\D/g, "") || "1";
 
     if (!this.session.isConnected) {
-      // Return realistic mock matching Synology DSM (Image)
-      const mockTotal = volNum === "3" ? 960 * 1024 ** 3 : volNum === "2" ? 1.8 * 1024 ** 4 : 2.7 * 1024 ** 4;
-      const mockShared = volNum === "3" ? 63.8 * 1024 ** 3 : volNum === "2" ? 540 * 1024 ** 3 : 1.1 * 1024 ** 4;
-      const mockOthers = 17 * 1024 ** 2; // 17 MB
-      const mockUsed = mockShared + mockOthers;
-      const mockFree = mockTotal > mockUsed ? mockTotal - mockUsed : 0;
-      const mockPct = Math.round((mockUsed / mockTotal) * 100);
-
-      return {
-        volumeId: `volume_${volNum}`,
-        volumePath: cleanPath,
-        volumeName: volNum === "1" ? "backup-nas-master" : volNum === "2" ? "active" : "bk-active",
-        totalBytes: mockTotal,
-        usedBytes: mockUsed,
-        freeBytes: mockFree,
-        usedPercent: mockPct,
-        sharedFoldersBytes: mockShared,
-        sharedFolders: [
-          { name: volNum === "3" ? "bk-active" : volNum === "2" ? "active_data" : "backup_data", path: `${cleanPath}/data`, sizeBytes: mockShared * 0.75, fileCount: 4120 },
-          { name: "docker", path: `${cleanPath}/docker`, sizeBytes: mockShared * 0.18, fileCount: 890 },
-          { name: "homes", path: `${cleanPath}/homes`, sizeBytes: mockShared * 0.07, fileCount: 230 },
-        ],
-        othersBytes: mockOthers,
-        dockerBytes: 12 * 1024 ** 3,
-        packagesBytes: 4.2 * 1024 ** 3,
-        recycleBinBytes: 150 * 1024 ** 2,
-      };
+      return null;
     }
 
     try {
@@ -4229,13 +4174,10 @@ class DSMClient {
       } catch (_) {}
     }
 
-    // Fallback to real machine packages merged with custom installed packages
-    const mockList: PackageItem[] = mockPackages
-      .filter((p) => !deletedPkgIds.includes(p.id));
-
-    const seenIds = new Set(mockList.map((p) => p.id));
-    const extra = customInstalled.filter((p) => !seenIds.has(p.id) && !deletedPkgIds.includes(p.id));
-    return [...mockList, ...extra];
+    if (!this.session.isConnected) {
+      return [];
+    }
+    return customInstalled.filter((p) => !deletedPkgIds.includes(p.id));
   }
 
   public async togglePackage(id: string, action: "start" | "stop"): Promise<boolean> {
@@ -4612,6 +4554,9 @@ class DSMClient {
 
   // ==================== SERVICES ====================
   public async getServices(): Promise<ServiceItem[]> {
+    if (!this.session.isConnected) {
+      return [];
+    }
     try {
       // Use compound request for efficiency (same as dsm_helper fileService + terminal)
       const compound = [
@@ -5321,14 +5266,24 @@ class DSMClient {
   }
 
   // ==================== FIREWALL & SECURITY ====================
-  private localFirewallConfig: FirewallConfig = { ...mockFirewallConfig };
-  private localAutoBlockConfig: AutoBlockConfig = { ...mockAutoBlockConfig };
-  private localBlockedIps: BlockedIpItem[] = [...mockBlockedIps];
-  private localAllowedIps: BlockedIpItem[] = [
-    { ip: "192.168.31.0/24", denyTime: "2026-08-20 00:00:00", country: "LAN", expireTime: "Vĩnh viễn" },
-    { ip: "127.0.0.1", denyTime: "2026-08-20 00:00:00", country: "LOCAL", expireTime: "Vĩnh viễn" },
-  ];
-  private localDosEnabled: boolean = true;
+  private localFirewallConfig: FirewallConfig = {
+    enabled: false,
+    defaultProfile: "default",
+    allowUnmatched: true,
+    rules: [],
+  };
+  private localAutoBlockConfig: AutoBlockConfig = {
+    enabled: false,
+    attempts: 5,
+    withinMinutes: 5,
+    enableUnblock: false,
+    unblockDays: 0,
+    blockedCount: 0,
+    allowedCount: 0,
+  };
+  private localBlockedIps: BlockedIpItem[] = [];
+  private localAllowedIps: BlockedIpItem[] = [];
+  private localDosEnabled: boolean = false;
 
   // ==================== PRODUCTION FIREWALL & SECURITY ====================
   public async getFirewallConfig(): Promise<FirewallConfig> {
@@ -5545,7 +5500,7 @@ class DSMClient {
 
   // ==================== PRODUCTION AUTO-BLOCK (BRUTE FORCE PROTECTION) ====================
   public async getAutoBlockConfig(): Promise<AutoBlockConfig> {
-    if (this.session.isConnected) {
+    if (this.session.isConnected && !this.isDemoSession()) {
       try {
         const data: any = await this.postEntry("SYNO.Core.Security.AutoBlock", "get", 1, {});
         if (data?.success && data?.data) {
@@ -5583,51 +5538,49 @@ class DSMClient {
   }
 
   public async getBlockedIps(): Promise<BlockedIpItem[]> {
-    if (this.session.isConnected) {
-      try {
-        const data: any = await this.postEntry("SYNO.Core.Security.AutoBlock.Rules", "list", 1, {
-          type: "deny",
-          offset: "0",
-          limit: "100",
-        });
-        const ipInfo = data?.data?.ip_info;
-        if (data?.success && Array.isArray(ipInfo)) {
-          this.localBlockedIps = ipInfo.map((r: any) => ({
-            ip: r.ip,
-            denyTime: r.record_date ? new Date(r.record_date * 1000).toLocaleString("vi-VN") : new Date().toLocaleString("vi-VN"),
-            expireTime: r.expire_date === 0 || !r.expire_date ? "Vĩnh viễn" : new Date(r.expire_date * 1000).toLocaleString("vi-VN"),
-            country: r.country || "MANUAL",
-          }));
-          this.localAutoBlockConfig.blockedCount = this.localBlockedIps.length;
-          return this.localBlockedIps;
-        }
-      } catch (_) {}
-    }
-    return this.localBlockedIps;
+    if (!this.session.isConnected) return [];
+    try {
+      const data: any = await this.postEntry("SYNO.Core.Security.AutoBlock.Rules", "list", 1, {
+        type: "deny",
+        offset: "0",
+        limit: "100",
+      });
+      const ipInfo = data?.data?.ip_info;
+      if (data?.success && Array.isArray(ipInfo)) {
+        this.localBlockedIps = ipInfo.map((r: any) => ({
+          ip: r.ip,
+          denyTime: r.record_date ? new Date(r.record_date * 1000).toLocaleString("vi-VN") : new Date().toLocaleString("vi-VN"),
+          expireTime: r.expire_date === 0 || !r.expire_date ? "Vĩnh viễn" : new Date(r.expire_date * 1000).toLocaleString("vi-VN"),
+          country: r.country || "MANUAL",
+        }));
+        this.localAutoBlockConfig.blockedCount = this.localBlockedIps.length;
+        return this.localBlockedIps;
+      }
+    } catch (_) {}
+    return [];
   }
 
   public async getAllowedIps(): Promise<BlockedIpItem[]> {
-    if (this.session.isConnected) {
-      try {
-        const data: any = await this.postEntry("SYNO.Core.Security.AutoBlock.Rules", "list", 1, {
-          type: "allow",
-          offset: "0",
-          limit: "100",
-        });
-        const ipInfo = data?.data?.ip_info;
-        if (data?.success && Array.isArray(ipInfo)) {
-          this.localAllowedIps = ipInfo.map((r: any) => ({
-            ip: r.ip,
-            denyTime: r.record_date ? new Date(r.record_date * 1000).toLocaleString("vi-VN") : "2026-08-20",
-            expireTime: "Vĩnh viễn (Tin cậy)",
-            country: r.country || "TRUSTED",
-          }));
-          this.localAutoBlockConfig.allowedCount = this.localAllowedIps.length;
-          return this.localAllowedIps;
-        }
-      } catch (_) {}
-    }
-    return this.localAllowedIps;
+    if (!this.session.isConnected) return [];
+    try {
+      const data: any = await this.postEntry("SYNO.Core.Security.AutoBlock.Rules", "list", 1, {
+        type: "allow",
+        offset: "0",
+        limit: "100",
+      });
+      const ipInfo = data?.data?.ip_info;
+      if (data?.success && Array.isArray(ipInfo)) {
+        this.localAllowedIps = ipInfo.map((r: any) => ({
+          ip: r.ip,
+          denyTime: r.record_date ? new Date(r.record_date * 1000).toLocaleString("vi-VN") : "2026-08-20",
+          expireTime: "Vĩnh viễn (Tin cậy)",
+          country: r.country || "TRUSTED",
+        }));
+        this.localAutoBlockConfig.allowedCount = this.localAllowedIps.length;
+        return this.localAllowedIps;
+      }
+    } catch (_) {}
+    return [];
   }
 
   public async unblockIp(ip: string): Promise<boolean> {
@@ -5903,7 +5856,7 @@ class DSMClient {
         return fallbackUsers;
       } catch (_) {}
     }
-    return mockDsmUsers;
+    return [];
   }
 
   public async getDsmGroups(): Promise<DsmGroup[]> {
@@ -5934,7 +5887,7 @@ class DSMClient {
         { name: "http", gid: 102, description: "Dịch vụ Web Station", members: [] },
       ];
     }
-    return mockDsmGroups;
+    return [];
   }
 
   public async getFolderAclInfo(folderPath: string): Promise<FolderAclInfo> {
@@ -6150,45 +6103,23 @@ class DSMClient {
       } catch (_) {}
     }
 
-    if (mockFolderAcls[cleanPath]) {
-      return mockFolderAcls[cleanPath];
-    }
-
-    const knownPaths = Object.keys(mockFolderAcls).sort((a, b) => b.length - a.length);
-    const parentPath = knownPaths.find(p => cleanPath.startsWith(p + "/") || cleanPath === p) || "/";
-    const parentInfo = mockFolderAcls[parentPath] || mockFolderAcls["/downloads"];
-
-    const inheritedList: FolderUserAccess[] = parentInfo.accessList.map(item => {
-      if (item.isOwner) {
-        return {
-          ...item,
-          displayName: `${item.targetName} (Owner)`,
-        };
-      }
-      return {
-        ...item,
-        inheritance: item.inheritance === "direct" ? "inherited_folder" : item.inheritance,
-        inheritedFrom: item.inheritance === "direct" ? parentPath : item.inheritedFrom || parentPath,
-        explanation: `Kế thừa từ thư mục cha ${parentPath}`,
-      };
-    });
-
     return {
       path: cleanPath,
-      realPath: `/volume1${cleanPath}`,
-      owner: parentInfo.owner,
-      group: parentInfo.group,
-      posixPerm: parentInfo.posixPerm,
-      isAclMode: true,
-      isInheritEnabled: true,
-      parentPath: parentPath,
+      realPath: cleanPath,
+      owner: "",
+      group: "",
+      posixPerm: "000",
+      isAclMode: false,
+      isInheritEnabled: false,
+      parentPath: "/",
       directRulesCount: 0,
-      inheritedRulesCount: inheritedList.length,
-      accessList: inheritedList,
+      inheritedRulesCount: 0,
+      accessList: [],
     };
   }
 
   public async getUserFolderAccessList(username: string): Promise<UserFolderAccess[]> {
+    if (!this.session.isConnected) return [];
     const users = await this.getDsmUsers();
     const user = users.find(u => u.name.toLowerCase() === username.toLowerCase()) || {
       name: username,
@@ -6213,7 +6144,7 @@ class DSMClient {
     }
 
     if (folderPaths.length === 0) {
-      folderPaths = Object.keys(mockFolderAcls);
+      return [];
     }
 
     const result: UserFolderAccess[] = [];
@@ -6355,7 +6286,7 @@ class DSMClient {
     }
 
     if (folderPaths.length === 0) {
-      folderPaths = Object.keys(mockFolderAcls);
+      return { users: [], folders: [], matrix: {} };
     }
 
     const folders = folderPaths.map(path => ({
@@ -6432,7 +6363,7 @@ class DSMClient {
         if (items.length > 0) return items;
       } catch (_) {}
     }
-    return mockSecurityAuditItems;
+    return [];
   }
 
   // =========================================================================
@@ -6696,6 +6627,49 @@ class DSMClient {
         activeRulesCount: 0,
       };
     }
+  }
+
+  // ==================== OPERATIONAL REPORTS & UPS ====================
+  public async getUpsInfo(): Promise<any> {
+    if (!this.session.isConnected) return null;
+    try {
+      const res = await this.postEntry("SYNO.Core.ExternalDevice.UPS", "get", 1);
+      if (res?.success) return res.data;
+    } catch (_) {}
+    return null;
+  }
+
+  public async getSystemLogs(params: { offset?: number; limit?: number; logtype?: string } = {}): Promise<any[]> {
+    if (!this.session.isConnected) return [];
+    try {
+      const res = await this.postEntry("SYNO.Core.SyslogClient.Log", "list", 1, {
+        offset: String(params.offset || 0),
+        limit: String(params.limit || 100),
+        logtype: params.logtype || "system",
+      });
+      if (res?.success && Array.isArray(res.data?.items)) {
+        return res.data.items;
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  public async getReportSummary(period: import("./types").ReportPeriod = "weekly"): Promise<import("./types").ReportSummary> {
+    if (!this.session.isConnected) {
+      throw new Error("Chưa kết nối Synology DSM. Vui lòng đăng nhập để xem báo cáo.");
+    }
+    const headers: Record<string, string> = {};
+    if (this.config) {
+      headers["x-dsm-host"] = this.config.host;
+      headers["x-dsm-model"] = this.session.model || "DS920+";
+      headers["x-dsm-sid"] = this.session.sid;
+    }
+    const res = await fetch(`/api/reports/summary?period=${period}`, { headers });
+    const data = await res.json();
+    if (data.success && data.data) {
+      return data.data;
+    }
+    throw new Error(data.error || "Không thể tải dữ liệu báo cáo từ DSM");
   }
 }
 

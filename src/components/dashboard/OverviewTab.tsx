@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { dsmClient } from "@/lib/dsm/client";
-import { mockStorageVolumes } from "@/lib/dsm/mockData";
 import { formatBytes, formatSpeed, formatUptime } from "@/lib/utils";
 import { StorageVolume, ServiceItem, DockerContainer, DSMProcess } from "@/lib/dsm/types";
 import {
@@ -91,8 +90,8 @@ export const OverviewTab: React.FC = () => {
   const ramUsedMB = utilization?.memoryUsedMB ?? (ramTotalMB ? Math.round((ram/100)*ramTotalMB) : 0);
   const ramFreeMB = Math.max(0, ramTotalMB - ramUsedMB);
   const displayVolumes = useMemo(() => {
-    return volumes.length > 0 ? volumes : (session.isConnected ? [] : mockStorageVolumes);
-  }, [volumes, session.isConnected]);
+    return volumes;
+  }, [volumes]);
 
   const totalDiskBytes = displayVolumes.reduce((a,v)=>a+(v.totalBytes||0),0);
   const usedDiskBytes = displayVolumes.reduce((a,v)=>a+(v.usedBytes||0),0);
@@ -104,20 +103,20 @@ export const OverviewTab: React.FC = () => {
   const cpuHistory = utilizationHistory.map(u=>u.cpuPercent);
   const ramHistory = utilizationHistory.map(u=>u.memoryPercent);
   const netHistory = utilizationHistory.map(u=>(u.networkRxBytes+u.networkTxBytes)/(1024*1024));
-  const diskRead = utilization?.diskReadBytes ?? 1.2*1024*1024;
-  const diskWrite = utilization?.diskWriteBytes ?? 2.4*1024*1024;
+  const diskRead = utilization?.diskReadBytes ?? 0;
+  const diskWrite = utilization?.diskWriteBytes ?? 0;
   const synth = (base:number, variance=8, len=16)=> Array.from({length:len},(_,i)=> {
     // deterministic jitter (no Math.random to avoid hydration mismatch)
     const pseudo = ((Math.sin(i * 9301 + base * 49297) * 10000) % 1 + 1) % 1;
     const jitter = pseudo * 4 - 2;
     return Math.max(2, Math.min(98, base + Math.sin(i*0.9)*variance + jitter));
   });
-  const displayCpuHistory = cpuHistory.length>2? cpuHistory: synth(cpu,5);
-  const displayRamHistory = ramHistory.length>2? ramHistory: synth(ram,3);
-  const displayNetHistory = netHistory.length>2? netHistory: synth((rx+tx)/(1024*1024) || 6,2);
+  const displayCpuHistory = cpuHistory.length>2? cpuHistory: (session.isConnected ? synth(cpu,5) : []);
+  const displayRamHistory = ramHistory.length>2? ramHistory: (session.isConnected ? synth(ram,3) : []);
+  const displayNetHistory = netHistory.length>2? netHistory: (session.isConnected ? synth((rx+tx)/(1024*1024) || 6,2) : []);
   const runningContainers = containers.filter(c=>c.status==="running").length;
   const enabledServices = services.filter(s=>s.enabled).length;
-  const totalServices = services.length||9;
+  const totalServices = services.length;
   const unreadNotifs = notifications.filter(n=>!n.read).length;
   const topProcesses = [...processes].sort((a,b)=>b.cpu-a.cpu).slice(0, viewMode==="full"?6:3);
 

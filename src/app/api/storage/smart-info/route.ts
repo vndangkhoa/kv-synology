@@ -368,22 +368,15 @@ export async function POST(req: NextRequest) {
     const option = body.option || "";
     const mode = body.mode || "auto";
 
-    // Demo Mode Return
-    if (body.isDemo || (!body.dsmConfig?.host && !body.sshConfig?.host)) {
-      const parsed = parseSynoSmartOutput(MOCK_SMART_OUTPUT);
-      return NextResponse.json({
-        success: true,
-        source: "mock",
-        message: "Dữ liệu mẫu S.M.A.R.T. (Demo Mode - Synology DS920+)",
-        result: MOCK_SMART_OUTPUT,
-        parsed,
-        systemInfo: {
-          MODEL: "DS920+",
-          PLATFORM: "geminilake",
-          DSM_VERSION: "7.2.1-69057",
-          Update: "3",
+    // Require valid DSM or SSH host
+    if (!body.dsmConfig?.host && !body.sshConfig?.host) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Chưa cấu hình kết nối tới Synology DSM hoặc SSH. Vui lòng đăng nhập thiết bị.",
         },
-      } satisfies SynoSmartResult);
+        { status: 401 }
+      );
     }
 
     // 1. ACTION = CHECK: Check if SynoSmartInfo package is installed on DSM

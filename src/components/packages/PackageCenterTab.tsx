@@ -6,7 +6,6 @@ import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { dsmClient } from "@/lib/dsm/client";
 import { PackageItem, PackageServer } from "@/lib/dsm/types";
-import { mockPackages } from "@/lib/dsm/mockData";
 import {
   Package,
   Play,
@@ -260,10 +259,10 @@ export const PackageCenterTab: React.FC = () => {
         dsmClient.getPackages(),
         dsmClient.getPackageServers(),
       ]);
-      setPackages(pkgList || mockPackages);
+      setPackages(pkgList || []);
       setPackageServers(servers || []);
     } catch (_) {
-      setPackages(mockPackages);
+      setPackages([]);
     } finally {
       setLoading(false);
     }

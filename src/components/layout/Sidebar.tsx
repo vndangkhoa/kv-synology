@@ -26,6 +26,7 @@ import {
   Shield,
   ShieldCheck,
   ArrowLeftRight,
+  BarChart3,
 } from "lucide-react";
 
 export const Sidebar: React.FC = () => {
@@ -65,6 +66,7 @@ export const Sidebar: React.FC = () => {
     { id: "reverse-proxy", label: t.nav.reverseProxy, icon: <ArrowLeftRight className="w-5 h-5" /> },
     { id: "firewall", label: t.nav.firewall, icon: <Shield className="w-5 h-5" /> },
     { id: "notifications", label: t.nav.notifications, icon: <Bell className="w-5 h-5" /> },
+    { id: "reports", label: t.nav.reports, icon: <BarChart3 className="w-5 h-5" /> },
     { id: "terminal", label: t.nav.terminal, icon: <Terminal className="w-5 h-5" /> },
     { id: "mcp", label: t.nav.mcp, icon: <Bot className="w-5 h-5" /> },
     { id: "settings", label: t.nav.settings, icon: <Settings className="w-5 h-5" /> },
@@ -172,34 +174,36 @@ export const Sidebar: React.FC = () => {
       {/* 3. Fixed Footer Profile, Language & Logout */}
       <div className="shrink-0 p-3 border-t border-slate-200 dark:border-slate-800 space-y-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm">
         {session.isConnected ? (
-          <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
-            <div className="flex items-center space-x-2.5 overflow-hidden">
-              <div className="w-9 h-9 rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-xs shrink-0">
-                {(session.account || "A").charAt(0).toUpperCase()}
+          <div className="space-y-2">
+            <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
+              <div className="flex items-center space-x-2.5 overflow-hidden">
+                <div className="w-9 h-9 rounded-2xl flex items-center justify-center font-bold text-xs shrink-0 bg-sky-500/10 text-sky-600 dark:text-sky-400">
+                  {(session.account || "A").charAt(0).toUpperCase()}
+                </div>
+                {!collapsed && (
+                  <div className="truncate text-left">
+                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1.5">
+                      {session.account || "User"}
+                    </p>
+                    <p className="text-[11px] text-slate-400 truncate">
+                      {session.model || "Synology"}
+                    </p>
+                  </div>
+                )}
               </div>
               {!collapsed && (
-                <div className="truncate text-left">
-                  <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
-                    {session.account || "User"}
-                  </p>
-                  <p className="text-[11px] text-slate-400 truncate">
-                    {session.model || "Synology"}
-                  </p>
-                </div>
+                <button
+                  onClick={() => {
+                    logout();
+                    setMobileDrawerOpen(false);
+                  }}
+                  title={t.common.disconnect}
+                  className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               )}
             </div>
-            {!collapsed && (
-              <button
-                onClick={() => {
-                  logout();
-                  setMobileDrawerOpen(false);
-                }}
-                title={t.common.disconnect}
-                className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            )}
           </div>
         ) : (
           <button
@@ -208,7 +212,7 @@ export const Sidebar: React.FC = () => {
               setMobileDrawerOpen(false);
             }}
             title={t.common.connect}
-            className={`w-full flex items-center justify-center ${collapsed ? "p-2.5" : "space-x-2 py-2.5 px-4"} bg-sky-600 hover:bg-sky-500 text-white rounded-2xl text-xs font-bold shadow-lg shadow-sky-600/20 transition-all`}
+            className={`w-full flex items-center justify-center ${collapsed ? "p-2.5" : "space-x-2 py-2.5 px-4"} bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white rounded-2xl text-xs font-bold shadow-lg shadow-sky-600/20 transition-all cursor-pointer`}
           >
             <LogIn className="w-4 h-4 shrink-0" />
             {!collapsed && <span>{t.common.connect} NAS</span>}

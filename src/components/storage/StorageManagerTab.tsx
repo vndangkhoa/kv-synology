@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { dsmClient } from "@/lib/dsm/client";
-import { mockStorageVolumes } from "@/lib/dsm/mockData";
 import {
   StorageVolume,
   StoragePool,
@@ -231,7 +230,7 @@ export const StorageManagerTab: React.FC = () => {
     loadAllStorage();
   }, [session.isConnected]);
 
-  const volumes = fullInfo?.volumes || (session.isConnected ? [] : mockStorageVolumes);
+  const volumes = fullInfo?.volumes || [];
   const storagePools = fullInfo?.storagePools || [];
   
   const allDrives = useMemo(() => {
@@ -572,7 +571,14 @@ export const StorageManagerTab: React.FC = () => {
       {/* TAB 1: OVERVIEW (CLEAN & SPACIOUS) */}
       {activeTab==="overview" && (
         <div className="space-y-4">
-          {(volumes.length > 0 ? volumes : mockStorageVolumes).map((vol, vIdx) => {
+          {volumes.length === 0 ? (
+            <div className="p-12 text-center rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+              <Database className="w-10 h-10 text-slate-400 mx-auto" />
+              <h4 className="font-bold text-slate-700 dark:text-slate-300">Không tìm thấy Storage Volume</h4>
+              <p className="text-xs text-slate-500">Chưa phát hiện Volume nào từ hệ thống Synology DSM hoặc chưa kết nối thiết bị.</p>
+            </div>
+          ) : (
+            volumes.map((vol, vIdx) => {
             const usedPct = vol.totalBytes > 0 ? Math.min(100, Math.round((vol.usedBytes / vol.totalBytes) * 100)) : 20;
             const isSsdCache = vol.isCache === true || vol.fsType.toLowerCase().includes("cache");
             const rInfo = getRaidInfo(vol.raidType || (vIdx === 0 ? "SHR" : "Basic"));
@@ -643,7 +649,7 @@ export const StorageManagerTab: React.FC = () => {
                 )}
               </div>
             );
-          })}
+          }))}
         </div>
       )}
 

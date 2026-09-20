@@ -24,9 +24,11 @@ import { ReverseProxyTab } from "@/components/services/ReverseProxyTab";
 import { FirewallManagerTab } from "@/components/security/FirewallManagerTab";
 import { PermissionInspectorTab } from "@/components/permissions/PermissionInspectorTab";
 import { NotificationsTab } from "@/components/notifications/NotificationsTab";
+import { ReportsTab } from "@/components/reports/ReportsTab";
 import { TerminalTab } from "@/components/terminal/TerminalTab";
 import { McpDocsTab } from "@/components/mcp/McpDocsTab";
 import { SettingsTab } from "@/components/settings/SettingsTab";
+import { AuthRequiredGate } from "@/components/common/AuthRequiredGate";
 
 export default function Home() {
   const {
@@ -39,6 +41,7 @@ export default function Home() {
     setExperienceMode,
     fetchNotifications,
     setSession,
+    openLoginModal,
     showAiChatBubble,
     setShowAiChatBubble,
     setAiProvider,
@@ -122,6 +125,18 @@ export default function Home() {
       }
     } catch {}
 
+    // Clear any obsolete demo mode flags completely
+    try {
+      localStorage.removeItem("dsm_is_demo_mode");
+    } catch {}
+
+    // Auto-prompt login dialog if user is not connected on mount
+    const timer = setTimeout(() => {
+      if (!session.isConnected) {
+        openLoginModal(true);
+      }
+    }, 450);
+
     // Listen to OS system color scheme changes dynamically
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleSystemThemeChange = (e: MediaQueryListEvent) => {
@@ -136,8 +151,11 @@ export default function Home() {
     };
 
     mediaQuery.addEventListener("change", handleSystemThemeChange);
-    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
-  }, [setLanguage, setTheme, setSession]);
+    return () => {
+      clearTimeout(timer);
+      mediaQuery.removeEventListener("change", handleSystemThemeChange);
+    };
+  }, [setLanguage, setTheme, setSession, session.isConnected, openLoginModal]);
 
   // Polling loop for live telemetry + notifications
   useEffect(() => {
@@ -181,10 +199,43 @@ export default function Home() {
     document.documentElement.scrollTo?.({ top: 0, behavior: "smooth" });
   }, [activeTab]);
 
+  const tabDisplayNames: Record<string, string> = {
+    dashboard: "Tổng quan",
+    monitor: "Giám sát tài nguyên",
+    snmp: "Giám sát SNMP",
+    traffic: "Lưu lượng mạng",
+    files: "Tệp tin File Station",
+    docker: "Docker Container",
+    download: "Download Station",
+    storage: "Quản lý Lưu trữ",
+    packages: "Gói ứng dụng",
+    services: "Dịch vụ hệ thống",
+    "reverse-proxy": "Cổng Reverse Proxy",
+    firewall: "Tường lửa & Bảo mật",
+    permissions: "Phân quyền thư mục",
+    notifications: "Trung tâm Thông báo",
+    reports: "Báo cáo Vận hành",
+    terminal: "Terminal SSH",
+  };
+
   const renderActiveContent = () => {
     if (!mounted) {
       return <div className="h-[60vh] bg-slate-100 dark:bg-slate-900 rounded-3xl animate-pulse border border-slate-200 dark:border-slate-800" />;
     }
+
+    // Settings and MCP Documentation remain accessible without DSM login
+    if (activeTab === "settings") {
+      return <SettingsTab />;
+    }
+    if (activeTab === "mcp") {
+      return <McpDocsTab />;
+    }
+
+    // Require authentication for all DSM hardware & data tabs
+    if (!session.isConnected) {
+      return <AuthRequiredGate tabName={tabDisplayNames[activeTab] || "Dữ liệu NAS"} />;
+    }
+
     switch (activeTab) {
       case "dashboard":
         return <OverviewTab />;
@@ -214,12 +265,10 @@ export default function Home() {
         return <PermissionInspectorTab />;
       case "notifications":
         return <NotificationsTab />;
+      case "reports":
+        return <ReportsTab />;
       case "terminal":
         return <TerminalTab />;
-      case "mcp":
-        return <McpDocsTab />;
-      case "settings":
-        return <SettingsTab />;
       default:
         return <OverviewTab />;
     }

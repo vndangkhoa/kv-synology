@@ -6,6 +6,30 @@ Tất cả thay đổi của dự án độc lập **kv-synology** (tách từ `
 
 ---
 
+## [1.5.5] - 2026-09-20
+
+### 🚀 Tính năng mới & Nâng cấp (Added & Improved)
+- **Báo cáo Vận hành & Sức khỏe Hệ thống (Operational Reports & Health Digest)**:
+  - Bổ sung phân hệ Báo cáo (`ReportsTab`) với các chu kỳ linh hoạt: Hàng ngày, Hàng tuần, Hàng tháng.
+  - Phân tích toàn diện: Điểm sức khỏe NAS, tình trạng ổ đĩa & RAID, nhiệt độ CPU/đĩa, trạng thái bộ lưu điện UPS, thống kê an ninh mạng (AutoBlock, IP bị chặn, cảnh báo đăng nhập), nhật ký hệ thống Syslog.
+  - Tích hợp công cụ phân tích sâu (`ReportDrilldownModal`) theo từng hạng mục và theo dõi xu hướng đa ngày.
+  - Hỗ trợ xuất dữ liệu báo cáo dạng JSON, In / Lưu PDF và gửi bản tóm tắt trực tiếp qua Telegram (Telegram Digest).
+- **Bộ điều phối & Nâng cấp Trung tâm thông báo (Notification Center & Dispatcher)**:
+  - Bổ sung API điều phối thông báo đa kênh (`/api/notifications/dispatch`) hỗ trợ Telegram Bot, Webhook và DSM notification.
+  - Giao diện kiểm tra nhanh cấu hình Telegram (Test connection) và gửi thông báo thử nghiệm trực tiếp từ UI.
+  - Cải tiến bộ lọc trạng thái, loại thông báo, tìm kiếm, đánh dấu đã đọc và dọn dẹp lịch sử thông báo.
+- **Quản lý An ninh & Trạng thái UPS trong Cài đặt (Settings)**:
+  - Tích hợp giao diện quản lý danh sách IP Auto-Block của DSM (xem danh sách đen/trắng, bỏ chặn IP tức thì, bổ sung IP tin cậy).
+  - Tích hợp theo dõi trạng thái thiết bị lưu điện (UPS Status, pin, tải, thời gian dự phòng).
+- **Xác thực Trực tiếp & Loại bỏ Mock Data**:
+  - Gỡ bỏ hoàn toàn chế độ Demo/Mock data giả lập, bổ sung cổng bảo vệ xác thực (`AuthRequiredGate`) đảm bảo 100% dữ liệu hiển thị chính xác từ kết nối DSM thực tế.
+
+### 📦 Phân phối (Distribution)
+- **Docker image `1.5.5` + `latest`**: Đẩy lên đầy đủ 4 registry: `docker.io/vndangkhoa/kv-synology`, `ghcr.io/vndangkhoa/kv-synology`, `git.khoavo.vndns.net/vndangkhoa/kv-synology`, `git.khoavo.myds.me/vndangkhoa/kv-synology`.
+- **SPK `kvsynology_x64-7.2_1.0.0-23.spk`**: Đã build, upload và kích hoạt ACTIVE trên `https://syno.vndns.net/package/kvsynology` (ghim image `1.5.5`); đồng bộ download share & làm mới cache catalog trên NAS và VPS.
+
+---
+
 ## [1.5.4] - 2026-09-07
 
 ### 🐛 Sửa lỗi (Fixed) — kiểm chứng bằng máy chủ DSM giả lập + Emulator
