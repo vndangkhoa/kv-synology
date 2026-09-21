@@ -1,26 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ReportPeriod } from "@/lib/dsm/types";
-import { generateMockReport } from "@/lib/reports/reportEngine";
+import { ReportPeriod, ReportSummary } from "@/lib/dsm/types";
+import { buildLiveReportSummary } from "@/lib/reports/reportEngine";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const periodParam = searchParams.get("period");
-    const period: ReportPeriod = periodParam === "monthly" ? "monthly" : "weekly";
-
-    const host = request.headers.get("x-dsm-host") || searchParams.get("host");
-    const model = request.headers.get("x-dsm-model") || searchParams.get("model") || "DS920+";
-
-    if (!host) {
-      return new Response("Yêu cầu kết nối Synology DSM để xuất báo cáo.", { status: 401 });
-    }
-
-    const report = generateMockReport(period, host, model);
-    const isWeekly = period === "weekly";
-
-    const html = `<!DOCTYPE html>
+function renderReportHtml(report: ReportSummary, isWeekly: boolean): string {
+  return `<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
@@ -298,6 +283,41 @@ export async function GET(request: NextRequest) {
   </div>
 </body>
 </html>`;
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const periodParam = searchParams.get("period");
+    const period: ReportPeriod = periodParam === "monthly" ? "monthly" : "weekly";
+
+    const host = request.headers.get("x-dsm-host") || searchParams.get("host");
+    const model = request.headers.get("x-dsm-model") || searchParams.get("model") || "DS920+";
+
+    if (!host) {
+      return new Response("Yêu cầu kết nối Synology DSM để xuất báo cáo.", { status: 401 });
+    }
+
+    const report = buildLiveReportSummary({ period, hostName: host, model });
+    const isWeekly = period === "weekly";
+    const html = renderReportHtml(report, isWeekly);
+
+    return new NextResponse(html, {
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+      },
+    });
+  } catch (error: any) {
+    return new NextResponse(`Lỗi tạo báo cáo: ${error?.message}`, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const report: ReportSummary = body.report || body;
+    const isWeekly = report.period === "weekly";
+    const html = renderReportHtml(report, isWeekly);
 
     return new NextResponse(html, {
       headers: {

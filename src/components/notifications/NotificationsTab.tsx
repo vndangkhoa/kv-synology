@@ -5,7 +5,7 @@ import ResponsiveModal from "@/components/common/ResponsiveModal";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { NotificationItem, NotificationCategory, NotificationLevel } from "@/lib/dsm/types";
 import { dsmClient } from "@/lib/dsm/client";
-import { generateMockReport, generateTelegramDigest } from "@/lib/reports/reportEngine";
+import { generateTelegramDigest } from "@/lib/reports/reportEngine";
 import {
   Bell,
   BellOff,
@@ -352,7 +352,7 @@ export const NotificationsTab: React.FC = () => {
     }
 
     try {
-      const report = generateMockReport(periodType, session.hostname || "Synology-NAS", session.model || "DS920+");
+      const report = await dsmClient.getReportSummary(periodType);
       const message = generateTelegramDigest(report);
 
       const res = await fetch("/api/notifications/dispatch", {
@@ -427,7 +427,7 @@ export const NotificationsTab: React.FC = () => {
     ];
     const item = samples[Math.floor(Math.random() * samples.length)];
     addLocalNotification(item);
-    showToast("success", `Đã tạo thông báo mẫu: ${item.displayTitle}`);
+    showToast("success", `Đã tạo thông báo mẫu (thử nghiệm UI): ${item.displayTitle}`);
   };
 
   const unreadCount = useMemo(
@@ -657,11 +657,11 @@ export const NotificationsTab: React.FC = () => {
               {/* Create Sample Notification Test Button */}
               <button
                 onClick={handleCreateSampleNotification}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-600/10 hover:bg-sky-600 hover:text-white text-sky-600 dark:text-sky-400 border border-sky-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
-                title="Tạo thông báo thử nghiệm"
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Tạo thông báo giả lập để thử nghiệm giao diện & bộ lọc"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Test mẫu</span>
+                <span>Thử nghiệm UI</span>
               </button>
 
               <button

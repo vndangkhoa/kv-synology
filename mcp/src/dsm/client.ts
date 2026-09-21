@@ -987,49 +987,47 @@ export class DSMClient {
 
   public async getNotifications(): Promise<NotificationItem[]> {
     if (this.session.isDemo || !this.session.isConnected) {
-      return JSON.parse(JSON.stringify(mockNotifications));
+      return [];
     }
     try {
-      // Prefer compound fetch for efficiency, fallback to single
       const now = Math.floor(Date.now() / 1000);
       const strings = await this.getNotificationStrings().catch(() => ({} as any));
       let rawItems: any[] = [];
       try {
         const data: any = await this.postEntry("SYNO.Core.DSMNotify", "notify", 1, {
           action: '"load"',
-          lastRead: String(now),
-          lastSeen: String(now),
+          lastRead: "0",
+          lastSeen: "0",
         });
         if (data.success && Array.isArray(data.data?.items)) rawItems = data.data.items;
         else if (data.success && Array.isArray(data.data)) rawItems = data.data;
       } catch {
         const data: any = await this.postEntry("SYNO.Core.DSMNotify", "notify", 1, {
           action: "load",
-          lastRead: String(now),
-          lastSeen: String(now),
+          lastRead: "0",
+          lastSeen: "0",
         });
         if (data.success && Array.isArray(data.data?.items)) rawItems = data.data.items;
       }
 
       if (!rawItems.length) {
-        // fallback to Entry.Request compound with AppNotify to catch any notify there
         try {
           const cData: any = await this.postEntry("SYNO.Entry.Request", "request", 1, {
             mode: '"parallel"',
             compound: JSON.stringify([
-              { api: "SYNO.Core.DSMNotify", method: "notify", version: 1, action: "load", lastRead: now, lastSeen: now },
+              { api: "SYNO.Core.DSMNotify", method: "notify", version: 1, action: "load", lastRead: 0, lastSeen: 0 },
               { api: "SYNO.Core.AppNotify", method: "get", version: 1 },
             ]),
           });
           const resArr: any[] = cData?.data?.result || cData?.data || [];
           for (const r of resArr) {
-            if (r?.api === "SYNO.Core.DSMNotify" && r?.data?.items) { rawItems = r.data.items; break; }
-            if (r?.success && r?.data?.items) { rawItems = r.data.items; break; }
+            if (r?.api === "SYNO.Core.DSMNotify" && r?.data?.items?.length) { rawItems = r.data.items; break; }
+            if (r?.success && r?.data?.items?.length) { rawItems = r.data.items; break; }
           }
         } catch {}
       }
 
-      if (!rawItems.length) return JSON.parse(JSON.stringify(mockNotifications));
+      if (!rawItems.length) return [];
 
       const parsed: NotificationItem[] = rawItems.map((item: any, idx: number) => {
         const titleKey: string = item.title || "";
@@ -1042,12 +1040,10 @@ export class DSMClient {
           displayTitle = strings[titleKey].title || titleKey;
           template = strings[titleKey].msg || "";
         } else {
-          // fallback: use className or title last segment
           if (className) displayTitle = className.split(".").pop() || className;
           else if (titleKey.includes(":")) displayTitle = titleKey.split(":").pop() || titleKey;
         }
         const messages: string[] = rawMsgs.map((m: string) => (template ? this.parseNotificationMessage(template, m) : m));
-        // if no template replacement happened and message looks like json, try to extract values
         const finalMessages = messages.map((m) => {
           if (m.startsWith("{") && m.endsWith("}")) {
             try { const o = JSON.parse(m); return Object.values(o).join(" "); } catch { return m; }
@@ -1069,15 +1065,15 @@ export class DSMClient {
         };
       });
 
-      return parsed.length ? parsed : JSON.parse(JSON.stringify(mockNotifications));
+      return parsed;
     } catch {
-      return JSON.parse(JSON.stringify(mockNotifications));
+      return [];
     }
   }
 
   public async getAppNotifications(): Promise<AppNotifyItem[]> {
     if (this.session.isDemo || !this.session.isConnected) {
-      return JSON.parse(JSON.stringify(mockAppNotifications));
+      return [];
     }
     try {
       const data: any = await this.postEntry("SYNO.Core.AppNotify", "get", 1);

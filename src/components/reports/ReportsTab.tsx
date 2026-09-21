@@ -92,6 +92,11 @@ export const ReportsTab: React.FC = () => {
     }
     const hostParam = encodeURIComponent(session.hostname || "Synology-NAS");
     const modelParam = encodeURIComponent(session.model || "DS920+");
+    if (report) {
+      try {
+        localStorage.setItem("kv_current_report", JSON.stringify(report));
+      } catch (_) {}
+    }
     window.open(`/api/reports/export?period=${period}&host=${hostParam}&model=${modelParam}`, "_blank");
   };
 
@@ -235,11 +240,17 @@ export const ReportsTab: React.FC = () => {
               <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center flex-wrap gap-2">
                 <span>Báo Cáo Vận Hành</span>
                 <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-sky-500/15 text-sky-600 dark:text-sky-400">
                   {period === "weekly" ? "7 ngày" : "30 ngày"}
                 </span>
+                {session.isConnected && (
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Live NAS ({session.hostname || "Synology"})</span>
+                  </span>
+                )}
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Tổng hợp sự cố mất điện, năng lượng, sức khỏe đĩa & an toàn thông tin

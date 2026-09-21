@@ -5089,49 +5089,56 @@ class DSMClient {
   public async getNotifications(): Promise<import("./types").NotificationItem[]> {
     if (!this.session.isConnected) return [];
     try {
-      // Prefer compound fetch for efficiency, fallback to single
       const now = Math.floor(Date.now() / 1000);
       const strings = await this.getNotificationStrings().catch(() => ({} as any));
       let rawItems: any[] = [];
-      try {
-        const data: any = await this.postEntry("SYNO.Core.DSMNotify", "notify", 1, {
-          action: '"load"',
-          lastRead: String(now),
-          lastSeen: String(now),
-        });
-        if (data.success && Array.isArray(data.data?.items)) rawItems = data.data.items;
-        else if (data.success && Array.isArray(data.data)) rawItems = data.data;
-      } catch {
-        const data: any = await this.postEntry("SYNO.Core.DSMNotify", "notify", 1, {
-          action: "load",
-          lastRead: String(now),
-          lastSeen: String(now),
-        });
-        if (data.success && Array.isArray(data.data?.items)) rawItems = data.data.items;
+
+      // Query DSMNotify without suppressing prior alerts (lastRead/lastSeen: 0)
+      const notifyVariants: Array<Record<string, string>> = [
+        { action: '"load"', lastRead: "0", lastSeen: "0" },
+        { action: "load", lastRead: "0", lastSeen: "0" },
+        { action: '"load"' },
+        { action: "load" },
+      ];
+
+      for (const params of notifyVariants) {
+        try {
+          const data: any = await this.postEntry("SYNO.Core.DSMNotify", "notify", 1, params);
+          if (data?.success && Array.isArray(data.data?.items) && data.data.items.length > 0) {
+            rawItems = data.data.items;
+            break;
+          } else if (data?.success && Array.isArray(data.data) && data.data.length > 0) {
+            rawItems = data.data;
+            break;
+          }
+        } catch (_) {}
       }
 
       if (!rawItems.length) {
-        // fallback to Entry.Request compound with AppNotify to catch any notify there
+        // Fallback compound query
         try {
           const cData: any = await this.postEntry("SYNO.Entry.Request", "request", 1, {
             mode: '"parallel"',
             compound: JSON.stringify([
-              { api: "SYNO.Core.DSMNotify", method: "notify", version: 1, action: "load", lastRead: now, lastSeen: now },
+              { api: "SYNO.Core.DSMNotify", method: "notify", version: 1, action: "load", lastRead: 0, lastSeen: 0 },
               { api: "SYNO.Core.AppNotify", method: "get", version: 1 },
             ]),
           });
           const resArr: any[] = cData?.data?.result || cData?.data || [];
           for (const r of resArr) {
-            if (r?.api === "SYNO.Core.DSMNotify" && r?.data?.items) { rawItems = r.data.items; break; }
-            if (r?.success && r?.data?.items) { rawItems = r.data.items; break; }
+            if (r?.api === "SYNO.Core.DSMNotify" && r?.data?.items?.length) {
+              rawItems = r.data.items;
+              break;
+            }
+            if (r?.success && r?.data?.items?.length) {
+              rawItems = r.data.items;
+              break;
+            }
           }
-        } catch {}
+        } catch (_) {}
       }
 
-      if (!rawItems.length) {
-        return [];
-      }
-
+      // Parse DSMNotify raw items
       const parsed: import("./types").NotificationItem[] = rawItems.map((item: any, idx: number) => {
         const titleKey: string = item.title || "";
         const className: string = item.className || "";
@@ -5143,12 +5150,10 @@ class DSMClient {
           displayTitle = strings[titleKey].title || titleKey;
           template = strings[titleKey].msg || "";
         } else {
-          // fallback: use className or title last segment
           if (className) displayTitle = className.split(".").pop() || className;
           else if (titleKey.includes(":")) displayTitle = titleKey.split(":").pop() || titleKey;
         }
         const messages: string[] = rawMsgs.map((m: string) => (template ? this.parseNotificationMessage(template, m) : m));
-        // if no template replacement happened and message looks like json, try to extract values
         const finalMessages = messages.map((m) => {
           if (m.startsWith("{") && m.endsWith("}")) {
             try { const o = JSON.parse(m); return Object.values(o).join(" "); } catch { return m; }
@@ -5170,7 +5175,82 @@ class DSMClient {
         };
       });
 
-      return parsed;
+      // Supplement with persistent host alerts from DSM Syslog (Log Center)
+      const syslogItems: import("./types").NotificationItem[] = [];
+      try {
+        const [sysLogs, connLogs] = await Promise.all([
+          this.getSystemLogs({ logtype: "system", limit: 60 }).catch(() => []),
+          this.getSystemLogs({ logtype: "connection", limit: 60 }).catch(() => []),
+        ]);
+
+        const allLogs = [
+          ...(Array.isArray(sysLogs) ? sysLogs : []),
+          ...(Array.isArray(connLogs) ? connLogs : []),
+        ];
+
+        for (let idx = 0; idx < allLogs.length; idx++) {
+          const l = allLogs[idx];
+          const rawLvl = String(l.level || "").toLowerCase();
+          const msg = String(l.msg || l.message || l.event || "").trim();
+          if (!msg) continue;
+
+          const isErr = rawLvl === "err" || rawLvl === "error" || rawLvl === "crit";
+          const isWarn =
+            rawLvl === "warn" ||
+            rawLvl === "warning" ||
+            msg.toLowerCase().includes("fail") ||
+            msg.toLowerCase().includes("block") ||
+            msg.toLowerCase().includes("degraded") ||
+            msg.toLowerCase().includes("abnormal") ||
+            msg.toLowerCase().includes("improper shutdown");
+
+          if (!isErr && !isWarn) continue;
+
+          let rawTs = l.time;
+          let timeSec = now;
+          if (typeof rawTs === "number") {
+            timeSec = rawTs < 1e11 ? rawTs : Math.floor(rawTs / 1000);
+          } else if (rawTs) {
+            const p = Date.parse(String(rawTs));
+            if (!isNaN(p)) timeSec = Math.floor(p / 1000);
+          }
+
+          const cat = this.inferCategory("SYNO.Core.SyslogClient", msg);
+          const level: import("./types").NotificationLevel = isErr ? "error" : "warning";
+          const displayTitle = isErr
+            ? `Sự cố ${cat === "security" ? "Bảo mật" : cat === "storage" ? "Lưu trữ" : "Hệ thống"}`
+            : `Cảnh báo ${cat === "security" ? "Bảo mật" : cat === "storage" ? "Lưu trữ" : "Hệ thống"}`;
+
+          syslogItems.push({
+            id: `syslog_${idx}_${timeSec}`,
+            title: `SYNO.Core.SyslogClient:${cat}`,
+            displayTitle,
+            className: "SYNO.Core.SyslogClient",
+            category: cat,
+            level,
+            messages: [msg],
+            rawMessages: [String(l.who || l.user || ""), String(l.ip || "")].filter(Boolean),
+            time: timeSec,
+            read: false,
+          });
+        }
+      } catch (_) {}
+
+      // Deduplicate by message snippet
+      const seenMessages = new Set<string>();
+      const combined: import("./types").NotificationItem[] = [];
+
+      for (const item of [...parsed, ...syslogItems]) {
+        const key = item.messages.join(" ").slice(0, 80).toLowerCase();
+        if (!seenMessages.has(key)) {
+          seenMessages.add(key);
+          combined.push(item);
+        }
+      }
+
+      // Sort descending by timestamp
+      combined.sort((a, b) => b.time - a.time);
+      return combined;
     } catch {
       return [];
     }
@@ -6658,18 +6738,64 @@ class DSMClient {
     if (!this.session.isConnected) {
       throw new Error("Chưa kết nối Synology DSM. Vui lòng đăng nhập để xem báo cáo.");
     }
-    const headers: Record<string, string> = {};
-    if (this.config) {
-      headers["x-dsm-host"] = this.config.host;
-      headers["x-dsm-model"] = this.session.model || "DS920+";
-      headers["x-dsm-sid"] = this.session.sid;
+
+    try {
+      // Gather live telemetry across all hardware and system domains in parallel
+      const [
+        storageVolumes,
+        upsInfo,
+        systemLogs,
+        connectionLogs,
+        blockedIps,
+        systemInfo,
+        utilization,
+        terminalInfo,
+        dsmUsers,
+      ] = await Promise.all([
+        this.getStorageVolumes().catch(() => []),
+        this.getUpsInfo().catch(() => null),
+        this.getSystemLogs({ logtype: "system", limit: 200 }).catch(() => []),
+        this.getSystemLogs({ logtype: "connection", limit: 200 }).catch(() => []),
+        this.getBlockedIps().catch(() => []),
+        this.getSystemInfo().catch(() => null),
+        this.getUtilization().catch(() => null),
+        this.getTerminalInfo().catch(() => null),
+        this.getDsmUsers().catch(() => []),
+      ]);
+
+      const { buildLiveReportSummary } = await import("@/lib/reports/reportEngine");
+      const liveReport = buildLiveReportSummary({
+        period,
+        hostName: this.session.hostname || this.config?.host || "Synology-NAS",
+        model: this.session.model || systemInfo?.model || "DS920+",
+        dsmVersion: this.session.versionString || systemInfo?.version || "DSM 7.2",
+        uptimeSeconds: systemInfo?.uptime || 0,
+        storageVolumes,
+        upsInfo,
+        systemLogs,
+        connectionLogs,
+        blockedIps,
+        utilization,
+        terminalInfo,
+        dsmUsers,
+      });
+
+      return liveReport;
+    } catch (e: any) {
+      console.warn("[getReportSummary] Live aggregation notice, checking fallback route:", e?.message);
+      const headers: Record<string, string> = {};
+      if (this.config) {
+        headers["x-dsm-host"] = this.config.host;
+        headers["x-dsm-model"] = this.session.model || "DS920+";
+        headers["x-dsm-sid"] = this.session.sid;
+      }
+      const res = await fetch(`/api/reports/summary?period=${period}`, { headers });
+      const data = await res.json();
+      if (data?.success && data?.data) {
+        return data.data;
+      }
+      throw new Error(data?.error || "Không thể tạo báo cáo vận hành từ máy chủ Synology");
     }
-    const res = await fetch(`/api/reports/summary?period=${period}`, { headers });
-    const data = await res.json();
-    if (data.success && data.data) {
-      return data.data;
-    }
-    throw new Error(data.error || "Không thể tải dữ liệu báo cáo từ DSM");
   }
 }
 
