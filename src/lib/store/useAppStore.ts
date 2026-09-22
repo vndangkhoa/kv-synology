@@ -34,8 +34,10 @@ interface AppState {
   appNotifications: AppNotifyItem[];
   notificationsLoading: boolean;
   isDemoMode: boolean;
+  telemetryError: string | null;
   
   // Actions
+  setTelemetryError: (err: string | null) => void;
   enableDemoMode: () => void;
   disableDemoMode: () => void;
   toggleDemoMode: () => void;
@@ -124,6 +126,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   appNotifications: [],
   notificationsLoading: false,
   isDemoMode: false,
+  telemetryError: null,
+  setTelemetryError: (err: string | null) => set({ telemetryError: err }),
   t: translations["vi"],
 
   // Demo mode is completely disabled — redirects to login modal
@@ -283,6 +287,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       utilizationHistory: [],
       notifications: [],
       appNotifications: [],
+      telemetryError: null,
       isLoginModalOpen: false,
     });
   },

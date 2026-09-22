@@ -96,10 +96,10 @@ class DSMClient {
     sid: "",
     isConnected: false,
     dsmVersion: 7,
-    versionString: "DSM 7.2.1",
-    model: "DS920+",
+    versionString: "DSM",
+    model: "Synology NAS",
     hostname: "Synology-NAS",
-    account: "admin",
+    account: "",
   };
 
   public getSession(): DSMSession {
@@ -214,7 +214,7 @@ class DSMClient {
           version: String(ver),
           api: "SYNO.API.Auth",
           method: "login",
-          session: "FileStation",
+          session: "Core",
           enable_device_token: "yes",
           enable_sync_token: "yes",
           isIframeLogin: "yes",
@@ -343,11 +343,27 @@ class DSMClient {
     if (!this.session.isConnected) {
       throw new Error("Chưa kết nối Synology DSM");
     }
+    let lastError = "";
     try {
       let data = await this.postEntry("SYNO.Core.System", "info", 1).catch(() => null);
       if (!data?.success) {
         data = await this.postEntry("SYNO.Core.System", "info", 2).catch(() => null);
       }
+      if (!data?.success) {
+        data = await this.postEntry("SYNO.Core.System", "info", 3).catch(() => null);
+      }
+      if (!data?.success) {
+        data = await this.postEntry("SYNO.Core.System", "info", 1, { type: '"info"' }).catch(() => null);
+      }
+
+      if (data?.error) {
+        const code = data.error.code;
+        if (code === 105 || code === 119 || code === 402) {
+          throw new Error("Tài khoản không đủ quyền Quản trị viên (cần thuộc nhóm administrators trên NAS) để đọc thông tin hệ thống.");
+        }
+        lastError = data.error.message || `Mã lỗi DSM: ${code}`;
+      }
+
       if (data?.success && data.data) {
         const d = data.data;
 
@@ -355,8 +371,10 @@ class DSMClient {
         if (d.cpu_vendor || d.cpu_family || d.cpu_series) {
           const parts = [d.cpu_vendor, d.cpu_family, d.cpu_series].filter(Boolean);
           cpuStr = parts.join(" ");
+        } else if (d.cpu) {
+          cpuStr = String(d.cpu);
         } else {
-          cpuStr = "Intel Celeron J4125";
+          cpuStr = "";
         }
 
         if (d.cpu_clock_speed) {
@@ -364,9 +382,9 @@ class DSMClient {
           cpuStr += ` @ ${ghz} GHz`;
         }
 
-        const totalRamMB = Number(d.ram_size || d.ram || 65536);
+        const totalRamMB = Number(d.ram_size || d.ram || 0);
 
-        let parsedUptime = 846200;
+        let parsedUptime = 0;
         if (typeof d.uptime === "number") {
           parsedUptime = d.uptime;
         } else if (typeof d.up_time === "string") {
@@ -377,16 +395,16 @@ class DSMClient {
         }
 
         const info: SystemInfo = {
-          model: d.model || this.session.model || "DS920+",
-          serial: d.serial || "N/A",
-          version: d.firmware_ver || "DSM 7.2.2",
+          model: d.model || this.session.model || "",
+          serial: d.serial || "—",
+          version: d.firmware_ver || "DSM",
           uptime: parsedUptime,
-          temperature: Number(d.sys_temp || d.temperature || 45),
+          temperature: Number(d.sys_temp || d.temperature || 0),
           time: d.time || new Date().toISOString(),
           ramTotal: totalRamMB,
-          ramUsed: Math.floor(totalRamMB * 0.11),
+          ramUsed: 0,
           cpuModel: cpuStr,
-          cpuCores: Number(d.cpu_cores || 4),
+          cpuCores: Number(d.cpu_cores || 0),
         };
 
         if (d.model) this.session.model = d.model;
@@ -394,8 +412,11 @@ class DSMClient {
 
         return info;
       }
-    } catch (_) {}
-    throw new Error("Không thể kết nối lấy thông tin hệ thống từ DSM.");
+    } catch (err: any) {
+      if (err.message && err.message.includes("administrators")) throw err;
+      lastError = err.message || lastError;
+    }
+    throw new Error(lastError || "Không thể kết nối lấy thông tin hệ thống từ DSM. Vui lòng kiểm tra quyền tài khoản hoặc cổng kết nối.");
   }
 
   public async getUtilization(): Promise<SystemUtilization> {
@@ -415,6 +436,14 @@ class DSMClient {
       const data = await this.postEntry("SYNO.Core.System.Utilization", "get", 1, {
         type: '"current"',
       }).catch(() => null);
+
+      if (data?.error) {
+        const code = data.error.code;
+        if (code === 105 || code === 119 || code === 402) {
+          throw new Error("Tài khoản cần thuộc nhóm administrators trên NAS để đọc dữ liệu CPU/RAM/Mạng theo thời gian thực.");
+        }
+      }
+
       if (data?.success && data.data) {
         const d = data.data;
         const rx = Array.isArray(d.network) ? d.network.reduce((acc: number, n: any) => acc + (n.rx || 0), 0) : 0;
@@ -428,7 +457,7 @@ class DSMClient {
           ? Math.round(Number(d.memory.memory_size) / 1024)
           : d.memory?.total_real
           ? Math.round(Number(d.memory.total_real) / 1024)
-          : 65536;
+          : 0;
 
         const memUsedMB = d.memory?.total_real && d.memory?.avail_real
           ? Math.round((Number(d.memory.total_real) - Number(d.memory.avail_real)) / 1024)
@@ -448,7 +477,9 @@ class DSMClient {
           timestamp: Date.now(),
         };
       }
-    } catch (_) {}
+    } catch (err: any) {
+      if (err.message && err.message.includes("administrators")) throw err;
+    }
     return defaultUtil;
   }
 

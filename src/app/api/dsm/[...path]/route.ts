@@ -19,6 +19,9 @@ const httpAgent = new http.Agent({
 const quickConnectCache = new Map<string, { host: string; port: number; isHttps: boolean; expires: number }>();
 const quickConnectCandidatesMap = new Map<string, Array<{ host: string; port: number; isHttps: boolean }>>();
 
+// Cache resolved DDNS candidates for 10 minutes
+const ddnsCache = new Map<string, { host: string; port: number; isHttps: boolean; expires: number }>();
+
 async function fetchServerInfo(cleanId: string, controlHost: string, portalId = "dsm_portal_https"): Promise<any> {
   // First attempt: request_tunnel (activates QuickConnect relay tunnel and returns relay_dn / relay_port)
   try {
@@ -464,15 +467,28 @@ async function handleProxy(request: NextRequest, resolvedParams: { path: string[
         targetHttps = resolved.isHttps;
       }
     } else if (!isDirectIp && (isDDNS || targetPort === 41533)) {
-      // Universal DDNS/reverse-proxy resolver: try multiple port/protocol combos
-      // For custom reverse proxy 41533, DSM may actually be on 5001/5000/443
-      const candidates = buildUniversalCandidates(rawHost, targetPort, targetHttps);
-      const working = await findWorkingCandidate(candidates, resolvedParams.path || []);
-      if (working) {
-        targetHost = working.host;
-        targetPort = working.port;
-        targetHttps = working.isHttps;
-        console.log(`[Universal] ${rawHost}:${rawPort} https=${isHttps} -> ${targetHost}:${targetPort} https=${targetHttps} via probe`);
+      // Universal DDNS/reverse-proxy resolver: check cache first to avoid slow 2s probe storms on every request
+      const ddnsKey = `${rawHost}:${targetPort}:${targetHttps}`;
+      const cached = ddnsCache.get(ddnsKey);
+      if (cached && Date.now() < cached.expires) {
+        targetHost = cached.host;
+        targetPort = cached.port;
+        targetHttps = cached.isHttps;
+      } else {
+        const candidates = buildUniversalCandidates(rawHost, targetPort, targetHttps);
+        const working = await findWorkingCandidate(candidates, resolvedParams.path || []);
+        if (working) {
+          targetHost = working.host;
+          targetPort = working.port;
+          targetHttps = working.isHttps;
+          ddnsCache.set(ddnsKey, {
+            host: working.host,
+            port: working.port,
+            isHttps: working.isHttps,
+            expires: Date.now() + 10 * 60 * 1000,
+          });
+          console.log(`[Universal] ${rawHost}:${rawPort} https=${isHttps} -> ${targetHost}:${targetPort} https=${targetHttps} via probe (cached 10m)`);
+        }
       }
     }
     isHttps = targetHttps;

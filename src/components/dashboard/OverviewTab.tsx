@@ -34,7 +34,7 @@ function Sparkline({ data, color, className = "" }: { data: number[]; color: str
 }
 
 export const OverviewTab: React.FC = () => {
-  const { systemInfo, utilization, utilizationHistory, session, setActiveTab, t, language, notifications, openLoginModal, openPowerModal, experienceMode, setAiChatOpen } = useAppStore();
+  const { systemInfo, utilization, utilizationHistory, session, setActiveTab, t, language, notifications, openLoginModal, openPowerModal, experienceMode, setAiChatOpen, telemetryError } = useAppStore();
   const [volumes, setVolumes] = useState<StorageVolume[]>([]);
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [containers, setContainers] = useState<DockerContainer[]>([]);
@@ -148,7 +148,7 @@ export const OverviewTab: React.FC = () => {
               <div>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-none">
-                    {systemInfo?.model || session.model || "DS920+"} • Hệ thống Khỏe mạnh
+                    {systemInfo?.model || (session.model && session.model !== "Synology NAS" ? session.model : "") || session.hostname || "Synology NAS"} • Hệ thống Khỏe mạnh
                   </h2>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -392,6 +392,21 @@ export const OverviewTab: React.FC = () => {
         </div>
       )}
 
+      {session.isConnected && telemetryError && (
+        <div className="flex items-start gap-3.5 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-rose-800 dark:text-rose-300 text-sm shadow-sm">
+          <AlertTriangle className="w-5 h-5 shrink-0 text-rose-500 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-rose-900 dark:text-rose-200">Không thể đọc thông số telemetry thực từ Synology NAS</p>
+            <p className="mt-1 text-xs text-rose-700 dark:text-rose-300 leading-relaxed font-mono">
+              {telemetryError}
+            </p>
+            <div className="mt-2.5 p-3 rounded-xl bg-white/60 dark:bg-slate-900/60 border border-rose-200 dark:border-rose-900/40 text-xs text-slate-700 dark:text-slate-300">
+              <span className="font-bold text-rose-600 dark:text-rose-400">👉 Cách khắc phục:</span> Tài khoản <strong>{session.account || "hiện tại"}</strong> cần thuộc nhóm <strong>administrators</strong> trên NAS để đọc CPU, RAM, ổ đĩa và tiến trình. Hãy mở DSM → <strong>Control Panel (Bảng điều khiển)</strong> → <strong>User & Group</strong> → thêm tài khoản vào nhóm <strong>administrators</strong>, sau đó tải lại trang.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero */}
       <div className={`relative overflow-hidden rounded-[28px] border border-slate-200 dark:border-slate-800 shadow-sm ${isCompact?"p-4":"p-5 sm:p-7"} bg-gradient-to-br from-white via-slate-50 to-indigo-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900`}>
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"/>
@@ -401,25 +416,25 @@ export const OverviewTab: React.FC = () => {
             <div className={`${isCompact?"w-11 h-11":"w-14 h-14"} rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center shrink-0 shadow-lg`}><Server className={`${isCompact?"w-5 h-5":"w-7 h-7"}`}/></div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className={`${isCompact?"text-base":"text-xl"} font-black tracking-tight text-slate-900 dark:text-white`}>{systemInfo?.model || session.model || "DS920+"}</h2>
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${cpuMeta.level==="critical"||diskMeta.level==="critical"||tempMeta.level==="critical"?"bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400":cpuMeta.level==="high"||diskMeta.level==="high"?"bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400":"bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400"}`}><span className={`w-2 h-2 rounded-full animate-pulse ${cpuMeta.level==="critical"||tempMeta.level==="critical"?"bg-rose-500":cpuMeta.level==="high"?"bg-amber-500":"bg-emerald-500"}`}/>{t.dashboard.healthy}</span>
-                {!isCompact && <span className="hidden sm:inline-flex px-2 py-1 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-bold">DS920+</span>}
+                <h2 className={`${isCompact?"text-base":"text-xl"} font-black tracking-tight text-slate-900 dark:text-white`}>{systemInfo?.model || (session.model && session.model !== "Synology NAS" ? session.model : "") || session.hostname || "Synology NAS"}</h2>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${cpuMeta.level==="critical"||diskMeta.level==="critical"||tempMeta.level==="critical"?"bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400":cpuMeta.level==="high"||diskMeta.level==="high"?"bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400":"bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400"}`}><span className={`w-2 h-2 rounded-full animate-pulse ${cpuMeta.level==="critical"||tempMeta.level==="critical"?"bg-rose-500":cpuMeta.level==="high"?"bg-amber-500":"bg-emerald-500"}`}/>{systemInfo ? t.dashboard.healthy : (telemetryError ? "Cần cấp quyền" : "Đang kiểm tra")}</span>
+                {!isCompact && systemInfo?.model && <span className="hidden sm:inline-flex px-2 py-1 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-bold">{systemInfo.model}</span>}
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 truncate"><span className="font-medium text-slate-700 dark:text-slate-300">{systemInfo?.version || session.versionString || "DSM 7.2.1-69057 Update 5"}</span><span className="mx-1.5 opacity-40">•</span><span className="font-mono text-[11px]">S/N: {systemInfo?.serial || "2170QNR641001"}</span></p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 truncate"><span className="font-medium text-slate-700 dark:text-slate-300">{systemInfo?.version || session.versionString || "DSM"}</span><span className="mx-1.5 opacity-40">•</span><span className="font-mono text-[11px]">S/N: {systemInfo?.serial || "—"}</span></p>
               {!isCompact && (
                 <div className="flex flex-wrap items-center gap-1.5 mt-3">
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 text-[11px] font-medium text-slate-700 dark:text-slate-300"><ShieldCheck className="w-3.5 h-3.5 text-emerald-500"/>4 Bay • SHR/Btrfs</span>
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 text-[11px] font-medium text-slate-700 dark:text-slate-300"><Zap className="w-3.5 h-3.5 text-amber-500"/>{systemInfo?.cpuModel?.split("(")[0]?.trim()||"Intel Celeron J4125"}</span>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 text-[11px] font-medium text-slate-700 dark:text-slate-300"><ShieldCheck className="w-3.5 h-3.5 text-emerald-500"/>{displayVolumes.length > 0 ? `${displayVolumes.length} Volume • ${formatBytes(totalDiskBytes)}` : "Lưu trữ DSM"}</span>
+                  {systemInfo?.cpuModel && <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 text-[11px] font-medium text-slate-700 dark:text-slate-300"><Zap className="w-3.5 h-3.5 text-amber-500"/>{systemInfo.cpuModel.split("(")[0]?.trim()}</span>}
                 </div>
               )}
             </div>
           </div>
           <div className={`grid gap-3 flex-1 ${isCompact?"grid-cols-2 sm:grid-cols-4":"grid-cols-2 lg:grid-cols-4"}`}>
             {[
-              { icon: Clock, label: t.dashboard.uptime, value: formatUptime(systemInfo?.uptime || 20500, language), sub: "Khởi động ổn định", color: "text-sky-500", bg: "bg-sky-500/10" },
-              { icon: Thermometer, label: t.dashboard.temperature, value: `${temp}°C`, sub: tempMeta.label, color: tempMeta.color.replace("text-","text-"), bg: tempMeta.bg, badge: tempMeta.label },
-              { icon: Cpu, label: "CPU", value: `${systemInfo?.cpuCores||4} Cores`, sub: isCompact?"J4125": systemInfo?.cpuModel?.match(/\(.+\)/)?.[0]||"2.0 GHz", color:"text-indigo-500", bg:"bg-indigo-500/10" },
-              { icon: Layers, label: "RAM", value: `${(ramTotalMB/1024).toFixed(0)} GB`, sub: `${ram}%`, color: ramMeta.color.replace("text-","text-"), bg: ramMeta.bg, badge: ramMeta.label },
+              { icon: Clock, label: t.dashboard.uptime, value: systemInfo?.uptime ? formatUptime(systemInfo.uptime, language) : "—", sub: systemInfo?.uptime ? "Khởi động ổn định" : (session.isConnected ? "Đang đồng bộ..." : "Chưa kết nối"), color: "text-sky-500", bg: "bg-sky-500/10" },
+              { icon: Thermometer, label: t.dashboard.temperature, value: systemInfo?.temperature ? `${temp}°C` : "—", sub: systemInfo?.temperature ? tempMeta.label : "—", color: tempMeta.color.replace("text-","text-"), bg: tempMeta.bg, badge: systemInfo?.temperature ? tempMeta.label : undefined },
+              { icon: Cpu, label: "CPU", value: systemInfo?.cpuCores ? `${systemInfo.cpuCores} Cores` : "—", sub: isCompact ? (systemInfo?.cpuModel?.split(" ")[0] || "—") : (systemInfo?.cpuModel?.match(/\(.+\)/)?.[0] || systemInfo?.cpuModel || "—"), color:"text-indigo-500", bg:"bg-indigo-500/10" },
+              { icon: Layers, label: "RAM", value: ramTotalMB > 0 ? `${(ramTotalMB/1024).toFixed(0)} GB` : "—", sub: ram > 0 ? `${ram}%` : "—", color: ramMeta.color.replace("text-","text-"), bg: ramMeta.bg, badge: ram > 0 ? ramMeta.label : undefined },
             ].map(m=>(
               <div key={m.label} className={`rounded-2xl bg-white/80 dark:bg-slate-800/60 backdrop-blur border border-slate-200 dark:border-slate-700/60 p-3.5 flex flex-col justify-between ${isCompact?"min-h-[76px] p-3":"min-h-[88px]"}`}>
                 <div className="flex items-center justify-between"><span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">{m.label}</span><span className={`p-1.5 rounded-xl ${m.bg} ${m.color} shrink-0`}><m.icon className="w-3.5 h-3.5"/></span></div>
@@ -630,7 +645,7 @@ export const OverviewTab: React.FC = () => {
             </div>
             <div className="rounded-[24px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 flex flex-col justify-between min-h-[120px]">
               <div className="flex items-center gap-2 text-slate-500"><Clock className="w-4 h-4 text-sky-500"/><span className="text-xs font-bold">Uptime</span></div>
-              <div><div className="text-[15px] font-black leading-tight">{formatUptime(systemInfo?.uptime||846200, language)}</div><div className="text-xs text-slate-500 mt-1">DSM {systemInfo?.version||"7.2.1-69057"}</div></div>
+              <div><div className="text-[15px] font-black leading-tight">{systemInfo?.uptime ? formatUptime(systemInfo.uptime, language) : "—"}</div><div className="text-xs text-slate-500 mt-1">{systemInfo?.version || session.versionString || "DSM"}</div></div>
             </div>
           </div>
           <div className="rounded-[24px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
@@ -660,7 +675,7 @@ export const OverviewTab: React.FC = () => {
                 <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3"><div className="font-bold text-slate-500">RAM rảnh</div><div className="font-mono font-bold">{formatBytes(ramFreeMB*1024*1024)}</div></div>
                 <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3"><div className="font-bold text-slate-500">Đĩa trống</div><div className="font-mono font-bold">{formatBytes(totalDiskBytes-usedDiskBytes)}</div></div>
                 <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3"><div className="font-bold text-slate-500">Đọc/Ghi</div><div className="font-mono font-bold">{formatSpeed(diskRead)}/{formatSpeed(diskWrite)}</div></div>
-                <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3"><div className="font-bold text-slate-500">Uptime</div><div className="font-mono font-bold">{formatUptime(systemInfo?.uptime||846200, language)}</div></div>
+                <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3"><div className="font-bold text-slate-500">Uptime</div><div className="font-mono font-bold">{systemInfo?.uptime ? formatUptime(systemInfo.uptime, language) : "—"}</div></div>
               </div>
             </div>
 
@@ -668,14 +683,14 @@ export const OverviewTab: React.FC = () => {
               <h4 className="text-sm font-black flex items-center gap-2 mb-4"><Settings2 className="w-4 h-4 text-indigo-500"/>Chi tiết hệ thống</h4>
               <div className="grid grid-cols-2 gap-3 text-xs">
                 {[
-                  ["Model", systemInfo?.model||session.model||"DS920+"],
-                  ["DSM", systemInfo?.version||session.versionString||"7.2.1-69057"],
-                  ["S/N", systemInfo?.serial||"2170QNR641001"],
-                  ["CPU", systemInfo?.cpuModel||"Intel Celeron J4125 (4C 2.0GHz)"],
-                  ["RAM", `${(ramTotalMB/1024).toFixed(0)} GB DDR4`],
-                  ["Nhiệt", `${temp}°C • ${tempMeta.label}`],
+                  ["Model", systemInfo?.model || (session.model && session.model !== "Synology NAS" ? session.model : "") || session.hostname || "Synology NAS"],
+                  ["DSM", systemInfo?.version || session.versionString || "DSM"],
+                  ["S/N", systemInfo?.serial || "—"],
+                  ["CPU", systemInfo?.cpuModel || "—"],
+                  ["RAM", ramTotalMB > 0 ? `${(ramTotalMB/1024).toFixed(0)} GB` : "—"],
+                  ["Nhiệt", systemInfo?.temperature ? `${temp}°C • ${tempMeta.label}` : "—"],
                   ["Thời gian", systemInfo?.time ? new Date(systemInfo.time).toLocaleString(language==="vi"?"vi-VN":"en-US") : "—"],
-                  ["IP", "192.168.1.10:5001"],
+                  ["IP", session.hostname || "—"],
                 ].map(([k,v])=>(
                   <div key={k} className="flex justify-between gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
                     <span className="text-slate-500 font-semibold">{k}</span><span className="font-mono font-bold text-slate-900 dark:text-white truncate">{v as string}</span>

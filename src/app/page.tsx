@@ -43,6 +43,7 @@ export default function Home() {
     setSession,
     openLoginModal,
     showAiChatBubble,
+    setTelemetryError,
     setShowAiChatBubble,
     setAiProvider,
     setAiApiKey,
@@ -166,7 +167,11 @@ export default function Home() {
         try {
           const util = await dsmClient.getUtilization();
           updateUtilization(util);
-        } catch (_) {}
+        } catch (err: any) {
+          if (err?.message && err.message.includes("administrators")) {
+            setTelemetryError(err.message);
+          }
+        }
       }
     };
 
@@ -175,8 +180,14 @@ export default function Home() {
         try {
           const info = await dsmClient.getSystemInfo();
           setSystemInfo(info);
+          setTelemetryError(null);
           fetchNotifications();
-        } catch (_) {}
+        } catch (err: any) {
+          console.warn("[Dashboard] fetchInfo failed:", err);
+          if (err?.message) {
+            setTelemetryError(err.message);
+          }
+        }
       }
     };
 
@@ -187,7 +198,7 @@ export default function Home() {
     const notifTimer = setInterval(() => { if (session.isConnected) fetchNotifications(true); }, 30000);
 
     return () => { clearInterval(timer); clearInterval(notifTimer); };
-  }, [session.isConnected, setSystemInfo, updateUtilization, fetchNotifications]);
+  }, [session.isConnected, setSystemInfo, updateUtilization, fetchNotifications, setTelemetryError]);
 
   // Auto scroll to top when switching tabs (mobile + desktop)
   useEffect(() => {

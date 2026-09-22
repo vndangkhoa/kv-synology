@@ -262,7 +262,7 @@ export class DSMClient {
           version: String(ver),
           api: "SYNO.API.Auth",
           method: "login",
-          session: "FileStation",
+          session: "Core",
           enable_device_token: "yes",
           enable_sync_token: "yes",
           isIframeLogin: "yes",
