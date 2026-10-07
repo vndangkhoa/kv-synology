@@ -18,3 +18,10 @@ Thumbs.db
 *.pem
 docker-compose.override.yml
 README.md
+kv-synology-android/
+kv-synology-ios/
+ios/
+mcp/
+*.apk
+.next/
+*.tsbuildinfo
