@@ -35,3 +35,8 @@ unused_lifetimes = "warn"
 trivial_numeric_casts = "warn"
 
 [workspace]
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

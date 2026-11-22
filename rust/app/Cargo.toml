@@ -32,3 +32,8 @@ api-dsm-proxy-rs = { path = "../api-dsm-proxy-rs" }
 tower = { version = "0.5", features = ["util"] }
 
 [workspace]
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

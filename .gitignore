@@ -46,4 +46,5 @@ captures/
 # Rust build artifacts
 rust/**/target/
 rust/web-ui/dist/
+rust/dist-musl/
 

@@ -27,4 +27,5 @@ mcp/
 *.tsbuildinfo
 rust/**/target/
 rust/web-ui/dist/
+rust/dist-musl/
 
