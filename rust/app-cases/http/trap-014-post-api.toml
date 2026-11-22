@@ -1,0 +1,14 @@
+[request]
+method = "POST"
+path = "/api/ai/"
+body = '{"provider":"gemini"}'
+
+[request.headers]
+content-type = "application/json"
+
+[response]
+status = 308
+
+[response.headers]
+location = "/api/ai"
+refresh = "0;url=/api/ai"

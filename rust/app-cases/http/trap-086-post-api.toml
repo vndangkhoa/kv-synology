@@ -1,0 +1,14 @@
+[request]
+method = "POST"
+path = "/api//models"
+body = '{"provider":"openai"}'
+
+[request.headers]
+content-type = "application/json"
+
+[response]
+status = 308
+
+[response.headers]
+location = "/api/models"
+refresh = "0;url=/api/models"

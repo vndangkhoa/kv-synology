@@ -1,6 +1,6 @@
 {
   "name": "dsm-helper-webapp",
-  "version": "1.5.7",
+  "version": "1.6.0",
   "description": "DSM Helper Web Application - Synology NAS Manager (Tiếng Việt & English)",
   "private": true,
   "license": "GPL-3.0-only",
@@ -11,6 +11,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aparajita/capacitor-biometric-auth": "^10.0.0",
+    "@aparajita/capacitor-secure-storage": "^8.0.0",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.5.2",
+    "@capacitor/network": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.3",
     "@mlc-ai/web-llm": "^0.2.84",
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",

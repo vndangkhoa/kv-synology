@@ -1,0 +1,14 @@
+[request]
+method = "POST"
+path = "/api/ai/models"
+body = '{"n":9007199254740993,"f":1e21,"t":0.1,"neg":-7}'
+
+[request.headers]
+content-type = "application/json"
+
+[response]
+status = 200
+
+[response.headers]
+content-type = "application/json"
+vary = "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"

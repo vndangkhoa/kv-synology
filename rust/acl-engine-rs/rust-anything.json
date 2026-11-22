@@ -1,0 +1,181 @@
+{
+  "schema": "rust-anything/bridge@1",
+  "root": "/mnt/data/Package Center/kv-synology",
+  "unit": "src/lib/permissions/",
+  "language": "ts",
+  "kind": "napi",
+  "crate_name": "acl-engine-rs",
+  "exports": [
+    {
+      "name": "cleanPath",
+      "file": "src/lib/permissions/aclEngine.ts",
+      "line": 24,
+      "params": [
+        {
+          "name": "raw",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "extractPathParts",
+      "file": "src/lib/permissions/aclEngine.ts",
+      "line": 40,
+      "params": [
+        {
+          "name": "path",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "{\n  sharedFolder: string;\n  parentPath: string | null;\n  depth: number;\n  name: string;\n}",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "parseAclLevel",
+      "file": "src/lib/permissions/aclEngine.ts",
+      "line": 62,
+      "params": [
+        {
+          "name": "permissionStr",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "accessControl",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "(\"FULL_CONTROL\" | \"READ_WRITE\" | \"READ\" | \"DENY\" | \"CUSTOM\" | \"NONE\")",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "calculateEffectivePermission",
+      "file": "src/lib/permissions/aclEngine.ts",
+      "line": 82,
+      "params": [
+        {
+          "name": "targetAccount",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "userGroups",
+          "ts_type": "string[]",
+          "optional": true,
+          "rest": false
+        },
+        {
+          "name": "directRules",
+          "ts_type": "AclRuleItem[]",
+          "optional": true,
+          "rest": false
+        },
+        {
+          "name": "inheritedRules",
+          "ts_type": "AclRuleItem[]",
+          "optional": true,
+          "rest": false
+        }
+      ],
+      "returns": "EffectivePermissionResult",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "scanSecurityAudit",
+      "file": "src/lib/permissions/aclEngine.ts",
+      "line": 164,
+      "params": [
+        {
+          "name": "folders",
+          "ts_type": "Map<string, FolderTreeNode>",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "permissionsByFolder",
+          "ts_type": "Map<string, AclRuleItem[]>",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "AclAuditFinding[]",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "splitCsvLine",
+      "file": "src/lib/permissions/aclEngine.ts",
+      "line": 241,
+      "params": [
+        {
+          "name": "line",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string[]",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "parseAclCsv",
+      "file": "src/lib/permissions/aclEngine.ts",
+      "line": 265,
+      "params": [
+        {
+          "name": "csvText",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "scopeFolder",
+          "ts_type": "string",
+          "optional": true,
+          "rest": false
+        }
+      ],
+      "returns": "AclDataset",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    }
+  ],
+  "classes": [],
+  "js_only": [
+    {
+      "name": "buildDatasetFromLiveNas",
+      "file": "src/lib/permissions/aclEngine.ts",
+      "line": 441,
+      "reason": "live-nas-client"
+    }
+  ]
+}

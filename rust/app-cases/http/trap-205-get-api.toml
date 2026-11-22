@@ -1,0 +1,10 @@
+[request]
+method = "GET"
+path = "/api/download/bt-search?q=h%C3%A9llo%20w%C3%B6rld"
+
+[response]
+status = 200
+
+[response.headers]
+content-type = "application/json"
+vary = "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"

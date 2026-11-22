@@ -1,0 +1,14 @@
+[request]
+method = "GET"
+path = "/api/reports/summary?period=weekly"
+
+[request.headers]
+x-dsm-host = "nas-test.local"
+x-dsm-model = "DS920+"
+
+[response]
+status = 200
+
+[response.headers]
+content-type = "application/json"
+vary = "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"

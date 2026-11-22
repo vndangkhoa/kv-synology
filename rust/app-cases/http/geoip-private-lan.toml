@@ -1,0 +1,10 @@
+[request]
+method = "GET"
+path = "/api/geoip/lookup?ip=192.168.1.10"
+
+[response]
+status = 200
+
+[response.headers]
+content-type = "application/json"
+vary = "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"

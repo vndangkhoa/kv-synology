@@ -6,6 +6,16 @@ Tất cả thay đổi của dự án độc lập **kv-synology** (tách từ `
 
 ---
 
+## [1.6.0] - 2026-11-22
+
+### Thay đổi lớn (Major Release — 100% Pure Rust & Astryx Adaptive UI)
+- **Di trú hoàn toàn nền tảng Web & Server sang 100% Pure Rust:** Loại bỏ hoàn toàn Node.js / Next.js runtime trên server và image Docker. Backend sử dụng **Axum + Reqwest + Russh + SNMP2** (`kv-synology`), frontend chạy **Leptos CSR WASM + Tailwind CSS v4.3.5** nhúng tĩnh ngay trong binary, cùng **kv-synology-mcp** Pure Rust (43 công cụ MCP điều khiển DSM qua stdio/SSH).
+- **Thiết kế lại giao diện web theo hệ thống thiết kế Astryx cho 4 kích thước màn hình:**
+  - **Phone (`<640px`):** Thanh `BottomNav` gọn 5 mục, header `56px` tối ưu không tràn chữ, biểu mẫu `>=16px` chống zoom tự động trên iOS/Android, lưới KPI `2x2`.
+  - **Foldable (`640px..1023px` & `@media (horizontal-viewport-segments: 2)`):** Thanh `NavigationRail` dọc `72px` cùng nút chuyển ngôn ngữ `VI`/`EN` gọn gàng, bố cục chia đôi 2 khung `.ax-fold-split` né nếp gấp màn hình.
+  - **Tablet (`>=768px` / `1024px`) & Desktop (`>=1024px`):** Thanh `SideNav` `256px` có thể thu gọn theo 5 nhóm chức năng chuẩn Astryx (`skip-to-content`, `aria-current="page"`), hỗ trợ 3 chế độ màu (**Light** `#F1F4F7`, **OLED Dark** `#111112`, **Gemini** `#131314`).
+- **Tối ưu đóng gói Container & Synology SPK (`1.0.0-27`):** Multi-stage Docker build gọn nhẹ trên `debian:bookworm-slim`, cổng mặc định `8088`.
+
 ## [1.5.8] - 2026-11-22
 
 ### Thay đổi (Changed)

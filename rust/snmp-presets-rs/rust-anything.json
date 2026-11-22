@@ -1,0 +1,109 @@
+{
+  "schema": "rust-anything/bridge@1",
+  "root": "/mnt/data/Package Center/kv-synology",
+  "unit": "src/lib/snmp/",
+  "language": "ts",
+  "kind": "napi",
+  "crate_name": "snmp-presets-rs",
+  "exports": [
+    {
+      "name": "isLocalHost",
+      "file": "src/lib/snmp/server.ts",
+      "line": 11,
+      "params": [
+        {
+          "name": "host",
+          "ts_type": "string",
+          "optional": true,
+          "rest": false
+        }
+      ],
+      "returns": "boolean",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    }
+  ],
+  "classes": [],
+  "js_only": [
+    {
+      "name": "querySnmp",
+      "file": "src/lib/snmp/client.ts",
+      "line": 12,
+      "reason": "browser-fetch"
+    },
+    {
+      "name": "discoverInterfaces",
+      "file": "src/lib/snmp/client.ts",
+      "line": 52,
+      "reason": "browser-fetch"
+    },
+    {
+      "name": "queryLocalSystemMetric",
+      "file": "src/lib/snmp/server.ts",
+      "line": 22,
+      "reason": "live-proc"
+    },
+    {
+      "name": "tcpPing",
+      "file": "src/lib/snmp/server.ts",
+      "line": 158,
+      "reason": "async-tcp"
+    },
+    {
+      "name": "createSession",
+      "file": "src/lib/snmp/server.ts",
+      "line": 214,
+      "reason": "net-snmp"
+    },
+    {
+      "name": "querySensor",
+      "file": "src/lib/snmp/server.ts",
+      "line": 279,
+      "reason": "net-snmp"
+    },
+    {
+      "name": "createDefaultSynologyDevice",
+      "file": "src/lib/snmp/storage.ts",
+      "line": 9,
+      "reason": "calls-genId"
+    },
+    {
+      "name": "getSnmpDevices",
+      "file": "src/lib/snmp/storage.ts",
+      "line": 70,
+      "reason": "browser-localstorage"
+    },
+    {
+      "name": "saveSnmpDevices",
+      "file": "src/lib/snmp/storage.ts",
+      "line": 117,
+      "reason": "browser-localstorage"
+    },
+    {
+      "name": "addSnmpDevice",
+      "file": "src/lib/snmp/storage.ts",
+      "line": 143,
+      "reason": "browser-localstorage"
+    },
+    {
+      "name": "updateSnmpDevice",
+      "file": "src/lib/snmp/storage.ts",
+      "line": 150,
+      "reason": "browser-localstorage"
+    },
+    {
+      "name": "removeSnmpDevice",
+      "file": "src/lib/snmp/storage.ts",
+      "line": 157,
+      "reason": "browser-localstorage"
+    },
+    {
+      "name": "genId",
+      "file": "src/lib/snmp/storage.ts",
+      "line": 163,
+      "reason": "random-id"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+[request]
+method = "GET"
+path = "/api/%E6%97%A5%E6%9C%AC%E8%AA%9E/bt-search"
+
+[response]
+status = 404
+
+[response.headers]
+cache-control = "private, no-cache, no-store, max-age=0, must-revalidate"
+content-type = "text/html; charset=utf-8"
+vary = "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding"
+x-nextjs-cache = "HIT"
+x-nextjs-prerender = "1, 1"
+x-nextjs-stale-time = "300"

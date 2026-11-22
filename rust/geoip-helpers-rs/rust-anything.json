@@ -1,0 +1,121 @@
+{
+  "schema": "rust-anything/bridge@1",
+  "root": "/mnt/data/Package Center/kv-synology",
+  "unit": "src/lib/traffic/",
+  "language": "ts",
+  "kind": "napi",
+  "crate_name": "geoip-helpers-rs",
+  "exports": [
+    {
+      "name": "getCountryFlag",
+      "file": "src/lib/traffic/geoIpService.ts",
+      "line": 35,
+      "params": [
+        {
+          "name": "countryCode",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "getCountryName",
+      "file": "src/lib/traffic/geoIpService.ts",
+      "line": 40,
+      "params": [
+        {
+          "name": "countryCode",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "lang",
+          "ts_type": "string",
+          "optional": true,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "isPrivateIp",
+      "file": "src/lib/traffic/geoIpService.ts",
+      "line": 47,
+      "params": [
+        {
+          "name": "ip",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "boolean",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "resolveKnownIp",
+      "file": "src/lib/traffic/geoIpService.ts",
+      "line": 71,
+      "params": [
+        {
+          "name": "ip",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "IpGeoInfo | null",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    }
+  ],
+  "classes": [],
+  "js_only": [
+    {
+      "name": "resolveIpGeo",
+      "file": "src/lib/traffic/geoIpService.ts",
+      "line": 267,
+      "reason": "async-http"
+    },
+    {
+      "name": "getNetworkInterfaceStats",
+      "file": "src/lib/traffic/realSocketService.ts",
+      "line": 66,
+      "reason": "live-proc"
+    },
+    {
+      "name": "getProcessIoCounters",
+      "file": "src/lib/traffic/realSocketService.ts",
+      "line": 112,
+      "reason": "live-proc"
+    },
+    {
+      "name": "getLiveLinuxSockets",
+      "file": "src/lib/traffic/realSocketService.ts",
+      "line": 210,
+      "reason": "live-proc"
+    },
+    {
+      "name": "getLiveDsmConnections",
+      "file": "src/lib/traffic/realSocketService.ts",
+      "line": 283,
+      "reason": "async-http"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+[request]
+method = "GET"
+path = "/api//bt-search"
+
+[response]
+status = 308
+
+[response.headers]
+location = "/api/bt-search"
+refresh = "0;url=/api/bt-search"

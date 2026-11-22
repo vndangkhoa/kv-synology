@@ -1,0 +1,34 @@
+[package]
+name = "kv-synology"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "KV Synology DSM Manager — 100% Pure Rust server (Axum + Leptos CSR WASM + russh + snmp2)"
+
+[[bin]]
+name = "kv-synology"
+path = "src/main.rs"
+
+[dependencies]
+axum = "0.8"
+mime_guess = "2.0"
+rust-embed = { version = "8.14", features = ["include-exclude"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "signal", "time"] }
+url = "2"
+report-engine-rs = { path = "../report-engine-rs" }
+api-ai-models-rs = { path = "../api-ai-models-rs" }
+api-ai-chat-rs = { path = "../api-ai-chat-rs" }
+api-notifications-rs = { path = "../api-notifications-rs" }
+api-download-rs = { path = "../api-download-rs" }
+api-geoip-rs = { path = "../api-geoip-rs" }
+api-traffic-rs = { path = "../api-traffic-rs" }
+api-snmp-rs = { path = "../api-snmp-rs" }
+api-ssh-rs = { path = "../api-ssh-rs" }
+api-smart-info-rs = { path = "../api-smart-info-rs" }
+api-dsm-proxy-rs = { path = "../api-dsm-proxy-rs" }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+
+[workspace]

@@ -1,0 +1,353 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *, .gemini, .gemini *));
+@source "../src";
+@source "../index.html";
+
+/* =========================================================================
+   ASTRYX DESIGN SYSTEM TOKENS (Light / Dark / Gemini) + ADAPTIVE LAYOUTS
+   ========================================================================= */
+
+@layer base {
+  :root {
+    --color-background-body: #F1F4F7;
+    --color-background-surface: #FFFFFF;
+    --color-background-card: #FFFFFF;
+    --color-background-popover: #FFFFFF;
+    --color-background-muted: rgba(5, 54, 89, 0.05);
+
+    --color-text-primary: #0A1317;
+    --color-text-secondary: #445564;
+    --color-text-disabled: #A4B0BC;
+
+    --color-accent: #0064E0;
+    --color-accent-hover: #0052BA;
+    --color-accent-muted: rgba(0, 130, 251, 0.14);
+    --color-text-accent: #0064E0;
+
+    --color-border: rgba(5, 54, 89, 0.10);
+    --color-border-emphasized: #CCD3DB;
+
+    --color-success: #0D8626;
+    --color-success-muted: rgba(11, 153, 31, 0.14);
+    --color-text-success: #09441F;
+
+    --color-warning: #E9AF08;
+    --color-warning-muted: rgba(226, 164, 0, 0.16);
+    --color-text-warning: #753F07;
+
+    --color-error: #E3193B;
+    --color-error-muted: rgba(227, 25, 59, 0.14);
+    --color-text-error: #7B0210;
+
+    --color-info: #0064E0;
+    --color-info-muted: rgba(0, 130, 251, 0.14);
+    --color-text-info: #042F97;
+
+    --radius-inner: 4px;
+    --radius-element: 8px;
+    --radius-container: 12px;
+    --radius-page: 20px;
+
+    --shadow-low: 0 1px 1px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(5, 54, 89, 0.06);
+    --shadow-med: 0 1px 2px rgba(0, 0, 0, 0.08), 0 4px 14px rgba(5, 54, 89, 0.08);
+    --shadow-high: 0 2px 4px rgba(0, 0, 0, 0.10), 0 8px 24px rgba(5, 54, 89, 0.12);
+
+    --ease-standard: cubic-bezier(0.24, 1, 0.4, 1);
+    --duration-fast: 125ms;
+    --duration-medium: 300ms;
+
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
+  }
+
+  html.dark {
+    --color-background-body: #111112;
+    --color-background-surface: #1F1F22;
+    --color-background-card: #1F1F22;
+    --color-background-popover: #28292C;
+    --color-background-muted: rgba(255, 255, 255, 0.06);
+
+    --color-text-primary: #DFE2E5;
+    --color-text-secondary: #B0B5BB;
+    --color-text-disabled: #6F747C;
+
+    --color-accent: #0171E3;
+    --color-accent-hover: #2694FE;
+    --color-accent-muted: rgba(0, 130, 251, 0.22);
+    --color-text-accent: #3E9EFB;
+
+    --color-border: rgba(242, 244, 246, 0.10);
+    --color-border-emphasized: #494D53;
+
+    --color-success-muted: rgba(11, 153, 31, 0.22);
+    --color-text-success: #A5F690;
+
+    --color-warning-muted: rgba(226, 164, 0, 0.22);
+    --color-text-warning: #FBCE03;
+
+    --color-error-muted: rgba(245, 57, 79, 0.22);
+    --color-text-error: #FFB2B8;
+
+    --color-info-muted: rgba(0, 130, 251, 0.22);
+    --color-text-info: #AFD7FF;
+
+    --shadow-low: 0 1px 1px rgba(0, 0, 0, 0.24), 0 2px 8px rgba(0, 0, 0, 0.22);
+    --shadow-med: 0 1px 2px rgba(0, 0, 0, 0.28), 0 4px 14px rgba(0, 0, 0, 0.28);
+    --shadow-high: 0 2px 4px rgba(0, 0, 0, 0.34), 0 8px 24px rgba(0, 0, 0, 0.36);
+  }
+
+  html.gemini {
+    --color-background-body: #131314;
+    --color-background-surface: #1E1F20;
+    --color-background-card: #1E1F20;
+    --color-background-popover: #282A2C;
+    --color-background-muted: #282A2C;
+
+    --color-text-primary: #F1F3F4;
+    --color-text-secondary: #9AA0A6;
+    --color-accent: #4285F4;
+    --color-accent-hover: #5A95F5;
+    --color-accent-muted: rgba(66, 133, 244, 0.22);
+    --color-text-accent: #8AB4F8;
+
+    --color-border: rgba(255, 255, 255, 0.08);
+    --color-border-emphasized: rgba(255, 255, 255, 0.16);
+  }
+
+  *,
+  *::before,
+  *::after {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0px !important;
+    height: 0px !important;
+    background: transparent !important;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+html,
+body {
+  background-color: var(--color-background-body);
+  color: var(--color-text-primary);
+  font-family: "Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Astryx Semantic Surface, Card, Input & Action Primitives */
+.ax-body {
+  background-color: var(--color-background-body);
+  color: var(--color-text-primary);
+}
+
+.ax-surface {
+  background-color: var(--color-background-surface);
+  border-color: var(--color-border);
+}
+
+.ax-card {
+  background-color: var(--color-background-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+  box-shadow: var(--shadow-low);
+}
+
+.ax-popover {
+  background-color: var(--color-background-popover);
+  border: 1px solid var(--color-border-emphasized);
+  border-radius: var(--radius-container);
+  box-shadow: var(--shadow-high);
+}
+
+.ax-tile {
+  background-color: var(--color-background-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-element);
+}
+
+.ax-input {
+  background-color: var(--color-background-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-element);
+  color: var(--color-text-primary);
+  transition: border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.ax-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+  outline: none;
+}
+
+.ax-btn-primary {
+  background-color: var(--color-accent);
+  color: #ffffff;
+  border-radius: var(--radius-element);
+  transition: background-color var(--duration-fast) var(--ease-standard), transform 100ms ease;
+}
+
+.ax-btn-primary:hover {
+  background-color: var(--color-accent-hover);
+}
+
+.ax-btn-secondary {
+  background-color: var(--color-background-muted);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-element);
+  transition: background-color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+}
+
+.ax-btn-secondary:hover {
+  border-color: var(--color-border-emphasized);
+}
+
+.ax-nav-item {
+  position: relative;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-element);
+  transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+}
+
+.ax-nav-item:hover {
+  background-color: var(--color-background-muted);
+  color: var(--color-text-primary);
+}
+
+.ax-nav-item-active {
+  position: relative;
+  background-color: var(--color-accent-muted);
+  color: var(--color-text-accent);
+  border-radius: var(--radius-element);
+  font-weight: 600;
+}
+
+.ax-nav-item-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 3px;
+  border-radius: 9999px;
+  background-color: var(--color-accent);
+}
+
+.ax-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Astryx Dual-Pane & Foldable Viewport-Segment Split Layout */
+.ax-fold-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .ax-fold-split {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (horizontal-viewport-segments: 2) {
+  .ax-fold-split {
+    grid-template-columns: env(viewport-segment-width 0 0) env(viewport-segment-width 1 0);
+    column-gap: calc(env(viewport-segment-left 1 0) - env(viewport-segment-right 0 0));
+  }
+}
+
+/* Astryx Coarse Touch Adaptation (< lg) */
+@media (pointer: coarse) and (max-width: 1023px) {
+  .ax-input,
+  select,
+  input,
+  textarea {
+    font-size: 16px;
+  }
+
+  .ax-nav-item,
+  .ax-nav-item-active,
+  .ax-btn-primary,
+  .ax-btn-secondary {
+    min-height: 40px;
+  }
+}
+
+/* Gemini AI Ambient Sparkle Glow */
+@keyframes gemini-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes gemini-pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
+}
+
+.gemini-ambient-glow {
+  position: relative;
+}
+
+.gemini-ambient-glow::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  background: conic-gradient(from 0deg, #4285f4, #9b51e0, #d9657b, #4285f4);
+  filter: blur(18px);
+  opacity: 0.7;
+  z-index: -1;
+  animation: gemini-rotate 6s linear infinite, gemini-pulse 2.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+html.gemini button:active,
+html.gemini [role="button"]:active {
+  transform: scale(0.97);
+}

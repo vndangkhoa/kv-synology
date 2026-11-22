@@ -1,0 +1,66 @@
+{
+  "schema": "rust-anything/bridge@1",
+  "root": "/mnt/data/Package Center/kv-synology",
+  "unit": "src/lib/storage/",
+  "language": "ts",
+  "kind": "napi",
+  "crate_name": "syno-smart-parser-rs",
+  "exports": [
+    {
+      "name": "formatLifetimeSpan",
+      "file": "src/lib/storage/synoSmartParser.ts",
+      "line": 44,
+      "params": [
+        {
+          "name": "hours",
+          "ts_type": "number | null",
+          "optional": true,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "stripAnsi",
+      "file": "src/lib/storage/synoSmartParser.ts",
+      "line": 58,
+      "params": [
+        {
+          "name": "text",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "parseSynoSmartOutput",
+      "file": "src/lib/storage/synoSmartParser.ts",
+      "line": 66,
+      "params": [
+        {
+          "name": "raw",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "SynoSmartParsedReport",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    }
+  ],
+  "classes": [],
+  "js_only": []
+}

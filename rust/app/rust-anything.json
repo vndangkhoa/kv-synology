@@ -1,0 +1,215 @@
+{
+  "schema": "rust-anything/front-door@1",
+  "name": "hostname=127.0.0",
+  "commands": [],
+  "units": [
+    {
+      "name": "report-engine",
+      "crate": "report-engine-rs",
+      "path": "../report-engine-rs",
+      "commands": [],
+      "routes": [
+        "GET /api/reports/summary",
+        "POST /api/reports/summary",
+        "GET /api/reports/export",
+        "POST /api/reports/export"
+      ],
+      "switch": "RUST_ANYTHING_UNIT_REPORT_ENGINE"
+    },
+    {
+      "name": "api-ai-models",
+      "crate": "api-ai-models-rs",
+      "path": "../api-ai-models-rs",
+      "commands": [],
+      "routes": [
+        "POST /api/ai/models"
+      ],
+      "switch": "RUST_ANYTHING_UNIT_API_AI_MODELS"
+    },
+    {
+      "name": "api-ai-chat",
+      "crate": "api-ai-chat-rs",
+      "path": "../api-ai-chat-rs",
+      "commands": [],
+      "routes": [
+        "POST /api/ai/chat"
+      ],
+      "switch": "RUST_ANYTHING_UNIT_API_AI_CHAT"
+    },
+    {
+      "name": "api-notifications",
+      "crate": "api-notifications-rs",
+      "path": "../api-notifications-rs",
+      "commands": [],
+      "routes": [
+        "POST /api/notifications/dispatch"
+      ],
+      "switch": "RUST_ANYTHING_UNIT_API_NOTIFICATIONS"
+    },
+    {
+      "name": "api-download",
+      "crate": "api-download-rs",
+      "path": "../api-download-rs",
+      "commands": [],
+      "routes": [
+        "GET /api/download/bt-search",
+        "POST /api/download/resolve-link",
+        "GET /api/download/rss-fetch"
+      ],
+      "switch": "RUST_ANYTHING_UNIT_API_DOWNLOAD"
+    },
+    {
+      "name": "api-geoip",
+      "crate": "api-geoip-rs",
+      "path": "../api-geoip-rs",
+      "commands": [],
+      "routes": [
+        "GET /api/geoip/lookup"
+      ],
+      "switch": "RUST_ANYTHING_UNIT_API_GEOIP"
+    },
+    {
+      "name": "api-traffic",
+      "crate": "api-traffic-rs",
+      "path": "../api-traffic-rs",
+      "commands": [],
+      "routes": [
+        "GET /api/traffic/connections"
+      ],
+      "switch": "RUST_ANYTHING_UNIT_API_TRAFFIC"
+    },
+    {
+      "name": "api-snmp",
+      "crate": "api-snmp-rs",
+      "path": "../api-snmp-rs",
+      "commands": [],
+      "routes": [
+        "POST /api/snmp/discover",
+        "POST /api/snmp/query"
+      ],
+      "switch": "RUST_ANYTHING_UNIT_API_SNMP"
+    },
+    {
+      "name": "api-ssh",
+      "crate": "api-ssh-rs",
+      "path": "../api-ssh-rs",
+      "commands": [],
+      "routes": [
+        "POST /api/ssh/exec"
+      ],
+      "switch": "RUST_ANYTHING_UNIT_API_SSH"
+    },
+    {
+      "name": "api-smart-info",
+      "crate": "api-smart-info-rs",
+      "path": "../api-smart-info-rs",
+      "commands": [],
+      "routes": [
+        "POST /api/storage/smart-info"
+      ],
+      "switch": "RUST_ANYTHING_UNIT_API_SMART_INFO"
+    },
+    {
+      "name": "api-dsm-proxy",
+      "crate": "api-dsm-proxy-rs",
+      "path": "../api-dsm-proxy-rs",
+      "commands": [],
+      "routes": [
+        "/api/dsm/{*path}"
+      ],
+      "switch": "RUST_ANYTHING_UNIT_API_DSM_PROXY"
+    }
+  ],
+  "kind": "http",
+  "routes": [
+    "POST /api/ai/chat",
+    "POST /api/ai/models",
+    "GET /api/download/bt-search",
+    "POST /api/download/resolve-link",
+    "GET /api/download/rss-fetch",
+    "GET /api/dsm/entry.cgi",
+    "GET /api/geoip/lookup",
+    "GET /",
+    "GET /manifest.json",
+    "GET /nonexistent-route-trap",
+    "POST /api/notifications/dispatch",
+    "GET /api/reports/export",
+    "POST /api/reports/summary",
+    "GET /api/reports/summary",
+    "POST /api/snmp/discover",
+    "POST /api/snmp/query",
+    "POST /api/ssh/exec",
+    "POST /api/storage/smart-info",
+    "GET /api/traffic/connections",
+    "POST /api/h%C3%A9llo%20w%C3%B6rld/models",
+    "POST /api/%F0%9F%91%8D%F0%9F%8F%BD%20thumbs/models",
+    "POST /api/%E6%97%A5%E6%9C%AC%E8%AA%9E/models",
+    "POST /api//models",
+    "POST /api/e%CC%81/models",
+    "POST /api/%C4%B0stanbul/models",
+    "POST /api/stra%C3%9Fe/models",
+    "POST /api/%C4%B1l%C4%B1k%20%C4%B1rmak/models",
+    "POST /api/%F0%9F%91%A8%E2%80%8D%F0%9F%91%A9%E2%80%8D%F0%9F%91%A7%20family/models",
+    "POST /api/a%C2%A0b/models",
+    "POST /api/ai/h%C3%A9llo%20w%C3%B6rld",
+    "POST /api/ai/%F0%9F%91%8D%F0%9F%8F%BD%20thumbs",
+    "POST /api/ai/%E6%97%A5%E6%9C%AC%E8%AA%9E",
+    "POST /api/ai/",
+    "POST /api/ai/e%CC%81",
+    "POST /api/ai/%C4%B0stanbul",
+    "POST /api/ai/stra%C3%9Fe",
+    "POST /api/ai/%C4%B1l%C4%B1k%20%C4%B1rmak",
+    "POST /api/ai/%F0%9F%91%A8%E2%80%8D%F0%9F%91%A9%E2%80%8D%F0%9F%91%A7%20family",
+    "POST /api/ai/a%C2%A0b",
+    "POST /api/h%C3%A9llo%20w%C3%B6rld/chat",
+    "POST /api/%F0%9F%91%8D%F0%9F%8F%BD%20thumbs/chat",
+    "POST /api/%E6%97%A5%E6%9C%AC%E8%AA%9E/chat",
+    "POST /api//chat",
+    "POST /api/e%CC%81/chat",
+    "POST /api/%C4%B0stanbul/chat",
+    "POST /api/stra%C3%9Fe/chat",
+    "POST /api/%C4%B1l%C4%B1k%20%C4%B1rmak/chat",
+    "POST /api/%F0%9F%91%A8%E2%80%8D%F0%9F%91%A9%E2%80%8D%F0%9F%91%A7%20family/chat",
+    "POST /api/a%C2%A0b/chat",
+    "GET /api/h%C3%A9llo%20w%C3%B6rld/bt-search",
+    "GET /api/%F0%9F%91%8D%F0%9F%8F%BD%20thumbs/bt-search",
+    "GET /api/%E6%97%A5%E6%9C%AC%E8%AA%9E/bt-search",
+    "GET /api//bt-search",
+    "GET /api/e%CC%81/bt-search",
+    "GET /api/%C4%B0stanbul/bt-search",
+    "GET /api/stra%C3%9Fe/bt-search",
+    "GET /api/%C4%B1l%C4%B1k%20%C4%B1rmak/bt-search",
+    "GET /api/%F0%9F%91%A8%E2%80%8D%F0%9F%91%A9%E2%80%8D%F0%9F%91%A7%20family/bt-search",
+    "GET /api/a%C2%A0b/bt-search",
+    "GET /api/download/h%C3%A9llo%20w%C3%B6rld",
+    "GET /api/download/%F0%9F%91%8D%F0%9F%8F%BD%20thumbs",
+    "GET /api/download/%E6%97%A5%E6%9C%AC%E8%AA%9E",
+    "GET /api/download/",
+    "GET /api/download/e%CC%81",
+    "GET /api/download/%C4%B0stanbul",
+    "GET /api/download/stra%C3%9Fe",
+    "GET /api/download/%C4%B1l%C4%B1k%20%C4%B1rmak",
+    "GET /api/download/%F0%9F%91%A8%E2%80%8D%F0%9F%91%A9%E2%80%8D%F0%9F%91%A7%20family",
+    "GET /api/download/a%C2%A0b",
+    "POST /api/h%C3%A9llo%20w%C3%B6rld/resolve-link",
+    "POST /api/%F0%9F%91%8D%F0%9F%8F%BD%20thumbs/resolve-link",
+    "POST /api/%E6%97%A5%E6%9C%AC%E8%AA%9E/resolve-link",
+    "POST /api//resolve-link",
+    "POST /api/e%CC%81/resolve-link",
+    "POST /api/%C4%B0stanbul/resolve-link",
+    "POST /api/stra%C3%9Fe/resolve-link",
+    "POST /api/%C4%B1l%C4%B1k%20%C4%B1rmak/resolve-link",
+    "POST /api/%F0%9F%91%A8%E2%80%8D%F0%9F%91%A9%E2%80%8D%F0%9F%91%A7%20family/resolve-link",
+    "POST /api/a%C2%A0b/resolve-link",
+    "POST /api/download/h%C3%A9llo%20w%C3%B6rld",
+    "POST /api/download/%F0%9F%91%8D%F0%9F%8F%BD%20thumbs",
+    "POST /api/download/%E6%97%A5%E6%9C%AC%E8%AA%9E",
+    "POST /api/download/",
+    "POST /api/download/e%CC%81",
+    "POST /api/download/%C4%B0stanbul",
+    "POST /api/download/stra%C3%9Fe",
+    "POST /api/download/%C4%B1l%C4%B1k%20%C4%B1rmak",
+    "POST /api/download/%F0%9F%91%A8%E2%80%8D%F0%9F%91%A9%E2%80%8D%F0%9F%91%A7%20family",
+    "POST /api/download/a%C2%A0b"
+  ]
+}

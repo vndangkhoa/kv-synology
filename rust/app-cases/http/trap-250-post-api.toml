@@ -1,0 +1,14 @@
+[request]
+method = "POST"
+path = "/api/download/"
+body = '{"url":"https://drive.google.com/file/d/1AbCdEfGhIjK/view?usp=sharing"}'
+
+[request.headers]
+content-type = "application/json"
+
+[response]
+status = 308
+
+[response.headers]
+location = "/api/download"
+refresh = "0;url=/api/download"

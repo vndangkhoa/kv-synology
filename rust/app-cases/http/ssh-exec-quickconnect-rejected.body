@@ -1,0 +1,1 @@
+{"success":false,"error":"SSH via QuickConnect ID not supported. Use LAN IP or DDNS (e.g., 192.168.1.10 or nas.synology.me) and ensure SSH port is forwarded/open.","hint":"Thử dùng IP LAN hoặc DDNS thay vì QuickConnect ID."}

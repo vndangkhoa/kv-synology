@@ -1,0 +1,10 @@
+[request]
+method = "GET"
+path = "/api/download/bt-search?q=a%C2%A0b"
+
+[response]
+status = 200
+
+[response.headers]
+content-type = "application/json"
+vary = "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"

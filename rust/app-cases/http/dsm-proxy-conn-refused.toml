@@ -1,0 +1,15 @@
+[request]
+method = "GET"
+path = "/api/dsm/entry.cgi?api=SYNO.API.Info&version=1&method=query"
+
+[request.headers]
+x-dsm-host = "127.0.0.1"
+x-dsm-https = "false"
+x-dsm-port = "19999"
+
+[response]
+status = 502
+
+[response.headers]
+content-type = "application/json"
+vary = "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"

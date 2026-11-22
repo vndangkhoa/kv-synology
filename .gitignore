@@ -43,3 +43,7 @@ local.properties
 .cxx/
 captures/
 
+# Rust build artifacts
+rust/**/target/
+rust/web-ui/dist/
+

@@ -1,0 +1,482 @@
+{"fn":"formatLifetimeSpan","args":[2147483648],"ok":"2,147,483,648h (~245146.5 năm 6th)"}
+{"fn":"formatLifetimeSpan","args":[10],"ok":"10h (0 ngày)"}
+{"fn":"formatLifetimeSpan","args":[{"$undefined":true}],"ok":"—"}
+{"fn":"formatLifetimeSpan","args":[1000000],"ok":"1,000,000h (~114.2 năm 1th)"}
+{"fn":"formatLifetimeSpan","args":[{"$num":"NaN"}],"ok":"—"}
+{"fn":"formatLifetimeSpan","args":[],"ok":"—"}
+{"fn":"formatLifetimeSpan","args":[0],"ok":"—"}
+{"fn":"formatLifetimeSpan","args":[0.5],"ok":"0.5h (0 ngày)"}
+{"fn":"formatLifetimeSpan","args":[100],"ok":"100h (4 ngày)"}
+{"fn":"formatLifetimeSpan","args":[9007199254740992],"ok":"9,007,199,254,740,992h (~1028219093007.0 năm 11th)"}
+{"fn":"formatLifetimeSpan","args":[1000],"ok":"1,000h (~1 tháng)"}
+{"fn":"formatLifetimeSpan","args":[{"$num":"-Infinity"}],"ok":"—"}
+{"fn":"formatLifetimeSpan","args":[{"$num":"Infinity"}],"ok":"∞h (~Infinity năm)"}
+{"fn":"formatLifetimeSpan","args":[42],"ok":"42h (1 ngày)"}
+{"fn":"formatLifetimeSpan","args":[3],"ok":"3h (0 ngày)"}
+{"fn":"formatLifetimeSpan","args":[1],"ok":"1h (0 ngày)"}
+{"fn":"formatLifetimeSpan","args":[-1],"ok":"—"}
+{"fn":"formatLifetimeSpan","args":[2],"ok":"2h (0 ngày)"}
+{"fn":"formatLifetimeSpan","args":[-2.5],"ok":"—"}
+{"fn":"formatLifetimeSpan","args":[{"$num":"-0"}],"ok":"—"}
+{"fn":"formatLifetimeSpan","args":[-7.5],"ok":"—"}
+{"fn":"formatLifetimeSpan","args":[0.1],"ok":"0.1h (0 ngày)"}
+{"fn":"formatLifetimeSpan","args":[0.30000000000000004],"ok":"0.3h (0 ngày)"}
+{"fn":"formatLifetimeSpan","args":[1e+21],"ok":"1,000,000,000,000,000,000,000h (~114155251141552512.0 năm 11th)"}
+{"fn":"formatLifetimeSpan","args":[1e-7],"ok":"0h (0 ngày)"}
+{"fn":"formatLifetimeSpan","args":[5e-324],"ok":"0h (0 ngày)"}
+{"fn":"formatLifetimeSpan","args":[1.7976931348623157e+308],"ok":"179,769,313,486,231,570,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000h (~2.0521611128565247e+304 năm 2th)"}
+{"fn":"stripAnsi","args":["a😀b😀c"],"ok":"a😀b😀c"}
+{"fn":"stripAnsi","args":["ab"],"ok":"ab"}
+{"fn":"stripAnsi","args":["a:b:c:"],"ok":"a:b:c:"}
+{"fn":"stripAnsi","args":["emoji 👍🏽 mix"],"ok":"emoji 👍🏽 mix"}
+{"fn":"stripAnsi","args":["abc"],"ok":"abc"}
+{"fn":"stripAnsi","args":["hello"],"ok":"hello"}
+{"fn":"stripAnsi","args":["İstanbula😀b😀c"],"ok":"İstanbula😀b😀c"}
+{"fn":"stripAnsi","args":["İstanbulstraße"],"ok":"İstanbulstraße"}
+{"fn":"stripAnsi","args":[":"],"ok":":"}
+{"fn":"stripAnsi","args":["trailing."],"ok":"trailing."}
+{"fn":"stripAnsi","args":["a"],"ok":"a"}
+{"fn":"stripAnsi","args":["a  padded  "],"ok":"a  padded  "}
+{"fn":"stripAnsi","args":["hello world"],"ok":"hello world"}
+{"fn":"stripAnsi","args":["😀"],"ok":"😀"}
+{"fn":"stripAnsi","args":["ns:key.path"],"ok":"ns:key.path"}
+{"fn":"stripAnsi","args":["tab\tseparated"],"ok":"tab\tseparated"}
+{"fn":"stripAnsi","args":["HELLO"],"ok":"HELLO"}
+{"fn":"stripAnsi","args":["ΣΊΣΥΦΟΣ"],"ok":"ΣΊΣΥΦΟΣ"}
+{"fn":"stripAnsi","args":["a..b"],"ok":"a..b"}
+{"fn":"stripAnsi","args":["key_name-1"],"ok":"key_name-1"}
+{"fn":"stripAnsi","args":["line1\nline2Hello World"],"ok":"line1\nline2Hello World"}
+{"fn":"stripAnsi","args":["a:b:c"],"ok":"a:b:c"}
+{"fn":"stripAnsi","args":["İstanbulhello world"],"ok":"İstanbulhello world"}
+{"fn":"stripAnsi","args":["Hello World"],"ok":"Hello World"}
+{"fn":"stripAnsi","args":["a.b.c{name} has {count} items"],"ok":"a.b.c{name} has {count} items"}
+{"fn":"stripAnsi","args":["﻿bom"],"ok":"﻿bom"}
+{"fn":"stripAnsi","args":["  padded  "],"ok":"  padded  "}
+{"fn":"stripAnsi","args":["a.b.c"],"ok":"a.b.c"}
+{"fn":"stripAnsi","args":["line1\nline2"],"ok":"line1\nline2"}
+{"fn":"stripAnsi","args":["src/a/b.ts"],"ok":"src/a/b.ts"}
+{"fn":"stripAnsi","args":["key_name-1Hello World"],"ok":"key_name-1Hello World"}
+{"fn":"stripAnsi","args":["./x/**/*.json"],"ok":"./x/**/*.json"}
+{"fn":"stripAnsi","args":["src/a/b.tsé"],"ok":"src/a/b.tsé"}
+{"fn":"stripAnsi","args":[".leading.leading"],"ok":".leading.leading"}
+{"fn":"stripAnsi","args":["İstanbul"],"ok":"İstanbul"}
+{"fn":"stripAnsi","args":["straße"],"ok":"straße"}
+{"fn":"stripAnsi","args":["ünïcödé"],"ok":"ünïcödé"}
+{"fn":"stripAnsi","args":["{name} has {count} itemssrc/a/b.ts"],"ok":"{name} has {count} itemssrc/a/b.ts"}
+{"fn":"stripAnsi","args":["trailing.İstanbul"],"ok":"trailing.İstanbul"}
+{"fn":"stripAnsi","args":[".leading"],"ok":".leading"}
+{"fn":"stripAnsi","args":["emoji 👍🏽 mixHello World"],"ok":"emoji 👍🏽 mixHello World"}
+{"fn":"stripAnsi","args":["HELLO﻿bom"],"ok":"HELLO﻿bom"}
+{"fn":"stripAnsi","args":["日本語のテキスト"],"ok":"日本語のテキスト"}
+{"fn":"stripAnsi","args":["a..b./x/**/*.json"],"ok":"a..b./x/**/*.json"}
+{"fn":"stripAnsi","args":["ab日本語のテキスト"],"ok":"ab日本語のテキスト"}
+{"fn":"stripAnsi","args":["src/a/b.tsünïcödé"],"ok":"src/a/b.tsünïcödé"}
+{"fn":"stripAnsi","args":["trailing.straße"],"ok":"trailing.straße"}
+{"fn":"stripAnsi","args":["helloabc"],"ok":"helloabc"}
+{"fn":"stripAnsi","args":["é"],"ok":"é"}
+{"fn":"stripAnsi","args":["{name} has {count} items"],"ok":"{name} has {count} items"}
+{"fn":"stripAnsi","args":["ünïcödétab\tseparated"],"ok":"ünïcödétab\tseparated"}
+{"fn":"stripAnsi","args":["ΣΊΣΥΦΟΣstraße"],"ok":"ΣΊΣΥΦΟΣstraße"}
+{"fn":"stripAnsi","args":["😀İstanbul"],"ok":"😀İstanbul"}
+{"fn":"stripAnsi","args":["tab\tseparated./x/**/*.json"],"ok":"tab\tseparated./x/**/*.json"}
+{"fn":"stripAnsi","args":["src/a/b.tsabc"],"ok":"src/a/b.tsabc"}
+{"fn":"stripAnsi","args":["a.b.cemoji 👍🏽 mix"],"ok":"a.b.cemoji 👍🏽 mix"}
+{"fn":"stripAnsi","args":["日本語のテキストHello World"],"ok":"日本語のテキストHello World"}
+{"fn":"stripAnsi","args":[".leading./x/**/*.json"],"ok":".leading./x/**/*.json"}
+{"fn":"stripAnsi","args":["{name} has {count} itemshello"],"ok":"{name} has {count} itemshello"}
+{"fn":"stripAnsi","args":[""],"ok":""}
+{"fn":"stripAnsi","args":["./x/**/*.json.leading"],"ok":"./x/**/*.json.leading"}
+{"fn":"stripAnsi","args":["😀a:b:c"],"ok":"😀a:b:c"}
+{"fn":"stripAnsi","args":["a😀b😀ctrailing."],"ok":"a😀b😀ctrailing."}
+{"fn":"stripAnsi","args":[":straße"],"ok":":straße"}
+{"fn":"stripAnsi","args":["trailing.{name} has {count} items"],"ok":"trailing.{name} has {count} items"}
+{"fn":"stripAnsi","args":["HELLO😀"],"ok":"HELLO😀"}
+{"fn":"stripAnsi","args":["abtab\tseparated"],"ok":"abtab\tseparated"}
+{"fn":"stripAnsi","args":["ΣΊΣΥΦΟΣΣΊΣΥΦΟΣ"],"ok":"ΣΊΣΥΦΟΣΣΊΣΥΦΟΣ"}
+{"fn":"stripAnsi","args":["abckey_name-1"],"ok":"abckey_name-1"}
+{"fn":"stripAnsi","args":["a:b:cab"],"ok":"a:b:cab"}
+{"fn":"stripAnsi","args":["ünïcödéΣΊΣΥΦΟΣ"],"ok":"ünïcödéΣΊΣΥΦΟΣ"}
+{"fn":"stripAnsi","args":["a:b:ctrailing."],"ok":"a:b:ctrailing."}
+{"fn":"stripAnsi","args":["a:b:cİstanbul"],"ok":"a:b:cİstanbul"}
+{"fn":"stripAnsi","args":["{name} has {count} items日本語のテキスト"],"ok":"{name} has {count} items日本語のテキスト"}
+{"fn":"stripAnsi","args":["trailing.ünïcödé"],"ok":"trailing.ünïcödé"}
+{"fn":"stripAnsi","args":["  padded  ./x/**/*.json"],"ok":"  padded  ./x/**/*.json"}
+{"fn":"stripAnsi","args":["ab./x/**/*.json"],"ok":"ab./x/**/*.json"}
+{"fn":"stripAnsi","args":["key_name-1./x/**/*.json"],"ok":"key_name-1./x/**/*.json"}
+{"fn":"stripAnsi","args":["日本語のテキストsrc/a/b.ts"],"ok":"日本語のテキストsrc/a/b.ts"}
+{"fn":"stripAnsi","args":[".leadingemoji 👍🏽 mix"],"ok":".leadingemoji 👍🏽 mix"}
+{"fn":"stripAnsi","args":["{name} has {count} itemsHELLO"],"ok":"{name} has {count} itemsHELLO"}
+{"fn":"stripAnsi","args":["a:b:ca😀b😀c"],"ok":"a:b:ca😀b😀c"}
+{"fn":"stripAnsi","args":["hello worlda..b"],"ok":"hello worlda..b"}
+{"fn":"stripAnsi","args":["helloemoji 👍🏽 mix"],"ok":"helloemoji 👍🏽 mix"}
+{"fn":"stripAnsi","args":["日本語のテキストa.b.c"],"ok":"日本語のテキストa.b.c"}
+{"fn":"stripAnsi","args":["abcé"],"ok":"abcé"}
+{"fn":"stripAnsi","args":[":./x/**/*.json"],"ok":":./x/**/*.json"}
+{"fn":"stripAnsi","args":["İstanbul{name} has {count} items"],"ok":"İstanbul{name} has {count} items"}
+{"fn":"stripAnsi","args":["﻿bomabc"],"ok":"﻿bomabc"}
+{"fn":"stripAnsi","args":["😀key_name-1"],"ok":"😀key_name-1"}
+{"fn":"stripAnsi","args":["  padded  a..b"],"ok":"  padded  a..b"}
+{"fn":"stripAnsi","args":["﻿bom😀"],"ok":"﻿bom😀"}
+{"fn":"stripAnsi","args":["key_name-1ab"],"ok":"key_name-1ab"}
+{"fn":"stripAnsi","args":["Hello World{name} has {count} items"],"ok":"Hello World{name} has {count} items"}
+{"fn":"stripAnsi","args":["a:b:chello"],"ok":"a:b:chello"}
+{"fn":"stripAnsi","args":["a:b:c  padded  "],"ok":"a:b:c  padded  "}
+{"fn":"stripAnsi","args":["helloa:b:c"],"ok":"helloa:b:c"}
+{"fn":"stripAnsi","args":["absrc/a/b.ts"],"ok":"absrc/a/b.ts"}
+{"fn":"stripAnsi","args":["tab\tseparatedstraße"],"ok":"tab\tseparatedstraße"}
+{"fn":"stripAnsi","args":["a..b日本語のテキスト"],"ok":"a..b日本語のテキスト"}
+{"fn":"stripAnsi","args":["abHello World"],"ok":"abHello World"}
+{"fn":"stripAnsi","args":["HELLO:"],"ok":"HELLO:"}
+{"fn":"stripAnsi","args":["HELLOünïcödé"],"ok":"HELLOünïcödé"}
+{"fn":"stripAnsi","args":["straßeünïcödé"],"ok":"straßeünïcödé"}
+{"fn":"stripAnsi","args":["{name} has {count} items😀"],"ok":"{name} has {count} items😀"}
+{"fn":"stripAnsi","args":["😀a"],"ok":"😀a"}
+{"fn":"stripAnsi","args":["﻿bomsrc/a/b.ts"],"ok":"﻿bomsrc/a/b.ts"}
+{"fn":"stripAnsi","args":["src/a/b.ts😀"],"ok":"src/a/b.ts😀"}
+{"fn":"stripAnsi","args":[".leading  padded  "],"ok":".leading  padded  "}
+{"fn":"stripAnsi","args":["😀abc"],"ok":"😀abc"}
+{"fn":"stripAnsi","args":["ünïcödéa.b.c"],"ok":"ünïcödéa.b.c"}
+{"fn":"stripAnsi","args":["hello worldstraße"],"ok":"hello worldstraße"}
+{"fn":"stripAnsi","args":["emoji 👍🏽 mixkey_name-1"],"ok":"emoji 👍🏽 mixkey_name-1"}
+{"fn":"stripAnsi","args":["trailing.HELLO"],"ok":"trailing.HELLO"}
+{"fn":"stripAnsi","args":["hello worldünïcödé"],"ok":"hello worldünïcödé"}
+{"fn":"stripAnsi","args":["src/a/b.tstab\tseparated"],"ok":"src/a/b.tstab\tseparated"}
+{"fn":"stripAnsi","args":["ΣΊΣΥΦΟΣline1\nline2"],"ok":"ΣΊΣΥΦΟΣline1\nline2"}
+{"fn":"stripAnsi","args":["hello{name} has {count} items"],"ok":"hello{name} has {count} items"}
+{"fn":"stripAnsi","args":[":ab"],"ok":":ab"}
+{"fn":"stripAnsi","args":["a:b:csrc/a/b.ts"],"ok":"a:b:csrc/a/b.ts"}
+{"fn":"stripAnsi","args":["tab\tseparatedsrc/a/b.ts"],"ok":"tab\tseparatedsrc/a/b.ts"}
+{"fn":"stripAnsi","args":["src/a/b.tsHELLO"],"ok":"src/a/b.tsHELLO"}
+{"fn":"stripAnsi","args":["a.b.ca"],"ok":"a.b.ca"}
+{"fn":"stripAnsi","args":["ünïcödéa😀b😀c"],"ok":"ünïcödéa😀b😀c"}
+{"fn":"stripAnsi","args":["abcabc"],"ok":"abcabc"}
+{"fn":"stripAnsi","args":["tab\tseparatedline1\nline2"],"ok":"tab\tseparatedline1\nline2"}
+{"fn":"stripAnsi","args":["hello😀"],"ok":"hello😀"}
+{"fn":"stripAnsi","args":["ns:key.path😀"],"ok":"ns:key.path😀"}
+{"fn":"stripAnsi","args":["😀trailing."],"ok":"😀trailing."}
+{"fn":"stripAnsi","args":["日本語のテキストa..b"],"ok":"日本語のテキストa..b"}
+{"fn":"stripAnsi","args":["hello worldtrailing."],"ok":"hello worldtrailing."}
+{"fn":"stripAnsi","args":["İstanbula.b.c"],"ok":"İstanbula.b.c"}
+{"fn":"stripAnsi","args":["straßetab\tseparated"],"ok":"straßetab\tseparated"}
+{"fn":"stripAnsi","args":["aHello World"],"ok":"aHello World"}
+{"fn":"stripAnsi","args":["straßea😀b😀c"],"ok":"straßea😀b😀c"}
+{"fn":"stripAnsi","args":["aa"],"ok":"aa"}
+{"fn":"stripAnsi","args":["{name} has {count} itemskey_name-1"],"ok":"{name} has {count} itemskey_name-1"}
+{"fn":"stripAnsi","args":["key_name-1src/a/b.ts"],"ok":"key_name-1src/a/b.ts"}
+{"fn":"stripAnsi","args":["hellostraße"],"ok":"hellostraße"}
+{"fn":"stripAnsi","args":["hello worldhello"],"ok":"hello worldhello"}
+{"fn":"stripAnsi","args":["trailing.hello"],"ok":"trailing.hello"}
+{"fn":"stripAnsi","args":["  padded  hello world"],"ok":"  padded  hello world"}
+{"fn":"stripAnsi","args":["HELLOé"],"ok":"HELLOé"}
+{"fn":"stripAnsi","args":["abcstraße"],"ok":"abcstraße"}
+{"fn":"stripAnsi","args":["helloab"],"ok":"helloab"}
+{"fn":"stripAnsi","args":["a:b:c{name} has {count} items"],"ok":"a:b:c{name} has {count} items"}
+{"fn":"stripAnsi","args":["日本語のテキストΣΊΣΥΦΟΣ"],"ok":"日本語のテキストΣΊΣΥΦΟΣ"}
+{"fn":"stripAnsi","args":["ünïcödéline1\nline2"],"ok":"ünïcödéline1\nline2"}
+{"fn":"stripAnsi","args":["éabc"],"ok":"éabc"}
+{"fn":"stripAnsi","args":["tab\tseparateda.b.c"],"ok":"tab\tseparateda.b.c"}
+{"fn":"stripAnsi","args":["abcΣΊΣΥΦΟΣ"],"ok":"abcΣΊΣΥΦΟΣ"}
+{"fn":"stripAnsi","args":["  padded  src/a/b.ts"],"ok":"  padded  src/a/b.ts"}
+{"fn":"stripAnsi","args":["line1\nline2a..b"],"ok":"line1\nline2a..b"}
+{"fn":"stripAnsi","args":["straße  padded  "],"ok":"straße  padded  "}
+{"fn":"stripAnsi","args":["﻿bom﻿bom"],"ok":"﻿bom﻿bom"}
+{"fn":"stripAnsi","args":["a.b.csrc/a/b.ts"],"ok":"a.b.csrc/a/b.ts"}
+{"fn":"stripAnsi","args":["hello worlda.b.c"],"ok":"hello worlda.b.c"}
+{"fn":"stripAnsi","args":["key_name-1straße"],"ok":"key_name-1straße"}
+{"fn":"stripAnsi","args":["a..b:"],"ok":"a..b:"}
+{"fn":"stripAnsi","args":["./x/**/*.jsoné"],"ok":"./x/**/*.jsoné"}
+{"fn":"stripAnsi","args":["./x/**/*.jsonline1\nline2"],"ok":"./x/**/*.jsonline1\nline2"}
+{"fn":"stripAnsi","args":["line1\nline2é"],"ok":"line1\nline2é"}
+{"fn":"stripAnsi","args":["İstanbulns:key.path"],"ok":"İstanbulns:key.path"}
+{"fn":"stripAnsi","args":["ΣΊΣΥΦΟΣ.leading"],"ok":"ΣΊΣΥΦΟΣ.leading"}
+{"fn":"stripAnsi","args":["HELLOHELLO"],"ok":"HELLOHELLO"}
+{"fn":"stripAnsi","args":["ns:key.pathünïcödé"],"ok":"ns:key.pathünïcödé"}
+{"fn":"stripAnsi","args":["trailing.Hello World"],"ok":"trailing.Hello World"}
+{"fn":"stripAnsi","args":["İstanbula"],"ok":"İstanbula"}
+{"fn":"stripAnsi","args":["a😀b😀cns:key.path"],"ok":"a😀b😀cns:key.path"}
+{"fn":"stripAnsi","args":["ünïcödéns:key.path"],"ok":"ünïcödéns:key.path"}
+{"fn":"stripAnsi","args":["😀.leading"],"ok":"😀.leading"}
+{"fn":"stripAnsi","args":["Hello World日本語のテキスト"],"ok":"Hello World日本語のテキスト"}
+{"fn":"stripAnsi","args":["HELLOsrc/a/b.ts"],"ok":"HELLOsrc/a/b.ts"}
+{"fn":"stripAnsi","args":["hello worldhello world"],"ok":"hello worldhello world"}
+{"fn":"stripAnsi","args":["helloé"],"ok":"helloé"}
+{"fn":"stripAnsi","args":["ΣΊΣΥΦΟΣkey_name-1"],"ok":"ΣΊΣΥΦΟΣkey_name-1"}
+{"fn":"stripAnsi","args":["﻿boma"],"ok":"﻿boma"}
+{"fn":"stripAnsi","args":["ΣΊΣΥΦΟΣabc"],"ok":"ΣΊΣΥΦΟΣabc"}
+{"fn":"stripAnsi","args":[":ΣΊΣΥΦΟΣ"],"ok":":ΣΊΣΥΦΟΣ"}
+{"fn":"stripAnsi","args":["line1\nline2straße"],"ok":"line1\nline2straße"}
+{"fn":"stripAnsi","args":["abchello world"],"ok":"abchello world"}
+{"fn":"stripAnsi","args":["ΣΊΣΥΦΟΣİstanbul"],"ok":"ΣΊΣΥΦΟΣİstanbul"}
+{"fn":"stripAnsi","args":["hellohello world"],"ok":"hellohello world"}
+{"fn":"stripAnsi","args":["straße.leading"],"ok":"straße.leading"}
+{"fn":"stripAnsi","args":["😀é"],"ok":"😀é"}
+{"fn":"stripAnsi","args":["trailing.a"],"ok":"trailing.a"}
+{"fn":"stripAnsi","args":["a😀b😀csrc/a/b.ts"],"ok":"a😀b😀csrc/a/b.ts"}
+{"fn":"stripAnsi","args":["line1\nline2./x/**/*.json"],"ok":"line1\nline2./x/**/*.json"}
+{"fn":"stripAnsi","args":["key_name-1a.b.c"],"ok":"key_name-1a.b.c"}
+{"fn":"stripAnsi","args":["ünïcödé﻿bom"],"ok":"ünïcödé﻿bom"}
+{"fn":"stripAnsi","args":["abca"],"ok":"abca"}
+{"fn":"stripAnsi","args":["straße日本語のテキスト"],"ok":"straße日本語のテキスト"}
+{"fn":"stripAnsi","args":["line1\nline2日本語のテキスト"],"ok":"line1\nline2日本語のテキスト"}
+{"fn":"stripAnsi","args":["abc:"],"ok":"abc:"}
+{"fn":"stripAnsi","args":["étrailing."],"ok":"étrailing."}
+{"fn":"stripAnsi","args":["./x/**/*.jsonhello"],"ok":"./x/**/*.jsonhello"}
+{"fn":"stripAnsi","args":["ésrc/a/b.ts"],"ok":"ésrc/a/b.ts"}
+{"fn":"stripAnsi","args":["abcünïcödé"],"ok":"abcünïcödé"}
+{"fn":"stripAnsi","args":["line1\nline2tab\tseparated"],"ok":"line1\nline2tab\tseparated"}
+{"fn":"stripAnsi","args":["ΣΊΣΥΦΟΣ﻿bom"],"ok":"ΣΊΣΥΦΟΣ﻿bom"}
+{"fn":"stripAnsi","args":["héllo wörld"],"ok":"héllo wörld"}
+{"fn":"stripAnsi","args":["👍🏽 thumbs"],"ok":"👍🏽 thumbs"}
+{"fn":"stripAnsi","args":["日本語"],"ok":"日本語"}
+{"fn":"stripAnsi","args":["ılık ırmak"],"ok":"ılık ırmak"}
+{"fn":"stripAnsi","args":["👨‍👩‍👧 family"],"ok":"👨‍👩‍👧 family"}
+{"fn":"stripAnsi","args":["a b"],"ok":"a b"}
+{"fn":"stripAnsi","args":["a😀b"],"ok":"a😀b"}
+{"fn":"stripAnsi","args":["a²b x½ y①"],"ok":"a²b x½ y①"}
+{"fn":"stripAnsi","args":["aⅠb Ⅻ"],"ok":"aⅠb Ⅻ"}
+{"fn":"stripAnsi","args":["a𐐀b 𝐀bc"],"ok":"a𐐀b 𝐀bc"}
+{"fn":"stripAnsi","args":["कि ٣٤"],"ok":"कि ٣٤"}
+{"fn":"stripAnsi","args":["Iı İi"],"ok":"Iı İi"}
+{"fn":"stripAnsi","args":["K K k"],"ok":"K K k"}
+{"fn":"stripAnsi","args":["ſ s S"],"ok":"ſ s S"}
+{"fn":"stripAnsi","args":["x‍y 👨‍👩‍👧"],"ok":"x‍y 👨‍👩‍👧"}
+{"fn":"stripAnsi","args":["a b c　d"],"ok":"a b c　d"}
+{"fn":"stripAnsi","args":["١٢٣ ٤٥"],"ok":"١٢٣ ٤٥"}
+{"fn":"stripAnsi","args":["𝟘𝟙 ²³"],"ok":"𝟘𝟙 ²³"}
+{"fn":"stripAnsi","args":["snake_case foo-bar o'neil"],"ok":"snake_case foo-bar o'neil"}
+{"fn":"stripAnsi","args":["ǅungla Ǆ"],"ok":"ǅungla Ǆ"}
+{"fn":"stripAnsi","args":["one\r\ntwo threefour"],"ok":"one\r\ntwo threefour"}
+{"fn":"stripAnsi","args":["café café"],"ok":"café café"}
+{"fn":"stripAnsi","args":["ΣΑΣ σας ς"],"ok":"ΣΑΣ σας ς"}
+{"fn":"parseSynoSmartOutput","args":["HELLO"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["src/a/b.ts"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["﻿bom{name} has {count} items"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":[".leadingtrailing."],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ΣΊΣΥΦΟΣ"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a:b:cstraße"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ab"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["é"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["Hello WorldHello World"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["Hello World"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a😀b😀c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["😀"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["İstanbul"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["  padded  emoji 👍🏽 mix"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a:b:c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ünïcödé"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["﻿bomline1\nline2"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a.b.c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":[""],"ok":{"drives":[],"overallHealth":"UNKNOWN"}}
+{"fn":"parseSynoSmartOutput","args":["  padded  "],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["straße"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["./x/**/*.json"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["hello world"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["﻿bom"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["hello"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["{name} has {count} items"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["日本語のテキストstraße"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["emoji 👍🏽 mix"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["trailing."],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ns:key.path"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ünïcödéΣΊΣΥΦΟΣ"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["日本語のテキスト"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a:b:ca..b"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a..b"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["line1\nline2"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["key_name-1"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ünïcödéline1\nline2"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["aünïcödé"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["tab\tseparated  padded  "],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["tab\tseparated"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["abc"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["aİstanbul"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["tab\tseparatedé"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["﻿bomHELLO"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["éHELLO"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["./x/**/*.jsonemoji 👍🏽 mix"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["src/a/b.tsHELLO"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["İstanbul﻿bom"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":[".leading"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["emoji 👍🏽 mixab"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["abns:key.path"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["line1\nline2  padded  "],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["src/a/b.tstab\tseparated"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":[":"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ns:key.pathHELLO"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["hello worldstraße"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":[":a..b"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":[".leadingΣΊΣΥΦΟΣ"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["{name} has {count} itemsa😀b😀c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["trailing.{name} has {count} items"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ünïcödéhello world"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["HELLOİstanbul"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":[".leadingemoji 👍🏽 mix"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":[":HELLO"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["abchello"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["aba.b.c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ns:key.pathhello world"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["abcline1\nline2"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["{name} has {count} itemsünïcödé"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["abc😀"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a..b./x/**/*.json"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["helloabc"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["tab\tseparateda.b.c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["atrailing."],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a:b:csrc/a/b.ts"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["tab\tseparatedabc"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a  padded  "],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["./x/**/*.json:"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["İstanbul日本語のテキスト"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["tab\tseparateda😀b😀c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["key_name-1a:b:c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["😀straße"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ünïcödéns:key.path"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["İstanbulabc"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a😀b😀ca..b"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a:b:cİstanbul"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["abhello"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a😀b😀c  padded  "],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ans:key.path"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a.b.chello world"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["abcsrc/a/b.ts"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["{name} has {count} itemsemoji 👍🏽 mix"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["İstanbula"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["Hello Worlda..b"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["emoji 👍🏽 mixİstanbul"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":[".leadinghello world"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ΣΊΣΥΦΟΣHello World"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["./x/**/*.jsonünïcödé"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["abca..b"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["{name} has {count} items😀"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["emoji 👍🏽 mixkey_name-1"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a..bline1\nline2"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["line1\nline2trailing."],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":[":ab"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["hello world{name} has {count} items"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["日本語のテキスト{name} has {count} items"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["Hello WorldHELLO"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["tab\tseparatedHELLO"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a.b.cline1\nline2"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a..ba.b.c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":[":a"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ünïcödékey_name-1"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a😀b😀cΣΊΣΥΦΟΣ"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["  padded  {name} has {count} items"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["İstanbulhello world"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ünïcödétab\tseparated"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["line1\nline2İstanbul"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["src/a/b.ts:"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["tab\tseparateda..b"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a.b.cé"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["HELLOa"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["éa..b"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a..bab"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ΣΊΣΥΦΟΣhello world"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["éé"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["hello worldİstanbul"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["./x/**/*.jsoné"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["😀日本語のテキスト"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ababc"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a😀b😀cHello World"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ünïcödéİstanbul"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["akey_name-1"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["日本語のテキストé"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a:b:ca😀b😀c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["./x/**/*.json./x/**/*.json"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a:b:cns:key.path"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["src/a/b.tsabc"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["emoji 👍🏽 mixa😀b😀c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["line1\nline2a😀b😀c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["src/a/b.tssrc/a/b.ts"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["  padded  hello world"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["emoji 👍🏽 mixΣΊΣΥΦΟΣ"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["line1\nline2key_name-1"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["Hello World{name} has {count} items"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["hellohello world"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["﻿bom./x/**/*.json"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["abctab\tseparated"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["😀HELLO"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["İstanbula..b"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["helloa.b.c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["  padded    padded  "],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["hello worldemoji 👍🏽 mix"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":[":straße"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["😀Hello World"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a.b.cns:key.path"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["😀.leading"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":[".leadingsrc/a/b.ts"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["é😀"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["Hello World./x/**/*.json"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["aa.b.c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["trailing.a"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["line1\nline2./x/**/*.json"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a.b.c.leading"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["line1\nline2emoji 👍🏽 mix"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["abcHELLO"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a..bkey_name-1"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["Hello Worldtrailing."],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["aba:b:c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["  padded  😀"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["hello worldtrailing."],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["日本語のテキストtrailing."],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["trailing.key_name-1"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":[".leading{name} has {count} items"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["HELLOa.b.c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["trailing.İstanbul"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a.b.c﻿bom"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["emoji 👍🏽 mixa..b"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a.b.cab"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["src/a/b.ts😀"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a😀b😀chello world"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["﻿bomns:key.path"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["😀abc"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["éhello world"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["Hello Worldsrc/a/b.ts"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ΣΊΣΥΦΟΣünïcödé"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["tab\tseparatedkey_name-1"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["  padded  é"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["日本語のテキスト日本語のテキスト"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a:b:c.leading"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ΣΊΣΥΦΟΣa:b:c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["{name} has {count} itemsHELLO"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["trailing..leading"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["key_name-1ünïcödé"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["HELLOa..b"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["😀﻿bom"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["hello worlda..b"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ünïcödéa😀b😀c"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["  padded  tab\tseparated"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["helloline1\nline2"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["héllo wörld"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["👍🏽 thumbs"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["日本語"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ılık ırmak"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["👨‍👩‍👧 family"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a b"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a😀b"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a²b x½ y①"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["aⅠb Ⅻ"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a𐐀b 𝐀bc"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["कि ٣٤"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["Iı İi"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["K K k"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ſ s S"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["x‍y 👨‍👩‍👧"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["a b c　d"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["١٢٣ ٤٥"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["𝟘𝟙 ²³"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["snake_case foo-bar o'neil"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ǅungla Ǆ"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["one\r\ntwo threefour"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["café café"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"parseSynoSmartOutput","args":["ΣΑΣ σας ς"],"ok":{"drives":[],"overallHealth":"PASSED"}}
+{"fn":"formatLifetimeSpan","args":[0],"ok":"—"}
+{"fn":"formatLifetimeSpan","args":[-5],"ok":"—"}
+{"fn":"formatLifetimeSpan","args":[null],"ok":"—"}
+{"fn":"formatLifetimeSpan","args":[100],"ok":"100h (4 ngày)"}
+{"fn":"formatLifetimeSpan","args":[2500],"ok":"2,500h (~3 tháng)"}
+{"fn":"formatLifetimeSpan","args":[14250],"ok":"14,250h (~1.6 năm 7th)"}
+{"fn":"stripAnsi","args":["SMART overall-health: \u001b[1;32mPASSED\u001b[0m\u001b(B"],"ok":"SMART overall-health: PASSED"}
+{"fn":"parseSynoSmartOutput","args":[""],"ok":{"drives":[],"overallHealth":"UNKNOWN"}}
+{"fn":"parseSynoSmartOutput","args":["Synology-NAS DS920+ DSM 7.2.1-69057-3\n\nDrive 1  WD40EFRX-68N32N0  WD-WCC7K1234567  /dev/sata1\nUser Capacity:        4,000,787,030,016 bytes [4.00 TB]\nFirmware Version:     82.00A82\nRotation Rate:        5400 rpm\nSATA Version is:      SATA 3.1, 6.0 Gb/s (current: 6.0 Gb/s)\nTemperature Celsius:  36 C\nPower-on Hours:       14,250\nSMART overall-health self-assessment test result: \u001b[1;32mPASSED\u001b[0m\nSMART Error Counter Log:         \u001b[1;32mNo Errors Logged\u001b[0m\nID# ATTRIBUTE_NAME          FLAG     VALUE WORST THRESH TYPE      UPDATED  WHEN_FAILED RAW_VALUE\n  1 Raw_Read_Error_Rate     0x002f   200   200   051    Pre-fail  Always       -       0\n  5 Reallocated_Sector_Ct   0x0033   200   200   140    Pre-fail  Always       -       0\n  9 Power_On_Hours          0x0032   081   081   000    Old_age   Always       -       14250\n194 Temperature_Celsius     0x0022   116   102   000    Old_age   Always       -       36\n197 Current_Pending_Sector  0x0032   200   200   000    Old_age   Always       -       0\n199 UDMA_CRC_Error_Count    0x003e   200   200   000    Old_age   Always       -       0\n\nM.2 Drive 1  Samsung 970 EVO Plus 1TB  S4EVNF0M123456  /dev/nvme0n1\nTotal NVM Capacity:   1,000,204,886,016 [1.00 TB]\nFirmware Version:     2B2QEXM7\nCritical Warning:     0x00\nTemperature:          44 Celsius\nAvailable Spare:      100%\nPercentage Used:      3%\nMedia and Data Integrity Errors: 0\n\nDrive 2  BadDiskModel  BADSN999  /dev/sata2\n  5 Reallocated_Sector_Ct   0x0033   100   100   140    Pre-fail  Always       FAILING_NOW 60\n197 Current_Pending_Sector  0x0012   100   100   000    Old_age   Always       In_the_past 12\n199 UDMA_CRC_Error_Count    0x003e   200   200   000    Old_age   Always       -       6\n"],"ok":{"drives":[{"slot":"Drive 1","model":"WD40EFRX-68N32N0","serial":"WD-WCC7K1234567","device":"/dev/sata1","capacity":"4,000,787,030,016 bytes [4.00 TB]","firmware":"82.00A82","rotationRate":"5400 rpm","sataVersion":"SATA 3.1, 6.0 Gb/s (current: 6.0 Gb/s)","health":"PASSED","tempC":36,"powerOnHours":14250,"reallocatedSectors":null,"pendingSectors":null,"crcErrors":null,"nvmeWearPercent":null,"attributesCount":6,"smartAttributes":[{"id":1,"name":"Raw_Read_Error_Rate","flag":"0x002f","value":"200","worst":"200","thresh":"051","type":"Pre-fail","updated":"Always","whenFailed":"-","rawValue":"0","status":"OK","description":"Tỷ lệ lỗi đọc thô từ bề mặt đĩa"},{"id":5,"name":"Reallocated_Sector_Ct","flag":"0x0033","value":"200","worst":"200","thresh":"140","type":"Pre-fail","updated":"Always","whenFailed":"-","rawValue":"0","status":"OK","description":"Số sector bị lỗi đã được thay thế (Rất quan trọng)"},{"id":9,"name":"Power_On_Hours","flag":"0x0032","value":"081","worst":"081","thresh":"000","type":"Old_age","updated":"Always","whenFailed":"-","rawValue":"14250","status":"OK","description":"Tổng số giờ đĩa đã chạy thực tế"},{"id":194,"name":"Temperature_Celsius","flag":"0x0022","value":"116","worst":"102","thresh":"000","type":"Old_age","updated":"Always","whenFailed":"-","rawValue":"36","status":"OK","description":"Nhiệt độ cảm biến lõi ổ đĩa (°C)"},{"id":197,"name":"Current_Pending_Sector","flag":"0x0032","value":"200","worst":"200","thresh":"000","type":"Old_age","updated":"Always","whenFailed":"-","rawValue":"0","status":"OK","description":"Số sector lỗi đang chờ phân bổ lại (Rất nguy hiểm)"},{"id":199,"name":"UDMA_CRC_Error_Count","flag":"0x003e","value":"200","worst":"200","thresh":"000","type":"Old_age","updated":"Always","whenFailed":"-","rawValue":"0","status":"OK","description":"Lỗi bắt tay tín hiệu truyền dẫn cáp / khay cắm SATA"}],"nvmeSpecs":[{"key":"User Capacity","label":"User Capacity","value":"4,000,787,030,016 bytes [4.00 TB]","status":"OK"},{"key":"Firmware Version","label":"Firmware Version","value":"82.00A82","status":"OK"},{"key":"Rotation Rate","label":"Rotation Rate","value":"5400 rpm","status":"OK"},{"key":"SATA Version is","label":"SATA Version is","value":"SATA 3.1, 6.0 Gb/s (current: 6.0 Gb/s)","status":"OK"},{"key":"Temperature Celsius","label":"Temperature Celsius","value":"36 C","status":"OK"},{"key":"Power-on Hours","label":"Power-on Hours","value":"14,250","status":"OK"},{"key":"SMART Error Counter Log","label":"SMART Error Counter Log","value":"No Errors Logged","status":"OK"}],"rawLines":["User Capacity:        4,000,787,030,016 bytes [4.00 TB]","Firmware Version:     82.00A82","Rotation Rate:        5400 rpm","SATA Version is:      SATA 3.1, 6.0 Gb/s (current: 6.0 Gb/s)","Temperature Celsius:  36 C","Power-on Hours:       14,250","SMART overall-health self-assessment test result: PASSED","SMART Error Counter Log:         No Errors Logged","ID# ATTRIBUTE_NAME          FLAG     VALUE WORST THRESH TYPE      UPDATED  WHEN_FAILED RAW_VALUE","1 Raw_Read_Error_Rate     0x002f   200   200   051    Pre-fail  Always       -       0","5 Reallocated_Sector_Ct   0x0033   200   200   140    Pre-fail  Always       -       0","9 Power_On_Hours          0x0032   081   081   000    Old_age   Always       -       14250","194 Temperature_Celsius     0x0022   116   102   000    Old_age   Always       -       36","197 Current_Pending_Sector  0x0032   200   200   000    Old_age   Always       -       0","199 UDMA_CRC_Error_Count    0x003e   200   200   000    Old_age   Always       -       0",""]},{"slot":"M.2 Drive 1","model":"Samsung 970 EVO Plus 1TB","serial":"S4EVNF0M123456","device":"/dev/nvme0n1","capacity":"1,000,204,886,016 [1.00 TB]","firmware":"2B2QEXM7","rotationRate":{"$undefined":true},"sataVersion":{"$undefined":true},"health":"OK","tempC":44,"powerOnHours":null,"reallocatedSectors":null,"pendingSectors":null,"crcErrors":null,"nvmeWearPercent":3,"attributesCount":{"$undefined":true},"smartAttributes":{"$undefined":true},"nvmeSpecs":[{"key":"Total NVM Capacity","label":"Total NVM Capacity","value":"1,000,204,886,016 [1.00 TB]","status":"OK"},{"key":"Firmware Version","label":"Firmware Version","value":"2B2QEXM7","status":"OK"},{"key":"Critical Warning","label":"Critical Warning","value":"0x00","status":"OK"},{"key":"Temperature","label":"Temperature","value":"44 Celsius","status":"OK"},{"key":"Available Spare","label":"Available Spare","value":"100%","status":"OK"},{"key":"Percentage Used","label":"Percentage Used","value":"3%","status":"OK"},{"key":"Media and Data Integrity Errors","label":"Media and Data Integrity Errors","value":"0","status":"OK"}],"rawLines":["Total NVM Capacity:   1,000,204,886,016 [1.00 TB]","Firmware Version:     2B2QEXM7","Critical Warning:     0x00","Temperature:          44 Celsius","Available Spare:      100%","Percentage Used:      3%","Media and Data Integrity Errors: 0",""]},{"slot":"Drive 2","model":"BadDiskModel","serial":"BADSN999","device":"/dev/sata2","capacity":{"$undefined":true},"firmware":{"$undefined":true},"rotationRate":{"$undefined":true},"sataVersion":{"$undefined":true},"health":"OK","tempC":null,"powerOnHours":null,"reallocatedSectors":null,"pendingSectors":null,"crcErrors":null,"nvmeWearPercent":null,"attributesCount":3,"smartAttributes":[{"id":5,"name":"Reallocated_Sector_Ct","flag":"0x0033","value":"100","worst":"100","thresh":"140","type":"Pre-fail","updated":"Always","whenFailed":"FAILING_NOW","rawValue":"60","status":"FAIL","description":"Số sector bị lỗi đã được thay thế (Rất quan trọng)"},{"id":197,"name":"Current_Pending_Sector","flag":"0x0012","value":"100","worst":"100","thresh":"000","type":"Old_age","updated":"Always","whenFailed":"In_the_past","rawValue":"12","status":"WARN","description":"Số sector lỗi đang chờ phân bổ lại (Rất nguy hiểm)"},{"id":199,"name":"UDMA_CRC_Error_Count","flag":"0x003e","value":"200","worst":"200","thresh":"000","type":"Old_age","updated":"Always","whenFailed":"-","rawValue":"6","status":"WARN","description":"Lỗi bắt tay tín hiệu truyền dẫn cáp / khay cắm SATA"}],"nvmeSpecs":{"$undefined":true},"rawLines":["5 Reallocated_Sector_Ct   0x0033   100   100   140    Pre-fail  Always       FAILING_NOW 60","197 Current_Pending_Sector  0x0012   100   100   000    Old_age   Always       In_the_past 12","199 UDMA_CRC_Error_Count    0x003e   200   200   000    Old_age   Always       -       6",""]}],"overallHealth":"PASSED","hostname":"Synology-NAS","nasModel":"DS920+","dsmVersion":"DSM 7.2.1-69057-3"}}

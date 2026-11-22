@@ -1,0 +1,10 @@
+[request]
+method = "GET"
+path = "/api/download/?q=%20%20"
+
+[response]
+status = 308
+
+[response.headers]
+location = "/api/download?q=%20%20"
+refresh = "0;url=/api/download?q=%20%20"

@@ -1,0 +1,14 @@
+[request]
+method = "POST"
+path = "/api//resolve-link"
+body = '{"url":"https://drive.google.com/file/d/1AbCdEfGhIjK/view?usp=sharing"}'
+
+[request.headers]
+content-type = "application/json"
+
+[response]
+status = 308
+
+[response.headers]
+location = "/api/resolve-link"
+refresh = "0;url=/api/resolve-link"

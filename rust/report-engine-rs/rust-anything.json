@@ -1,0 +1,162 @@
+{
+  "schema": "rust-anything/bridge@1",
+  "root": "/mnt/data/Package Center/kv-synology",
+  "unit": "src/lib/reports/",
+  "language": "ts",
+  "kind": "napi",
+  "crate_name": "report-engine-rs",
+  "exports": [
+    {
+      "name": "buildLiveReportSummary",
+      "file": "src/lib/reports/reportEngine.ts",
+      "line": 73,
+      "params": [
+        {
+          "name": "input",
+          "ts_type": "LiveReportInput",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "ReportSummary",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "computeHealthScore",
+      "file": "src/lib/reports/reportEngine.ts",
+      "line": 582,
+      "params": [
+        {
+          "name": "power",
+          "ts_type": "PowerReportData",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "storage",
+          "ts_type": "StorageHealthReportData",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "security",
+          "ts_type": "SecurityReportData",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "network",
+          "ts_type": "NetworkReportData",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "diskWear",
+          "ts_type": "DiskWearReportData",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "vuln",
+          "ts_type": "VulnerabilityReportData",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "ExecutiveHealthScore",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "generateDailyRecords",
+      "file": "src/lib/reports/reportEngine.ts",
+      "line": 699,
+      "params": [
+        {
+          "name": "period",
+          "ts_type": "ReportPeriod",
+          "optional": true,
+          "rest": false
+        },
+        {
+          "name": "daysCount",
+          "ts_type": "number",
+          "optional": true,
+          "rest": false
+        },
+        {
+          "name": "now",
+          "ts_type": "unknown",
+          "optional": true,
+          "rest": false
+        }
+      ],
+      "returns": "DailyOperationalRecord[]",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "generateMockReport",
+      "file": "src/lib/reports/reportEngine.ts",
+      "line": 881,
+      "params": [
+        {
+          "name": "period",
+          "ts_type": "ReportPeriod",
+          "optional": true,
+          "rest": false
+        },
+        {
+          "name": "hostName",
+          "ts_type": "string",
+          "optional": true,
+          "rest": false
+        },
+        {
+          "name": "model",
+          "ts_type": "string",
+          "optional": true,
+          "rest": false
+        },
+        {
+          "name": "dsmVersion",
+          "ts_type": "string",
+          "optional": true,
+          "rest": false
+        }
+      ],
+      "returns": "ReportSummary",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "generateTelegramDigest",
+      "file": "src/lib/reports/reportEngine.ts",
+      "line": 1201,
+      "params": [
+        {
+          "name": "report",
+          "ts_type": "ReportSummary",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    }
+  ],
+  "classes": [],
+  "js_only": []
+}

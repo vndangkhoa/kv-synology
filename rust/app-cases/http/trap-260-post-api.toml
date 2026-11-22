@@ -1,0 +1,14 @@
+[request]
+method = "POST"
+path = "/api//resolve-link"
+body = '{"url":"https://www.fshare.vn/file/ABC123XYZ"}'
+
+[request.headers]
+content-type = "application/json"
+
+[response]
+status = 308
+
+[response.headers]
+location = "/api/resolve-link"
+refresh = "0;url=/api/resolve-link"

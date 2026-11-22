@@ -1,0 +1,14 @@
+[request]
+method = "POST"
+path = "/api/reports/summary"
+body = '{"period":"monthly","hostName":"Synology-Lab","model":"DS1821+"}'
+
+[request.headers]
+content-type = "application/json"
+
+[response]
+status = 200
+
+[response.headers]
+content-type = "application/json"
+vary = "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"

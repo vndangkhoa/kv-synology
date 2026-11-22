@@ -1,0 +1,18 @@
+{
+  "schema": "rust-anything/app-cases@1",
+  "name": "hostname=127.0.0",
+  "run": [
+    "env",
+    "HOSTNAME=127.0.0.1",
+    "node",
+    ".next/standalone/server.js"
+  ],
+  "normalize": [
+    "timestamps"
+  ],
+  "normalizers": {
+    "vi_time": "\\d{2}/\\d{2}/\\d{4} \\d{2}:\\d{2}"
+  },
+  "timeout_secs": 30,
+  "http": {}
+}

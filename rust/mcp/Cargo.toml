@@ -1,0 +1,37 @@
+[package]
+name = "kv-synology-mcp"
+version = "1.0.0"
+edition = "2024"
+rust-version = "1.97"
+publish = false
+description = "Pure-Rust MCP Server for Synology DSM (kv-synology)"
+
+[[bin]]
+name = "kv-synology-mcp"
+path = "src/main.rs"
+
+[lib]
+name = "kv_synology_mcp"
+path = "src/lib.rs"
+
+[dependencies]
+api-ssh-rs = { path = "../api-ssh-rs" }
+base64 = "0.22"
+chrono = "0.4"
+regex = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "multipart", "rustls-tls"] }
+rmcp = { version = "3.11", features = ["server", "macros", "schemars", "transport-io"] }
+schemars = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "io-std", "sync", "time"] }
+url = "2"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[lints.rust]
+unused_lifetimes = "warn"
+trivial_numeric_casts = "warn"
+
+[workspace]
