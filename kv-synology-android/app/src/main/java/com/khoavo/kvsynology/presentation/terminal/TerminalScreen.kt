@@ -1,16 +1,18 @@
 package com.khoavo.kvsynology.presentation.terminal
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,9 +25,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.khoavo.kvsynology.presentation.adaptive.LocalWindowState
+import com.khoavo.kvsynology.presentation.components.SynoAmbientBackground
+import com.khoavo.kvsynology.presentation.components.SynoScreenTopBar
+import com.khoavo.kvsynology.presentation.components.synoOutlinedTextFieldColors
 import com.khoavo.kvsynology.presentation.i18n.LocalAppStrings
-import com.khoavo.kvsynology.presentation.theme.SynologyEmerald
-import com.khoavo.kvsynology.presentation.theme.SynologyRose
+import com.khoavo.kvsynology.presentation.theme.*
 
 @Composable
 fun TerminalScreen(
@@ -33,48 +38,56 @@ fun TerminalScreen(
     onOpenDrawer: () -> Unit = {}
 ) {
     val strings = LocalAppStrings.current
+    val syno = SynoTheme.colors
+    val windowState = LocalWindowState.current
     val lines by viewModel.outputLines.collectAsState()
     val sshStatus by viewModel.sshStatus.collectAsState()
     var inputCmd by remember { mutableStateOf("") }
     var showSshDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(strings.dsmTerminal, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onOpenDrawer) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
-                    }
-                }
-            )
+    val listState = rememberLazyListState()
+    LaunchedEffect(lines.size) {
+        if (lines.isNotEmpty()) {
+            listState.animateScrollToItem(lines.size - 1)
         }
-    ) { padding ->
+    }
+
+    val quickCommands = remember {
+        listOf("ls", "ls -la", "pwd", "whoami", "id", "hostname", "uptime", "docker ps", "df -h", "free -m", "ps", "uname -a", "cat /etc/os-release", "clear")
+    }
+
+    SynoAmbientBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .background(Color(0xFF0D1117))
+                .imePadding()
         ) {
-            // SSH connection status bar (shows real host:port state)
+            SynoScreenTopBar(
+                title = strings.dsmTerminal,
+                onOpenDrawer = onOpenDrawer
+            )
+
             SshStatusBar(
                 status = sshStatus,
                 onConnectClick = { showSshDialog = true }
             )
 
-            val listState = androidx.compose.foundation.lazy.rememberLazyListState()
-            LaunchedEffect(lines.size) {
-                if (lines.isNotEmpty()) {
-                    listState.animateScrollToItem(lines.size - 1)
-                }
-            }
-
+            // Upper console pane (also respects Tabletop hinge height)
             LazyColumn(
                 state = listState,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(12.dp),
+                modifier = if (windowState.isTabletop && windowState.hingeTopDp > 0f) {
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .background(syno.terminalBg)
+                        .padding(14.dp)
+                } else {
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .background(syno.terminalBg)
+                        .padding(14.dp)
+                },
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 items(lines) { line ->
@@ -88,62 +101,78 @@ fun TerminalScreen(
                 }
             }
 
-            // Quick Command Chips
-            val quickCommands = listOf("ls", "ls -la", "pwd", "whoami", "id", "hostname", "uptime", "docker ps", "df -h", "free -m", "ps", "uname -a", "cat /etc/os-release", "clear")
-            androidx.compose.foundation.lazy.LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF161B22))
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                items(quickCommands) { cmd ->
-                    SuggestionChip(
-                        onClick = { viewModel.executeCommand(cmd) },
-                        label = { Text(cmd, fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = Color.White) },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = Color(0xFF21262D)
-                        ),
-                        border = SuggestionChipDefaults.suggestionChipBorder(
-                            borderColor = Color(0xFF30363D),
-                            enabled = true
-                        )
-                    )
-                }
+            if (windowState.isTabletop && windowState.hingeHeightDp > 0f) {
+                Spacer(modifier = Modifier.height(windowState.hingeHeightDp.dp))
             }
 
+            // Quick Command Chips + Input Bar
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color(0xFF161B22)
+                color = syno.terminalToolbarBg
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = inputCmd,
-                        onValueChange = { inputCmd = it },
-                        placeholder = { Text(strings.typeCommand, color = Color.Gray, fontSize = 13.sp) },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = SynologyEmerald,
-                            unfocusedBorderColor = Color.DarkGray
-                        ),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(onClick = {
-                        if (inputCmd.isNotBlank()) {
-                            viewModel.executeCommand(inputCmd)
-                            inputCmd = ""
+                Column {
+                    HorizontalDivider(color = syno.borderSubtle)
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(quickCommands) { cmd ->
+                            Surface(
+                                onClick = { viewModel.executeCommand(cmd) },
+                                shape = RoundedCornerShape(8.dp),
+                                color = syno.cardInner,
+                                border = BorderStroke(1.dp, syno.borderSubtle)
+                            ) {
+                                Text(
+                                    text = cmd,
+                                    fontSize = 11.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = syno.textPrimary,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
                         }
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = strings.sendCommand, tint = SynologyEmerald)
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 10.dp, end = 10.dp, bottom = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = inputCmd,
+                            onValueChange = { inputCmd = it },
+                            placeholder = { Text(strings.typeCommand, fontSize = 13.sp) },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = syno.textPrimary,
+                                unfocusedTextColor = syno.textPrimary,
+                                focusedContainerColor = syno.terminalBg,
+                                unfocusedContainerColor = syno.terminalBg,
+                                focusedBorderColor = SynologyEmerald,
+                                unfocusedBorderColor = syno.borderStrong
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = {
+                                if (inputCmd.isNotBlank()) {
+                                    viewModel.executeCommand(inputCmd)
+                                    inputCmd = ""
+                                }
+                            },
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(SynologyEmerald.copy(alpha = 0.16f))
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = strings.sendCommand, tint = SynologyEmerald)
+                        }
                     }
                 }
             }
@@ -173,6 +202,7 @@ private fun SshStatusBar(
     onConnectClick: () -> Unit
 ) {
     val strings = LocalAppStrings.current
+    val syno = SynoTheme.colors
     val (dotColor, text) = when (status) {
         SshStatus.Checking -> Color.Gray to strings.sshChecking
         SshStatus.Demo -> Color(0xFFBB86FC) to strings.sshDemo
@@ -182,34 +212,37 @@ private fun SshStatusBar(
     }
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = Color(0xFF161B22)
+        color = syno.terminalToolbarBg
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
+        Column {
+            Row(
                 modifier = Modifier
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(dotColor)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = text,
-                color = Color(0xFFC9D1D9),
-                fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace,
-                modifier = Modifier.weight(1f),
-                maxLines = 2
-            )
-            if (status !is SshStatus.Connected && status !is SshStatus.Demo) {
-                IconButton(onClick = onConnectClick, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Key, contentDescription = "SSH", tint = SynologyEmerald)
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(dotColor)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = text,
+                    color = syno.textPrimary,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2
+                )
+                if (status !is SshStatus.Connected && status !is SshStatus.Demo) {
+                    IconButton(onClick = onConnectClick, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Default.Key, contentDescription = "SSH", tint = SynologyEmerald)
+                    }
                 }
             }
+            HorizontalDivider(color = syno.borderSubtle)
         }
     }
 }
@@ -225,13 +258,16 @@ private fun SshConnectDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, Int) -> Unit
 ) {
+    val syno = SynoTheme.colors
+    val fieldColors = synoOutlinedTextFieldColors()
     var password by remember { mutableStateOf("") }
     var portText by remember { mutableStateOf(initialPort.toString()) }
     var error by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title, fontWeight = FontWeight.Bold) },
+        containerColor = syno.chromeSurface,
+        title = { Text(title, fontWeight = FontWeight.Bold, color = syno.textPrimary) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
@@ -239,6 +275,8 @@ private fun SshConnectDialog(
                     onValueChange = { password = it; error = null },
                     label = { Text(passwordLabel) },
                     singleLine = true,
+                    colors = fieldColors,
+                    shape = RoundedCornerShape(10.dp),
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth()
@@ -248,26 +286,32 @@ private fun SshConnectDialog(
                     onValueChange = { portText = it; error = null },
                     label = { Text(portLabel) },
                     singleLine = true,
+                    colors = fieldColors,
+                    shape = RoundedCornerShape(10.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
-                error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
+                error?.let { Text(it, color = SynologyRose, fontSize = 12.sp) }
             }
         },
         confirmButton = {
-            Button(onClick = {
-                val port = portText.toIntOrNull()
-                when {
-                    password.isBlank() -> error = passwordLabel
-                    port == null || port !in 1..65535 -> error = "$portLabel (1-65535)"
-                    else -> onConfirm(password, port)
-                }
-            }) {
+            Button(
+                onClick = {
+                    val port = portText.toIntOrNull()
+                    when {
+                        password.isBlank() -> error = passwordLabel
+                        port == null || port !in 1..65535 -> error = "$portLabel (1-65535)"
+                        else -> onConfirm(password, port)
+                    }
+                },
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = SynologyBlue, contentColor = Color.White)
+            ) {
                 Text(connectLabel)
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) { Text(cancelLabel) }
+            OutlinedButton(onClick = onDismiss, shape = RoundedCornerShape(24.dp)) { Text(cancelLabel) }
         }
     )
 }

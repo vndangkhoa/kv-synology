@@ -2,12 +2,10 @@ package com.khoavo.kvsynology.presentation.notifications
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ClearAll
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,11 +14,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.khoavo.kvsynology.domain.model.NotificationItem
+import com.khoavo.kvsynology.presentation.adaptive.LocalWindowState
 import com.khoavo.kvsynology.presentation.common.UiState
-import com.khoavo.kvsynology.presentation.theme.SynologyAmber
-import com.khoavo.kvsynology.presentation.theme.SynologyBlue
-import com.khoavo.kvsynology.presentation.theme.SynologyEmerald
-import com.khoavo.kvsynology.presentation.theme.SynologyRose
+import com.khoavo.kvsynology.presentation.components.*
+import com.khoavo.kvsynology.presentation.theme.*
 
 @Composable
 fun NotificationsScreen(
@@ -28,44 +25,53 @@ fun NotificationsScreen(
     onOpenDrawer: () -> Unit = {}
 ) {
     val notifState by viewModel.notificationsState.collectAsState()
+    val syno = SynoTheme.colors
+    val windowState = LocalWindowState.current
+    val hPad = windowState.contentHorizontalPaddingDp.dp
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Trung tâm thông báo", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onOpenDrawer) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
-                    }
-                },
+    SynoAmbientBackground {
+        Column(modifier = Modifier.fillMaxSize()) {
+            SynoScreenTopBar(
+                title = "Trung tâm thông báo",
+                subtitle = "Cảnh báo hệ thống, bảo mật & dịch vụ DSM",
+                onOpenDrawer = onOpenDrawer,
                 actions = {
                     IconButton(onClick = { viewModel.clearAll() }) {
-                        Icon(Icons.Default.ClearAll, contentDescription = "Xóa tất cả")
+                        Icon(Icons.Default.ClearAll, contentDescription = "Xóa tất cả", tint = syno.textPrimary)
                     }
                 }
             )
-        }
-    ) { padding ->
-        when (val state = notifState) {
-            is UiState.Loading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-            is UiState.Empty -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Không có thông báo mới", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            is UiState.Error -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(state.message, color = MaterialTheme.colorScheme.error)
-            }
-            is UiState.Success -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(state.data) { item ->
-                        NotificationCard(item = item)
+
+            Box(modifier = Modifier.weight(1f)) {
+                when (val state = notifState) {
+                    is UiState.Loading -> SynoStateLoading()
+                    is UiState.Empty -> SynoStateEmpty(
+                        message = "Không có thông báo mới",
+                        icon = Icons.Default.NotificationsNone
+                    )
+                    is UiState.Error -> SynoStateError(message = state.message)
+                    is UiState.Success -> {
+                        if (state.data.isEmpty()) {
+                            SynoStateEmpty(
+                                message = "Không có thông báo mới",
+                                icon = Icons.Default.NotificationsNone
+                            )
+                        } else {
+                            SynoResponsiveContentContainer {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(start = hPad, end = hPad, top = 8.dp, bottom = 96.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    adaptiveGridItems(
+                                        items = state.data,
+                                        columns = windowState.cardGridColumns
+                                    ) { item ->
+                                        NotificationCard(item = item)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -75,22 +81,17 @@ fun NotificationsScreen(
 
 @Composable
 fun NotificationCard(item: NotificationItem) {
+    val syno = SynoTheme.colors
     val levelColor = when (item.level) {
         "success" -> SynologyEmerald
         "warning" -> SynologyAmber
         "error" -> SynologyRose
-        else -> SynologyBlue
+        else -> SynoBlueBright
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
+    SynoCard {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top
         ) {
             Icon(
@@ -98,27 +99,28 @@ fun NotificationCard(item: NotificationItem) {
                 contentDescription = null,
                 tint = levelColor,
                 modifier = Modifier
-                    .size(24.dp)
+                    .size(22.dp)
                     .padding(top = 2.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(item.displayTitle, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text(
+                    item.displayTitle,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = syno.textPrimary
+                )
                 Spacer(modifier = Modifier.height(4.dp))
                 if (item.messages.isNotEmpty()) {
                     Text(
                         item.messages.joinToString("\n"),
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = syno.textSecondary,
+                        lineHeight = 17.sp
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "Danh mục: ${item.category.uppercase()}",
-                    fontSize = 10.sp,
-                    color = levelColor,
-                    fontWeight = FontWeight.SemiBold
-                )
+                SynoStatusBadge(text = item.category.uppercase(), color = levelColor)
             }
         }
     }

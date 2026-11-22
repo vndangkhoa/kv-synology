@@ -1,6 +1,7 @@
 package com.khoavo.kvsynology.presentation.docker
 
-import androidx.compose.foundation.clickable
+import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -15,8 +16,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.khoavo.kvsynology.domain.model.DockerContainerDetails
@@ -24,10 +29,10 @@ import com.khoavo.kvsynology.domain.model.DockerImage
 import com.khoavo.kvsynology.domain.model.DockerProject
 import com.khoavo.kvsynology.domain.model.DockerProjectService
 import com.khoavo.kvsynology.domain.model.PackageItem
+import com.khoavo.kvsynology.presentation.adaptive.LocalWindowState
 import com.khoavo.kvsynology.presentation.common.UiState
-import com.khoavo.kvsynology.presentation.theme.SynologyBlue
-import com.khoavo.kvsynology.presentation.theme.SynologyEmerald
-import com.khoavo.kvsynology.presentation.theme.SynologyRose
+import com.khoavo.kvsynology.presentation.components.*
+import com.khoavo.kvsynology.presentation.theme.*
 
 @Composable
 fun DockerScreen(
@@ -43,6 +48,15 @@ fun DockerScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
 
+    val syno = SynoTheme.colors
+    val windowState = LocalWindowState.current
+    val hPad = windowState.contentHorizontalPaddingDp.dp
+
+    var inspectedContainer by remember { mutableStateOf<DockerContainerDetails?>(null) }
+    var inspectedProject by remember { mutableStateOf<DockerProject?>(null) }
+    var containerToDelete by remember { mutableStateOf<DockerContainerDetails?>(null) }
+    var imageToDelete by remember { mutableStateOf<DockerImage?>(null) }
+
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             snackbarHostState.showSnackbar(it)
@@ -50,223 +64,242 @@ fun DockerScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Container Manager", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onOpenDrawer) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+    val containerCount = (containersState as? UiState.Success)?.data?.size
+    val projectCount = (projectsState as? UiState.Success)?.data?.size
+    val imageCount = (imagesState as? UiState.Success)?.data?.size
+
+    val tabItems = listOf(
+        Triple(0, if (containerCount != null) "Container ($containerCount)" else "Container", Icons.Default.Layers),
+        Triple(1, if (projectCount != null) "Dự án Compose ($projectCount)" else "Dự án Compose", Icons.Default.AccountTree),
+        Triple(2, if (imageCount != null) "Images ($imageCount)" else "Images", Icons.Default.SdStorage)
+    )
+
+    SynoAmbientBackground {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                SynoScreenTopBar(
+                    title = "Container Manager",
+                    subtitle = "Docker Containers, Compose & Images",
+                    onOpenDrawer = onOpenDrawer,
+                    actions = {
+                        IconButton(onClick = { viewModel.loadData() }) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Làm mới", tint = syno.textPrimary)
+                        }
                     }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.loadData() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Làm mới")
+                )
+
+                SynoResponsiveContentContainer(modifier = Modifier.weight(1f)) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        containerPkg?.let { pkg ->
+                            Box(modifier = Modifier.padding(horizontal = hPad, vertical = 4.dp)) {
+                                ContainerPackageHeader(pkg = pkg, onOpenPackages = onOpenPackages)
+                            }
+                        }
+
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = hPad, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(tabItems) { (idx, label, icon) ->
+                                SynoFilterChip(
+                                    label = label,
+                                    selected = selectedTab == idx,
+                                    leadingIcon = icon,
+                                    onClick = { selectedTab = idx }
+                                )
+                            }
+                        }
+
+                        Box(modifier = Modifier.weight(1f)) {
+                            when (selectedTab) {
+                                0 -> {
+                                    when (val state = containersState) {
+                                        is UiState.Loading -> SynoStateLoading()
+                                        is UiState.Empty -> SynoStateEmpty(
+                                            message = "Không có container nào đang chạy",
+                                            icon = Icons.Default.Layers
+                                        )
+                                        is UiState.Error -> SynoStateError(
+                                            message = state.message,
+                                            onRetry = { viewModel.loadData() }
+                                        )
+                                        is UiState.Success -> {
+                                            LazyColumn(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentPadding = PaddingValues(start = hPad, end = hPad, top = 6.dp, bottom = 96.dp),
+                                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                adaptiveGridItems(
+                                                    items = state.data,
+                                                    columns = windowState.cardGridColumns
+                                                ) { container ->
+                                                    ContainerCard(
+                                                        container = container,
+                                                        onInspect = { inspectedContainer = container },
+                                                        onToggle = { action -> viewModel.toggleContainer(container.name, action) },
+                                                        onDelete = { containerToDelete = container }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                1 -> {
+                                    when (val state = projectsState) {
+                                        is UiState.Loading -> SynoStateLoading()
+                                        is UiState.Error -> SynoStateError(
+                                            message = state.message,
+                                            onRetry = { viewModel.loadData() }
+                                        )
+                                        is UiState.Empty -> SynoStateEmpty(
+                                            message = "Chưa có dự án Compose nào.",
+                                            icon = Icons.Default.AccountTree
+                                        )
+                                        is UiState.Success -> {
+                                            if (state.data.isEmpty()) {
+                                                SynoStateEmpty(
+                                                    message = "Chưa có dự án Compose nào. Tạo docker-compose.yml trong /docker để bắt đầu.",
+                                                    icon = Icons.Default.AccountTree
+                                                )
+                                            } else {
+                                                LazyColumn(
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentPadding = PaddingValues(start = hPad, end = hPad, top = 6.dp, bottom = 96.dp),
+                                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                                ) {
+                                                    adaptiveGridItems(
+                                                        items = state.data,
+                                                        columns = windowState.cardGridColumns
+                                                    ) { proj ->
+                                                        ProjectCard(
+                                                            project = proj,
+                                                            onInspect = { inspectedProject = proj },
+                                                            onToggle = { action -> viewModel.toggleProject(proj.id, action) }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                2 -> {
+                                    when (val state = imagesState) {
+                                        is UiState.Loading -> SynoStateLoading()
+                                        is UiState.Error -> SynoStateError(
+                                            message = state.message,
+                                            onRetry = { viewModel.loadData() }
+                                        )
+                                        is UiState.Empty -> SynoStateEmpty(
+                                            message = "Chưa có image nào được tải về",
+                                            icon = Icons.Default.SdStorage
+                                        )
+                                        is UiState.Success -> {
+                                            if (state.data.isEmpty()) {
+                                                SynoStateEmpty(
+                                                    message = "Chưa có image nào được tải về",
+                                                    icon = Icons.Default.SdStorage
+                                                )
+                                            } else {
+                                                LazyColumn(
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentPadding = PaddingValues(start = hPad, end = hPad, top = 6.dp, bottom = 96.dp),
+                                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                                ) {
+                                                    adaptiveGridItems(
+                                                        items = state.data,
+                                                        columns = windowState.cardGridColumns
+                                                    ) { img ->
+                                                        ImageCard(
+                                                            image = img,
+                                                            onDelete = { imageToDelete = img }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
+            }
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp)
             )
         }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            // Linked Container Manager package (Package Center ↔ Docker).
-            containerPkg?.let { pkg ->
-                ContainerPackageHeader(pkg = pkg, onOpenPackages = onOpenPackages)
+    }
+
+    inspectedContainer?.let { container ->
+        ContainerDetailDialog(
+            container = container,
+            onDismiss = { inspectedContainer = null },
+            onToggle = { action ->
+                viewModel.toggleContainer(container.name, action)
+                inspectedContainer = null
+            },
+            onFetchLogs = { viewModel.getContainerLogs(container.name) }
+        )
+    }
+
+    inspectedProject?.let { proj ->
+        ProjectDetailDialog(
+            project = proj,
+            onDismiss = { inspectedProject = null },
+            onToggle = { action ->
+                viewModel.toggleProject(proj.id, action)
+                inspectedProject = null
             }
+        )
+    }
 
-            TabRow(selectedTabIndex = selectedTab) {
-                Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    text = { Text("Container") }
-                )
-                Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    text = { Text("Dự án (Compose)") }
-                )
-                Tab(
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
-                    text = { Text("Images") }
-                )
-            }
-
-            var inspectedContainer by remember { mutableStateOf<DockerContainerDetails?>(null) }
-            var inspectedProject by remember { mutableStateOf<DockerProject?>(null) }
-            var containerToDelete by remember { mutableStateOf<DockerContainerDetails?>(null) }
-            var imageToDelete by remember { mutableStateOf<DockerImage?>(null) }
-
-            when (selectedTab) {
-                0 -> {
-                    when (val state = containersState) {
-                        is UiState.Loading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                        is UiState.Empty -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("Không có container nào đang chạy")
-                        }
-                        is UiState.Error -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(state.message, color = MaterialTheme.colorScheme.error)
-                        }
-                        is UiState.Success -> {
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                items(state.data) { container ->
-                                    ContainerCard(
-                                        container = container,
-                                        onInspect = { inspectedContainer = container },
-                                        onToggle = { action -> viewModel.toggleContainer(container.name, action) },
-                                        onDelete = { containerToDelete = container }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                1 -> {
-                    when (val state = projectsState) {
-                        is UiState.Loading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                        is UiState.Error -> Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-                            Text(state.message, color = MaterialTheme.colorScheme.error)
-                        }
-                        is UiState.Empty -> Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                            Text("Chưa có dự án Compose nào.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        is UiState.Success -> {
-                            if (state.data.isEmpty()) {
-                                Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                                    Text(
-                                        "Chưa có dự án Compose nào.\nTạo file docker-compose.yml trong /docker trên NAS để bắt đầu.",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 13.sp
-                                    )
-                                }
-                            } else {
-                                LazyColumn(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentPadding = PaddingValues(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    items(state.data) { proj ->
-                                        ProjectCard(
-                                            project = proj,
-                                            onInspect = { inspectedProject = proj },
-                                            onToggle = { action -> viewModel.toggleProject(proj.id, action) }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                2 -> {
-                    when (val state = imagesState) {
-                        is UiState.Loading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                        is UiState.Error -> Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-                            Text(state.message, color = MaterialTheme.colorScheme.error)
-                        }
-                        is UiState.Empty -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("Chưa có image nào được tải về")
-                        }
-                        is UiState.Success -> {
-                            if (state.data.isEmpty()) {
-                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Text("Chưa có image nào được tải về")
-                                }
-                            } else {
-                                LazyColumn(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentPadding = PaddingValues(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    items(state.data) { img ->
-                                        ImageCard(
-                                            image = img,
-                                            onDelete = { imageToDelete = img }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            inspectedContainer?.let { container ->
-                ContainerDetailDialog(
-                    container = container,
-                    onDismiss = { inspectedContainer = null },
-                    onToggle = { action ->
-                        viewModel.toggleContainer(container.name, action)
-                        inspectedContainer = null
+    containerToDelete?.let { container ->
+        AlertDialog(
+            onDismissRequest = { containerToDelete = null },
+            containerColor = syno.chromeSurface,
+            title = { Text("Xóa container?", fontWeight = FontWeight.Bold, color = syno.textPrimary) },
+            text = { Text("Container '${container.name}' sẽ bị xóa khỏi NAS. Hành động này không thể hoàn tác.", color = syno.textSecondary) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteContainer(container.name)
+                        containerToDelete = null
                     },
-                    onFetchLogs = { viewModel.getContainerLogs(container.name) }
-                )
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SynologyRose, contentColor = Color.White)
+                ) { Text("Xóa") }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { containerToDelete = null }, shape = RoundedCornerShape(24.dp)) { Text("Hủy") }
             }
+        )
+    }
 
-            inspectedProject?.let { proj ->
-                ProjectDetailDialog(
-                    project = proj,
-                    onDismiss = { inspectedProject = null },
-                    onToggle = { action ->
-                        viewModel.toggleProject(proj.id, action)
-                        inspectedProject = null
-                    }
-                )
-            }
-
-            containerToDelete?.let { container ->
-                AlertDialog(
-                    onDismissRequest = { containerToDelete = null },
-                    title = { Text("Xóa container?", fontWeight = FontWeight.Bold) },
-                    text = { Text("Container '${container.name}' sẽ bị xóa khỏi NAS. Hành động này không thể hoàn tác.") },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                viewModel.deleteContainer(container.name)
-                                containerToDelete = null
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = SynologyRose)
-                        ) { Text("Xóa") }
+    imageToDelete?.let { img ->
+        AlertDialog(
+            onDismissRequest = { imageToDelete = null },
+            containerColor = syno.chromeSurface,
+            title = { Text("Xóa image?", fontWeight = FontWeight.Bold, color = syno.textPrimary) },
+            text = { Text("Image '${img.repository}:${img.tag}' (${img.sizeFormatted}) sẽ bị xóa khỏi NAS.", color = syno.textSecondary) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteImage(img.repository, img.tag)
+                        imageToDelete = null
                     },
-                    dismissButton = {
-                        OutlinedButton(onClick = { containerToDelete = null }) { Text("Hủy") }
-                    }
-                )
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SynologyRose, contentColor = Color.White)
+                ) { Text("Xóa") }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { imageToDelete = null }, shape = RoundedCornerShape(24.dp)) { Text("Hủy") }
             }
-
-            imageToDelete?.let { img ->
-                AlertDialog(
-                    onDismissRequest = { imageToDelete = null },
-                    title = { Text("Xóa image?", fontWeight = FontWeight.Bold) },
-                    text = { Text("Image '${img.repository}:${img.tag}' (${img.sizeFormatted}) sẽ bị xóa khỏi NAS.") },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                viewModel.deleteImage(img.repository, img.tag)
-                                imageToDelete = null
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = SynologyRose)
-                        ) { Text("Xóa") }
-                    },
-                    dismissButton = {
-                        OutlinedButton(onClick = { imageToDelete = null }) { Text("Hủy") }
-                    }
-                )
-            }
-        }
+        )
     }
 }
 
@@ -275,36 +308,33 @@ private fun ContainerPackageHeader(
     pkg: PackageItem,
     onOpenPackages: () -> Unit
 ) {
+    val syno = SynoTheme.colors
     val running = pkg.status == "running"
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 12.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = SynologyBlue.copy(alpha = 0.08f))
+    SynoCard(
+        containerColor = syno.accentDim,
+        borderColor = syno.accentBright.copy(alpha = 0.28f),
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                Icon(Icons.Default.Apps, contentDescription = null, tint = SynologyBlue, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Apps, contentDescription = null, tint = syno.accentBright, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
-                    Text(pkg.name, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, maxLines = 1)
+                    Text(pkg.name, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = syno.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
                         "${pkg.version} • ${if (running) "Đang chạy" else "Đã dừng"}",
                         fontSize = 11.sp,
-                        color = if (running) SynologyEmerald else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (running) SynologyEmerald else syno.textSecondary
                     )
                 }
             }
             TextButton(onClick = onOpenPackages) {
-                Text("Gói ứng dụng", fontSize = 12.sp)
-                Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(16.dp))
+                Text("Gói ứng dụng", fontSize = 12.sp, color = syno.accentBright)
+                Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(16.dp), tint = syno.accentBright)
             }
         }
     }
@@ -317,115 +347,117 @@ fun ContainerCard(
     onToggle: (String) -> Unit,
     onDelete: () -> Unit = {}
 ) {
+    val syno = SynoTheme.colors
     val isRunning = container.status == "running"
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onInspect),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(container.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
-                    Text(container.image, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                }
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (isRunning) SynologyEmerald.copy(alpha = 0.15f) else MaterialTheme.colorScheme.outlineVariant
-                ) {
-                    Text(
-                        text = if (isRunning) "● Đang chạy" else "■ Đã dừng",
-                        color = if (isRunning) SynologyEmerald else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            if (container.ports.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
+    SynoCard(onClick = onInspect) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                 Text(
-                    text = "Cổng: ${container.ports.joinToString(", ")}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2
+                    container.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = syno.textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    container.image,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = syno.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
+            SynoStatusBadge(
+                text = if (isRunning) "● Đang chạy" else "■ Đã dừng",
+                color = if (isRunning) SynologyEmerald else syno.textSecondary
+            )
+        }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        if (container.ports.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Cổng: ${container.ports.joinToString(", ")}",
+                style = MaterialTheme.typography.bodySmall,
+                color = syno.textSecondary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Spacer(modifier = Modifier.height(10.dp))
+        HorizontalDivider(color = syno.borderSubtle)
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(
+                onClick = onInspect,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
             ) {
-                TextButton(
-                    onClick = onInspect,
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Nhật ký & Chi tiết", fontSize = 12.sp)
-                }
-
-                if (!isRunning) {
-                    IconButton(
-                        onClick = onDelete,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(Icons.Default.Delete, contentDescription = "Xóa container", tint = SynologyRose, modifier = Modifier.size(20.dp))
-                    }
-                }
+                Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp), tint = syno.accentBright)
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Nhật ký & Chi tiết", fontSize = 12.sp, color = syno.accentBright)
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            if (!isRunning) {
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = "Xóa container", tint = SynologyRose, modifier = Modifier.size(20.dp))
+                }
+            }
+        }
 
-            // Action buttons row: responsive layout that fits all mobile widths without overflow
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (isRunning) {
-                    OutlinedButton(
-                        onClick = { onToggle("restart") },
-                        modifier = Modifier.weight(1.1f),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Khởi động lại", fontSize = 12.sp, maxLines = 1)
-                    }
-                    Button(
-                        onClick = { onToggle("stop") },
-                        modifier = Modifier.weight(0.9f),
-                        colors = ButtonDefaults.buttonColors(containerColor = SynologyRose),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
-                    ) {
-                        Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Dừng", fontSize = 12.sp, maxLines = 1)
-                    }
-                } else {
-                    Button(
-                        onClick = { onToggle("start") },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = SynologyEmerald),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Khởi chạy container", fontSize = 12.sp, maxLines = 1)
-                    }
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (isRunning) {
+                OutlinedButton(
+                    onClick = { onToggle("restart") },
+                    modifier = Modifier.weight(1.1f),
+                    shape = RoundedCornerShape(24.dp),
+                    border = BorderStroke(1.dp, syno.borderStrong),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp), tint = syno.textPrimary)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Khởi động lại", fontSize = 12.sp, maxLines = 1, color = syno.textPrimary)
+                }
+                Button(
+                    onClick = { onToggle("stop") },
+                    modifier = Modifier.weight(0.9f),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SynologyRose, contentColor = Color.White),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                ) {
+                    Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Dừng", fontSize = 12.sp, maxLines = 1)
+                }
+            } else {
+                Button(
+                    onClick = { onToggle("start") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SynologyEmerald, contentColor = Color.White),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Khởi chạy container", fontSize = 12.sp, maxLines = 1)
                 }
             }
         }
@@ -438,116 +470,114 @@ fun ProjectCard(
     onInspect: () -> Unit,
     onToggle: (String) -> Unit
 ) {
+    val syno = SynoTheme.colors
     val isRunning = project.status == "running"
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onInspect),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(project.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
-                        if (project.isPackage) {
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Surface(shape = RoundedCornerShape(4.dp), color = SynologyBlue.copy(alpha = 0.12f)) {
-                                Text("Gói", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = SynologyBlue, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                            }
-                        }
-                    }
-                    Text(project.path, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                }
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (isRunning) SynologyEmerald.copy(alpha = 0.15f) else MaterialTheme.colorScheme.outlineVariant
-                ) {
+    SynoCard(onClick = onInspect) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = if (isRunning) "● Đang chạy" else "■ Đã dừng",
-                        color = if (isRunning) SynologyEmerald else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp,
+                        project.name,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        color = syno.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
+                    if (project.isPackage) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        SynoStatusBadge(text = "Gói", color = SynoBlueBright)
+                    }
                 }
+                Text(
+                    project.path,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = syno.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
+            SynoStatusBadge(
+                text = if (isRunning) "● Đang chạy" else "■ Đã dừng",
+                color = if (isRunning) SynologyEmerald else syno.textSecondary
+            )
+        }
 
-            Spacer(modifier = Modifier.height(8.dp))
-            if (project.services.isEmpty()) {
-                Text(
-                    "Chưa thấy container nào thuộc dự án (compose down hoặc chưa deploy).",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                Text(
-                    "Dịch vụ (${project.services.size}): ${project.services.joinToString { it.name }}",
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 2
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(project.services) { svc ->
-                        val svcRunning = svc.status == "running"
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = if (svcRunning) SynologyEmerald.copy(alpha = 0.12f)
-                            else MaterialTheme.colorScheme.surfaceVariant
-                        ) {
-                            Text(
-                                text = "${if (svcRunning) "●" else "■"} ${svc.name}",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (svcRunning) SynologyEmerald else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                maxLines = 1
-                            )
-                        }
+        Spacer(modifier = Modifier.height(8.dp))
+        if (project.services.isEmpty()) {
+            Text(
+                "Chưa thấy container nào thuộc dự án (compose down hoặc chưa deploy).",
+                style = MaterialTheme.typography.bodySmall,
+                color = syno.textSecondary
+            )
+        } else {
+            Text(
+                "Dịch vụ (${project.services.size}): ${project.services.joinToString { it.name }}",
+                style = MaterialTheme.typography.bodySmall,
+                color = syno.textSecondary,
+                maxLines = 2
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(project.services) { svc ->
+                    val svcRunning = svc.status == "running"
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (svcRunning) SynologyEmerald.copy(alpha = 0.14f) else syno.cardInner
+                    ) {
+                        Text(
+                            text = "${if (svcRunning) "●" else "■"} ${svc.name}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (svcRunning) SynologyEmerald else syno.textSecondary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            maxLines = 1
+                        )
                     }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(
+                onClick = onInspect,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
             ) {
-                TextButton(
-                    onClick = onInspect,
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Chi tiết", fontSize = 12.sp)
-                }
+                Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp), tint = syno.accentBright)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Chi tiết", fontSize = 12.sp, color = syno.accentBright)
+            }
 
-                if (isRunning) {
-                    Button(
-                        onClick = { onToggle("stop") },
-                        colors = ButtonDefaults.buttonColors(containerColor = SynologyRose),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Dừng dự án", fontSize = 12.sp)
-                    }
-                } else {
-                    Button(
-                        onClick = { onToggle("start") },
-                        colors = ButtonDefaults.buttonColors(containerColor = SynologyEmerald),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Chạy dự án", fontSize = 12.sp)
-                    }
+            if (isRunning) {
+                Button(
+                    onClick = { onToggle("stop") },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SynologyRose, contentColor = Color.White),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Dừng dự án", fontSize = 12.sp)
+                }
+            } else {
+                Button(
+                    onClick = { onToggle("start") },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SynologyEmerald, contentColor = Color.White),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Chạy dự án", fontSize = 12.sp)
                 }
             }
         }
@@ -559,31 +589,31 @@ fun ImageCard(
     image: DockerImage,
     onDelete: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
+    val syno = SynoTheme.colors
+    SynoCard(contentPadding = PaddingValues(14.dp)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("${image.repository}:${image.tag}", fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
+            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                Text(
+                    "${image.repository}:${image.tag}",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = syno.textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     "${image.sizeFormatted}${if (image.created.isNotBlank()) " • ${image.created}" else ""}",
                     fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = syno.textSecondary
                 )
                 if (image.isUsed) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Surface(shape = RoundedCornerShape(4.dp), color = SynologyBlue.copy(alpha = 0.12f)) {
-                        Text("Đang dùng", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = SynologyBlue, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    SynoStatusBadge(text = "Đang dùng", color = SynoBlueBright)
                 }
             }
             if (!image.isUsed) {
@@ -601,10 +631,12 @@ fun ProjectDetailDialog(
     onDismiss: () -> Unit,
     onToggle: (String) -> Unit
 ) {
+    val syno = SynoTheme.colors
     val isRunning = project.status == "running"
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(project.name, fontWeight = FontWeight.Bold) },
+        containerColor = syno.chromeSurface,
+        title = { Text(project.name, fontWeight = FontWeight.Bold, color = syno.textPrimary) },
         text = {
             Column(
                 modifier = Modifier
@@ -612,29 +644,31 @@ fun ProjectDetailDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("Đường dẫn: ${project.path}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Đường dẫn: ${project.path}", style = MaterialTheme.typography.bodySmall, color = syno.textSecondary)
                 if (project.created.isNotBlank()) {
-                    Text("Ngày tạo: ${project.created}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Ngày tạo: ${project.created}", style = MaterialTheme.typography.bodySmall, color = syno.textSecondary)
                 }
-                Text("Container trong dự án (${project.services.size}):", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                Text("Container trong dự án (${project.services.size}):", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = syno.textPrimary)
                 if (project.services.isEmpty()) {
-                    Text("Không có container nào đang thuộc dự án.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Không có container nào đang thuộc dự án.", fontSize = 12.sp, color = syno.textSecondary)
                 } else {
                     project.services.forEach { svc ->
                         ServiceStatusRow(service = svc)
                     }
                 }
                 if (project.yamlContent.isNotBlank()) {
-                    Text("docker-compose.yml:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                    Text("docker-compose.yml:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = syno.textPrimary)
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        color = syno.cardInner,
+                        border = BorderStroke(1.dp, syno.borderSubtle),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
                             text = project.yamlContent,
                             fontFamily = FontFamily.Monospace,
                             fontSize = 11.sp,
+                            color = syno.textPrimary,
                             modifier = Modifier.padding(10.dp)
                         )
                     }
@@ -649,6 +683,7 @@ fun ProjectDetailDialog(
             ) {
                 OutlinedButton(
                     onClick = onDismiss,
+                    shape = RoundedCornerShape(24.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text("Đóng", fontSize = 12.sp)
@@ -657,7 +692,8 @@ fun ProjectDetailDialog(
                 if (isRunning) {
                     Button(
                         onClick = { onToggle("stop") },
-                        colors = ButtonDefaults.buttonColors(containerColor = SynologyRose),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SynologyRose, contentColor = Color.White),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(14.dp))
@@ -667,7 +703,8 @@ fun ProjectDetailDialog(
                 } else {
                     Button(
                         onClick = { onToggle("start") },
-                        colors = ButtonDefaults.buttonColors(containerColor = SynologyEmerald),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SynologyEmerald, contentColor = Color.White),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp))
@@ -683,10 +720,12 @@ fun ProjectDetailDialog(
 
 @Composable
 private fun ServiceStatusRow(service: DockerProjectService) {
+    val syno = SynoTheme.colors
     val running = service.status == "running"
     Surface(
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        color = syno.cardInner,
+        border = BorderStroke(1.dp, syno.borderSubtle)
     ) {
         Row(
             modifier = Modifier
@@ -696,15 +735,15 @@ private fun ServiceStatusRow(service: DockerProjectService) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(service.name, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, maxLines = 1)
-                Text(service.image, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                Text(service.name, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = syno.textPrimary, maxLines = 1)
+                Text(service.image, fontSize = 11.sp, color = syno.textSecondary, maxLines = 1)
                 if (service.ports.isNotEmpty()) {
-                    Text(service.ports.joinToString(", "), fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = SynologyBlue, maxLines = 1)
+                    Text(service.ports.joinToString(", "), fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = syno.accentBright, maxLines = 1)
                 }
             }
             Text(
                 text = if (running) "●" else "■",
-                color = if (running) SynologyEmerald else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (running) SynologyEmerald else syno.textSecondary,
                 fontSize = 16.sp
             )
         }
@@ -718,8 +757,9 @@ fun ContainerDetailDialog(
     onToggle: (String) -> Unit,
     onFetchLogs: suspend () -> List<String> = { emptyList() }
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+    val syno = SynoTheme.colors
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
     val isRunning = container.status == "running"
 
     var logs by remember {
@@ -748,25 +788,26 @@ fun ContainerDetailDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = syno.chromeSurface,
         title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(container.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (isRunning) SynologyEmerald.copy(alpha = 0.15f) else MaterialTheme.colorScheme.outlineVariant
-                ) {
-                    Text(
-                        text = if (isRunning) "Đang chạy" else "Đã dừng",
-                        color = if (isRunning) SynologyEmerald else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
+                Text(
+                    container.name,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = syno.textPrimary,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                SynoStatusBadge(
+                    text = if (isRunning) "Đang chạy" else "Đã dừng",
+                    color = if (isRunning) SynologyEmerald else syno.textSecondary
+                )
             }
         },
         text = {
@@ -776,100 +817,86 @@ fun ContainerDetailDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Container ID
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
+                SynoCard(containerColor = syno.cardInner, contentPadding = PaddingValues(10.dp)) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Container ID", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(container.id, style = MaterialTheme.typography.bodySmall, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                            Text("Container ID", style = MaterialTheme.typography.labelSmall, color = syno.textSecondary)
+                            Text(container.id, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace, color = syno.textPrimary)
                         }
                         IconButton(onClick = {
-                            clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(container.id))
-                            android.widget.Toast.makeText(context, "Đã sao chép ID container", android.widget.Toast.LENGTH_SHORT).show()
+                            clipboardManager.setText(AnnotatedString(container.id))
+                            Toast.makeText(context, "Đã sao chép ID container", Toast.LENGTH_SHORT).show()
                         }) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "Sao chép ID", modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.ContentCopy, contentDescription = "Sao chép ID", modifier = Modifier.size(18.dp), tint = syno.textSecondary)
                         }
                     }
                 }
 
-                // Image
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
+                SynoCard(containerColor = syno.cardInner, contentPadding = PaddingValues(10.dp)) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Image (Hình ảnh)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(container.image, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                            Text("Image (Hình ảnh)", style = MaterialTheme.typography.labelSmall, color = syno.textSecondary)
+                            Text(container.image, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = syno.textPrimary)
                         }
                         IconButton(onClick = {
-                            clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(container.image))
-                            android.widget.Toast.makeText(context, "Đã sao chép tên Image", android.widget.Toast.LENGTH_SHORT).show()
+                            clipboardManager.setText(AnnotatedString(container.image))
+                            Toast.makeText(context, "Đã sao chép tên Image", Toast.LENGTH_SHORT).show()
                         }) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "Sao chép Image", modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.ContentCopy, contentDescription = "Sao chép Image", modifier = Modifier.size(18.dp), tint = syno.textSecondary)
                         }
                     }
                 }
 
-                // Ports & Created
                 if (container.ports.isNotEmpty()) {
-                    Text("Ánh xạ cổng: ${container.ports.joinToString(", ")}", style = MaterialTheme.typography.bodySmall)
+                    Text("Ánh xạ cổng: ${container.ports.joinToString(", ")}", style = MaterialTheme.typography.bodySmall, color = syno.textPrimary)
                 }
                 if (container.created.isNotBlank()) {
-                    Text("Ngày tạo: ${container.created}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Ngày tạo: ${container.created}", style = MaterialTheme.typography.bodySmall, color = syno.textSecondary)
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Logs Header + Copy Logs button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Nhật ký gần đây (Logs):", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                    Text("Nhật ký gần đây (Logs):", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall, color = syno.textPrimary)
                     TextButton(onClick = {
                         val fullLogs = logs.joinToString("\n")
-                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(fullLogs))
-                        android.widget.Toast.makeText(context, "Đã sao chép toàn bộ nhật ký", android.widget.Toast.LENGTH_SHORT).show()
+                        clipboardManager.setText(AnnotatedString(fullLogs))
+                        Toast.makeText(context, "Đã sao chép toàn bộ nhật ký", Toast.LENGTH_SHORT).show()
                     }) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = syno.accentBright)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Sao chép", fontSize = 12.sp)
+                        Text("Sao chép", fontSize = 12.sp, color = syno.accentBright)
                     }
                 }
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = syno.terminalBg,
+                    border = BorderStroke(1.dp, syno.borderSubtle),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(160.dp)
                 ) {
                     Column(
                         modifier = Modifier
-                            .padding(8.dp)
+                            .padding(10.dp)
                             .verticalScroll(rememberScrollState())
                     ) {
                         Text(
                             text = logs.joinToString("\n"),
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                            fontSize = 11.sp
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp,
+                            color = Color(0xFFC9D1D9)
                         )
                     }
                 }
@@ -883,6 +910,7 @@ fun ContainerDetailDialog(
             ) {
                 OutlinedButton(
                     onClick = onDismiss,
+                    shape = RoundedCornerShape(24.dp),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Text("Đóng", fontSize = 12.sp)
@@ -891,6 +919,7 @@ fun ContainerDetailDialog(
                     Spacer(modifier = Modifier.width(6.dp))
                     OutlinedButton(
                         onClick = { onToggle("restart") },
+                        shape = RoundedCornerShape(24.dp),
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
@@ -900,7 +929,8 @@ fun ContainerDetailDialog(
                     Spacer(modifier = Modifier.width(6.dp))
                     Button(
                         onClick = { onToggle("stop") },
-                        colors = ButtonDefaults.buttonColors(containerColor = SynologyRose),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SynologyRose, contentColor = Color.White),
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(14.dp))
@@ -911,7 +941,8 @@ fun ContainerDetailDialog(
                     Spacer(modifier = Modifier.width(6.dp))
                     Button(
                         onClick = { onToggle("start") },
-                        colors = ButtonDefaults.buttonColors(containerColor = SynologyEmerald),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SynologyEmerald, contentColor = Color.White),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp))

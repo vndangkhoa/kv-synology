@@ -6,6 +6,14 @@ Tất cả thay đổi của dự án độc lập **kv-synology** (tách từ `
 
 ---
 
+## [1.5.8] - 2026-11-22
+
+### Thay đổi (Changed)
+- **Thiết kế lại giao diện Android theo phong cách KV-Music (KV-Synology Theme):** Áp dụng nền đen OLED thuần túy (`#000000`) kết hợp dải sáng xanh Synology trên đầu trang, font hiển thị `yt_sans`, thanh tiêu đề gọn `52.dp` với logo vuông bo góc, thẻ viền mảnh `#171D29`, chip lọc bo tròn `32.dp`, thanh tìm kiếm `44.dp` và thanh điều hướng đáy `56.dp` đồng nhất cho cả Dark/Light mode.
+- **Hỗ trợ toàn diện Điện thoại màn hình gập (Foldable) & Máy tính bảng (Tablet):** Tích hợp `androidx.window:window:1.3.0` (`WidthClass.Compact / Medium / Expanded`, tư thế gập `Book` & `Tabletop`), `84.dp` NavigationRail cho Foldable, thanh điều hướng bên `232.dp` cố định cho Tablet, lưới 2 cột, giao diện chia 2 khung trên Đăng nhập / Tổng quan / Giám sát tài nguyên / Trợ lý AI cạnh bên và bảng điều khiển đa phương tiện tối ưu gập.
+- **QC & Sửa lỗi hiển thị trên Phone, Foldable & Tablet:** Sửa biểu đồ CPU Sparkline khi chỉ có 1 điểm dữ liệu, tối ưu bố cục màn hình Đăng nhập không cuộn trên Phone & Tablet, căn đều chiều cao 4 thẻ KPI trên Tablet, chuyển chip Cài đặt sang `FlowRow` tránh cắt chữ trên màn hình gập 2 cột.
+- **Cập nhật liên kết phát hành APK:** Hỗ trợ kiểm tra cập nhật & tải trực tiếp APK từ `https://syno.vndns.net`.
+
 ## [1.5.5] - 2026-09-20
 
 ### 🚀 Tính năng mới & Nâng cấp (Added & Improved)

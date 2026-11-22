@@ -1,11 +1,9 @@
 package com.khoavo.kvsynology.presentation.files
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Save
@@ -17,11 +15,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.khoavo.kvsynology.domain.model.FileItem
+import com.khoavo.kvsynology.presentation.adaptive.LocalWindowState
+import com.khoavo.kvsynology.presentation.components.synoOutlinedTextFieldColors
+import com.khoavo.kvsynology.presentation.theme.SynoTheme
 import com.khoavo.kvsynology.presentation.theme.SynologyBlue
 
 @Composable
@@ -32,6 +34,8 @@ fun FileEditorDialog(
     onSave: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val syno = SynoTheme.colors
+    val windowState = LocalWindowState.current
     var content by remember(initialContent) { mutableStateOf(initialContent ?: "") }
     var hasChanges by remember { mutableStateOf(false) }
 
@@ -39,15 +43,16 @@ fun FileEditorDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Card(
+        Surface(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
+                .fillMaxWidth(if (windowState.isWide) 0.85f else 0.95f)
+                .widthIn(max = 920.dp)
                 .fillMaxHeight(0.90f),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            shape = RoundedCornerShape(18.dp),
+            color = syno.chromeSurface,
+            border = BorderStroke(1.dp, syno.borderStrong)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Header
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -55,19 +60,21 @@ fun FileEditorDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = file.name,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                maxLines = 1
+                                color = syno.textPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             if (hasChanges) {
                                 Text(
                                     text = " • Đã sửa",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = SynologyBlue,
+                                    color = syno.accentBright,
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
@@ -75,8 +82,9 @@ fun FileEditorDialog(
                         Text(
                             text = file.path,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
+                            color = syno.textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
@@ -87,7 +95,8 @@ fun FileEditorDialog(
                                 hasChanges = false
                             },
                             enabled = !isSaving && initialContent != null,
-                            colors = ButtonDefaults.buttonColors(containerColor = SynologyBlue),
+                            shape = RoundedCornerShape(24.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SynologyBlue, contentColor = Color.White),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                         ) {
                             if (isSaving) {
@@ -109,31 +118,30 @@ fun FileEditorDialog(
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
 
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Đóng")
+                            Icon(Icons.Default.Close, contentDescription = "Đóng", tint = syno.textSecondary)
                         }
                     }
                 }
 
-                HorizontalDivider()
+                HorizontalDivider(color = syno.borderSubtle)
 
-                // Editor body
                 if (initialContent == null) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                            .background(syno.canvas),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(color = SynologyBlue)
+                            CircularProgressIndicator(color = syno.accentBright)
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
                                 "Đang tải nội dung tệp...",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = syno.textSecondary
                             )
                         }
                     }
@@ -141,7 +149,7 @@ fun FileEditorDialog(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                            .background(syno.canvas)
                             .padding(12.dp)
                     ) {
                         OutlinedTextField(
@@ -151,11 +159,13 @@ fun FileEditorDialog(
                                 hasChanges = true
                             },
                             modifier = Modifier.fillMaxSize(),
+                            colors = synoOutlinedTextFieldColors(),
+                            shape = RoundedCornerShape(12.dp),
                             textStyle = TextStyle(
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 13.sp,
                                 lineHeight = 18.sp,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = syno.textPrimary
                             ),
                             placeholder = { Text("Nội dung tệp trống...") }
                         )

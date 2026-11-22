@@ -2,9 +2,15 @@ package com.khoavo.kvsynology.presentation.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.khoavo.kvsynology.BuildConfig
 import com.khoavo.kvsynology.data.local.datastore.AppPreferencesDataStore
+import com.khoavo.kvsynology.domain.model.AppChangelogRegistry
+import com.khoavo.kvsynology.domain.model.AppUpdateInfo
+import com.khoavo.kvsynology.domain.model.VersionChangelog
 import com.khoavo.kvsynology.domain.repository.AuthRepository
+import com.khoavo.kvsynology.presentation.common.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -12,19 +18,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
-import com.khoavo.kvsynology.BuildConfig
-import com.khoavo.kvsynology.domain.model.AppChangelogRegistry
-import com.khoavo.kvsynology.domain.model.AppUpdateInfo
-import com.khoavo.kvsynology.domain.model.VersionChangelog
-import com.khoavo.kvsynology.presentation.common.UiState
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
-/**
- * Settings for Local-AI-only mode.
- * Cloud providers (Gemini/OpenAI/Claude/DeepSeek/OpenRouter) were removed —
- * the assistant runs fully on-device using real NAS telemetry, no API key needed.
- */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val dataStore: AppPreferencesDataStore,
@@ -35,7 +35,7 @@ class SettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "vi")
 
     val theme: StateFlow<String> = dataStore.themeFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "system")
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "dark")
 
     val experienceMode: StateFlow<String> = dataStore.experienceModeFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "beginner")
@@ -46,14 +46,12 @@ class SettingsViewModel @Inject constructor(
     val showAiBubble: StateFlow<Boolean> = dataStore.showAiBubbleFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
-    /** Live session demo flag — the actual mock-vs-real switch (login checkbox wins over the pref). */
     private val _sessionIsDemo = MutableStateFlow<Boolean?>(null)
     val sessionIsDemo: StateFlow<Boolean?> = _sessionIsDemo.asStateFlow()
 
     private val _sessionHost = MutableStateFlow("")
     val sessionHost: StateFlow<String> = _sessionHost.asStateFlow()
 
-    // Kept for backward compatibility with stored prefs; always "local" going forward.
     val aiProvider: StateFlow<String> = dataStore.aiProviderFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "local")
 
@@ -69,17 +67,20 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             _updateState.value = UiState.Loading
             try {
-                kotlinx.coroutines.delay(500)
                 val currentVer = BuildConfig.VERSION_NAME
-                val latestVer = "1.5.4"
+                val remoteResult = withContext(Dispatchers.IO) { fetchLatestReleaseMeta() }
+                val latestVer = remoteResult?.first?.removePrefix("v")?.ifBlank { currentVer } ?: currentVer
+                val releaseDate = remoteResult?.second?.take(10)?.ifBlank { "2026-11-22" } ?: "2026-11-22"
+                val apkUrl = remoteResult?.third?.ifBlank { DIRECT_APK_URL } ?: DIRECT_APK_URL
                 val isAvailable = compareVersions(latestVer, currentVer) > 0
+
                 val info = AppUpdateInfo(
                     currentVersion = currentVer,
                     latestVersion = latestVer,
                     isUpdateAvailable = isAvailable,
-                    releaseDate = "2026-09-07",
-                    apkDownloadUrl = "https://pkg.khoavo.myds.me/package/kvsynology",
-                    packagePortalUrl = "https://pkg.khoavo.myds.me/package/kvsynology",
+                    releaseDate = releaseDate,
+                    apkDownloadUrl = apkUrl,
+                    packagePortalUrl = PACKAGE_PORTAL_URL,
                     changelog = changelogs
                 )
                 _updateState.value = UiState.Success(info)
@@ -89,13 +90,59 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    private fun fetchLatestReleaseMeta(): Triple<String, String, String>? {
+        val client = OkHttpClient.Builder()
+            .connectTimeout(6, TimeUnit.SECONDS)
+            .readTimeout(8, TimeUnit.SECONDS)
+            .build()
+        val endpoints = listOf(
+            "https://git.khoavo.vndns.net/api/v1/repos/vndangkhoa/kv-synology/releases/latest",
+            "https://api.github.com/repos/vndangkhoa/kv-synology/releases/latest"
+        )
+        for (url in endpoints) {
+            try {
+                val req = Request.Builder()
+                    .url(url)
+                    .header("Accept", "application/json")
+                    .build()
+                val parsed = client.newCall(req).execute().use { resp ->
+                    if (!resp.isSuccessful) return@use null
+                    val body = resp.body?.string() ?: return@use null
+                    val obj = JSONObject(body)
+                    val tag = obj.optString("tag_name").trim()
+                    if (tag.isBlank()) return@use null
+                    val date = obj.optString("published_at").ifBlank { obj.optString("created_at") }
+                    val assets = obj.optJSONArray("assets")
+                    var apkUrl = DIRECT_APK_URL
+                    if (assets != null) {
+                        for (i in 0 until assets.length()) {
+                            val asset = assets.optJSONObject(i) ?: continue
+                            val name = asset.optString("name")
+                            if (name.endsWith(".apk", ignoreCase = true)) {
+                                apkUrl = asset.optString("browser_download_url").ifBlank { DIRECT_APK_URL }
+                                break
+                            }
+                        }
+                    }
+                    Triple(tag, date, apkUrl)
+                }
+                if (parsed != null) return parsed
+            } catch (_: Exception) {
+                // Fall through to next mirror or local version
+            }
+        }
+        return null
+    }
+
     fun dismissUpdateDialog() {
         _updateState.value = null
     }
 
     private fun compareVersions(v1: String, v2: String): Int {
-        val p1 = v1.split('.').mapNotNull { it.toIntOrNull() }
-        val p2 = v2.split('.').mapNotNull { it.toIntOrNull() }
+        val clean1 = v1.removePrefix("v").substringBefore('-')
+        val clean2 = v2.removePrefix("v").substringBefore('-')
+        val p1 = clean1.split('.').mapNotNull { it.toIntOrNull() }
+        val p2 = clean2.split('.').mapNotNull { it.toIntOrNull() }
         val len = maxOf(p1.size, p2.size)
         for (i in 0 until len) {
             val num1 = p1.getOrElse(i) { 0 }
@@ -106,9 +153,6 @@ class SettingsViewModel @Inject constructor(
     }
 
     init {
-        // One-time migration: drop stale cloud-provider prefs from older versions.
-        // (Old builds defaulted provider to "gemini" without persisting the key,
-        // so a stale non-local MODEL is the reliable upgrade signal.)
         viewModelScope.launch {
             try {
                 val model = dataStore.aiModelFlow.first()
@@ -121,7 +165,6 @@ class SettingsViewModel @Inject constructor(
         refreshSessionInfo()
     }
 
-    /** Re-read from Settings onResume paths via loadData(). */
     fun loadData() {
         refreshSessionInfo()
     }
@@ -163,5 +206,10 @@ class SettingsViewModel @Inject constructor(
             authRepository.logout()
             onComplete()
         }
+    }
+
+    companion object {
+        const val PACKAGE_PORTAL_URL = "https://syno.vndns.net/package/kvsynology"
+        const val DIRECT_APK_URL = "https://syno.vndns.net/kvsynology-release.apk"
     }
 }

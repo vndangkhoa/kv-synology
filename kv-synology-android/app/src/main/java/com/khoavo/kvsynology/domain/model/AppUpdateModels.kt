@@ -9,7 +9,7 @@ data class AppUpdateInfo(
     val isUpdateAvailable: Boolean,
     val releaseDate: String,
     val apkDownloadUrl: String,
-    val packagePortalUrl: String = "https://pkg.khoavo.myds.me/package/kvsynology",
+    val packagePortalUrl: String = "https://syno.vndns.net/package/kvsynology",
     val changelog: List<VersionChangelog> = emptyList()
 )
 
@@ -23,6 +23,20 @@ data class VersionChangelog(
 
 object AppChangelogRegistry {
     val changelogs: List<VersionChangelog> = listOf(
+        VersionChangelog(
+            version = "1.5.8",
+            releaseDate = "2026-11-22",
+            highlights = listOf(
+                "Giao diện mới lấy cảm hứng từ KV-Music theo chủ đề KV Synology OLED Blue: nền đen sâu, ánh sáng xanh đỉnh trang và thẻ viền hairline.",
+                "Hỗ trợ hoàn chỉnh điện thoại gập (Book & Tabletop Flex) và máy tính bảng (NavigationRail 84dp, Sidebar 232dp, bố cục 2 cột/2 khung).",
+                "Kiểm tra cập nhật APK trực tiếp từ máy chủ phát hành kèm liên kết tải chuẩn trên syno.vndns.net."
+            ),
+            details = listOf(
+                "Tích hợp WindowInfoTracker phát hiện bản lề FoldingFeature (Tabletop/Book) trên Android 12L+.",
+                "Đồng bộ font chữ hiển thị YouTube Sans cùng chip lọc cuộn ngang chống tràn viền trên mọi kích thước màn hình.",
+                "Nâng cấp hộp thoại AI Assistant thành side-sheet mượt mà trên máy tính bảng và màn hình gập."
+            )
+        ),
         VersionChangelog(
             version = "1.5.4",
             releaseDate = "2026-09-07",

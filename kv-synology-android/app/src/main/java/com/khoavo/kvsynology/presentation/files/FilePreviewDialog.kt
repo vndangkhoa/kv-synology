@@ -4,6 +4,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.annotation.OptIn
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -32,7 +33,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -44,10 +44,8 @@ import androidx.media3.ui.PlayerView
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.khoavo.kvsynology.domain.model.FileItem
-import com.khoavo.kvsynology.presentation.theme.SynologyAmber
-import com.khoavo.kvsynology.presentation.theme.SynologyBlue
-import com.khoavo.kvsynology.presentation.theme.SynologyEmerald
-import com.khoavo.kvsynology.presentation.theme.SynologyRose
+import com.khoavo.kvsynology.presentation.adaptive.LocalWindowState
+import com.khoavo.kvsynology.presentation.theme.*
 import kotlinx.coroutines.delay
 
 @OptIn(UnstableApi::class)
@@ -59,16 +57,21 @@ fun FilePreviewDialog(
     onEdit: (() -> Unit)? = null,
     onDownload: () -> Unit = {}
 ) {
+    val syno = SynoTheme.colors
+    val windowState = LocalWindowState.current
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Card(
+        Surface(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
+                .fillMaxWidth(if (windowState.isWide) 0.85f else 0.95f)
+                .widthIn(max = 920.dp)
                 .fillMaxHeight(0.88f),
-            shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            shape = RoundedCornerShape(20.dp),
+            color = syno.chromeSurface,
+            border = BorderStroke(1.dp, syno.borderStrong)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Header Bar
@@ -79,7 +82,7 @@ fun FilePreviewDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = when {
@@ -89,7 +92,7 @@ fun FilePreviewDialog(
                                     else -> Icons.Default.Description
                                 },
                                 contentDescription = null,
-                                tint = SynologyBlue,
+                                tint = syno.accentBright,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -97,6 +100,7 @@ fun FilePreviewDialog(
                                 text = file.name,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
+                                color = syno.textPrimary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -104,7 +108,7 @@ fun FilePreviewDialog(
                         Text(
                             text = "${file.size / 1024} KB • ${file.path}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = syno.textSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -113,40 +117,32 @@ fun FilePreviewDialog(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (onEdit != null) {
                             IconButton(onClick = onEdit) {
-                                Icon(Icons.Default.Edit, contentDescription = "Chỉnh sửa", tint = SynologyBlue)
+                                Icon(Icons.Default.Edit, contentDescription = "Chỉnh sửa", tint = syno.accentBright)
                             }
                         }
                         IconButton(onClick = onDownload) {
-                            Icon(Icons.Default.Download, contentDescription = "Tải xuống")
+                            Icon(Icons.Default.Download, contentDescription = "Tải xuống", tint = syno.textPrimary)
                         }
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Đóng")
+                            Icon(Icons.Default.Close, contentDescription = "Đóng", tint = syno.textSecondary)
                         }
                     }
                 }
 
-                HorizontalDivider()
+                HorizontalDivider(color = syno.borderSubtle)
 
                 // Media / Content Area
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black),
+                        .background(SynoPureBlack),
                     contentAlignment = Alignment.Center
                 ) {
                     when {
-                        file.isImage -> {
-                            PhotoViewer(streamUrl = streamUrl, fileName = file.name)
-                        }
-                        file.isAudio -> {
-                            AudioPlayer(file = file, streamUrl = streamUrl)
-                        }
-                        file.isVideo -> {
-                            VideoPlayer(streamUrl = streamUrl, fileName = file.name)
-                        }
-                        else -> {
-                            TextFallbackPreview(file = file, onEdit = onEdit)
-                        }
+                        file.isImage -> PhotoViewer(streamUrl = streamUrl, fileName = file.name)
+                        file.isAudio -> AudioPlayer(file = file, streamUrl = streamUrl, isTabletop = windowState.isTabletop)
+                        file.isVideo -> VideoPlayer(streamUrl = streamUrl, fileName = file.name)
+                        else -> TextFallbackPreview(file = file, onEdit = onEdit)
                     }
                 }
             }
@@ -154,17 +150,12 @@ fun FilePreviewDialog(
     }
 }
 
-/**
- * Zoomable, pinch-to-zoom photo viewer with loading & error handling.
- */
 @Composable
 private fun PhotoViewer(streamUrl: String, fileName: String) {
     val context = LocalContext.current
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
 
-    // Authenticated Coil request: DSM stream URL carries _sid in query,
-    // but also send Cookie + UA so permission-locked / HTTPS NAS hosts load.
     val imageRequest = remember(streamUrl) {
         ImageRequest.Builder(context)
             .data(streamUrl)
@@ -215,7 +206,7 @@ private fun PhotoViewer(streamUrl: String, fileName: String) {
                 ),
             loading = {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = SynologyBlue)
+                    CircularProgressIndicator(color = SynoBlueBright)
                 }
             },
             error = {
@@ -234,12 +225,9 @@ private fun PhotoViewer(streamUrl: String, fileName: String) {
     }
 }
 
-/**
- * Dedicated Music/Audio player with spinning vinyl disc, seekbar, and playback controls.
- */
 @OptIn(UnstableApi::class)
 @Composable
-private fun AudioPlayer(file: FileItem, streamUrl: String) {
+private fun AudioPlayer(file: FileItem, streamUrl: String, isTabletop: Boolean = false) {
     val context = LocalContext.current
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     var isPlaying by remember { mutableStateOf(false) }
@@ -289,7 +277,6 @@ private fun AudioPlayer(file: FileItem, streamUrl: String) {
         }
     }
 
-    // Position updater ticker
     LaunchedEffect(isPlaying) {
         while (isPlaying) {
             exoPlayer?.let {
@@ -300,7 +287,6 @@ private fun AudioPlayer(file: FileItem, streamUrl: String) {
         }
     }
 
-    // Disc rotation animation
     val infiniteTransition = rememberInfiniteTransition(label = "disc_spin")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -315,52 +301,56 @@ private fun AudioPlayer(file: FileItem, streamUrl: String) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121418))
+            .background(SynoPureBlack)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceAround
+        verticalArrangement = if (isTabletop) Arrangement.SpaceBetween else Arrangement.SpaceAround
     ) {
-        // Vinyl Album Art Card
-        Box(
-            modifier = Modifier
-                .size(190.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF1E222B)),
-            contentAlignment = Alignment.Center
+        // Upper pane: Vinyl Disc + Track Title
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = if (isTabletop) Modifier.weight(1f) else Modifier,
+            verticalArrangement = Arrangement.Center
         ) {
             Box(
                 modifier = Modifier
-                    .size(170.dp)
+                    .size(if (isTabletop) 140.dp else 188.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF0F1115))
-                    .rotate(if (isPlaying) rotation else 0f),
+                    .background(SynoCard),
                 contentAlignment = Alignment.Center
             ) {
-                // Concentric record grooves
-                Surface(
-                    modifier = Modifier.size(130.dp),
-                    shape = CircleShape,
-                    color = Color(0xFF1E232E)
-                ) {}
-                Surface(
-                    modifier = Modifier.size(80.dp),
-                    shape = CircleShape,
-                    color = SynologyBlue
+                Box(
+                    modifier = Modifier
+                        .size(if (isTabletop) 124.dp else 168.dp)
+                        .clip(CircleShape)
+                        .background(SynoGrey13)
+                        .rotate(if (isPlaying) rotation else 0f),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.MusicNote,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(36.dp)
-                        )
+                    Surface(
+                        modifier = Modifier.size(if (isTabletop) 92.dp else 128.dp),
+                        shape = CircleShape,
+                        color = SynoCardHover
+                    ) {}
+                    Surface(
+                        modifier = Modifier.size(if (isTabletop) 56.dp else 78.dp),
+                        shape = CircleShape,
+                        color = SynologyBlue
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.MusicNote,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(if (isTabletop) 26.dp else 34.dp)
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // Title and Format
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Spacer(modifier = Modifier.height(14.dp))
+
             Text(
                 text = file.name,
                 fontWeight = FontWeight.Bold,
@@ -370,40 +360,43 @@ private fun AudioPlayer(file: FileItem, streamUrl: String) {
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Surface(
                 shape = RoundedCornerShape(6.dp),
-                color = SynologyBlue.copy(alpha = 0.2f)
+                color = SynologyBlue.copy(alpha = 0.22f)
             ) {
                 Text(
                     text = "${file.extension.uppercase()} • ${file.size / 1024} KB",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = SynologyBlue,
+                    color = SynoBlueBright,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                 )
             }
         }
 
-        // Error message if any
-        if (playbackError != null) {
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = SynologyRose.copy(alpha = 0.2f),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = playbackError ?: "Lỗi phát",
-                    color = SynologyRose,
-                    fontSize = 12.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(8.dp)
-                )
+        // Lower pane: Errors, Seekbar & Controls
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (playbackError != null) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = SynologyRose.copy(alpha = 0.2f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = playbackError ?: "Lỗi phát",
+                        color = SynologyRose,
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
             }
-        }
 
-        // Timeline Slider
-        Column(modifier = Modifier.fillMaxWidth()) {
             val progress = if (duration > 0) (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f) else 0f
             Slider(
                 value = progress,
@@ -413,9 +406,9 @@ private fun AudioPlayer(file: FileItem, streamUrl: String) {
                     exoPlayer?.seekTo(newPos)
                 },
                 colors = SliderDefaults.colors(
-                    thumbColor = SynologyBlue,
+                    thumbColor = SynoBlueBright,
                     activeTrackColor = SynologyBlue,
-                    inactiveTrackColor = Color.DarkGray
+                    inactiveTrackColor = SynoWhite20
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -423,80 +416,72 @@ private fun AudioPlayer(file: FileItem, streamUrl: String) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(formatDuration(currentPosition), color = Color.LightGray, fontSize = 11.sp)
+                Text(formatDuration(currentPosition), color = SynoWhite67, fontSize = 11.sp)
                 if (isBuffering) {
                     Text("Đang tải đệm...", color = SynologyEmerald, fontSize = 11.sp)
                 }
-                Text(formatDuration(duration), color = Color.LightGray, fontSize = 11.sp)
-            }
-        }
-
-        // Control Buttons (Replay 10s, Play/Pause, Forward 10s)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = {
-                    exoPlayer?.let { p ->
-                        val target = (p.currentPosition - 10000).coerceAtLeast(0L)
-                        p.seekTo(target)
-                        currentPosition = target
-                    }
-                },
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(Icons.Default.Replay10, contentDescription = "Lùi 10s", tint = Color.White, modifier = Modifier.size(28.dp))
+                Text(formatDuration(duration), color = SynoWhite67, fontSize = 11.sp)
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            FloatingActionButton(
-                onClick = {
-                    exoPlayer?.let { p ->
-                        if (p.isPlaying) p.pause() else p.play()
-                    }
-                },
-                shape = CircleShape,
-                containerColor = SynologyBlue,
-                contentColor = Color.White,
-                modifier = Modifier.size(62.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "Tạm dừng" else "Phát",
-                    modifier = Modifier.size(34.dp)
-                )
-            }
+                IconButton(
+                    onClick = {
+                        exoPlayer?.let { p ->
+                            val target = (p.currentPosition - 10000).coerceAtLeast(0L)
+                            p.seekTo(target)
+                            currentPosition = target
+                        }
+                    },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(Icons.Default.Replay10, contentDescription = "Lùi 10s", tint = Color.White, modifier = Modifier.size(28.dp))
+                }
 
-            Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(18.dp))
 
-            IconButton(
-                onClick = {
-                    exoPlayer?.let { p ->
-                        val target = (p.currentPosition + 10000).coerceAtMost(duration)
-                        p.seekTo(target)
-                        currentPosition = target
-                    }
-                },
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(Icons.Default.Forward10, contentDescription = "Tới 10s", tint = Color.White, modifier = Modifier.size(28.dp))
+                FloatingActionButton(
+                    onClick = {
+                        exoPlayer?.let { p ->
+                            if (p.isPlaying) p.pause() else p.play()
+                        }
+                    },
+                    shape = CircleShape,
+                    containerColor = SynologyBlue,
+                    contentColor = Color.White,
+                    modifier = Modifier.size(62.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "Tạm dừng" else "Phát",
+                        modifier = Modifier.size(34.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(18.dp))
+
+                IconButton(
+                    onClick = {
+                        exoPlayer?.let { p ->
+                            val target = (p.currentPosition + 10000).coerceAtMost(duration)
+                            p.seekTo(target)
+                            currentPosition = target
+                        }
+                    },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(Icons.Default.Forward10, contentDescription = "Tới 10s", tint = Color.White, modifier = Modifier.size(28.dp))
+                }
             }
         }
     }
 }
 
-/**
- * Video player powered by ExoPlayer + PlayerView with buffering indicators and error recovery.
- *
- * Previous bug (sound but no video): the AndroidView factory captured
- * `exoPlayer == null` at composition time and never attached the player
- * created later in DisposableEffect to the PlayerView surface. Audio kept
- * playing in the background while the surface stayed black. Fixed by
- * binding via the `update` lambda: `view.player = exoPlayer`.
- */
 @OptIn(UnstableApi::class)
 @Composable
 private fun VideoPlayer(streamUrl: String, fileName: String) {
@@ -530,9 +515,6 @@ private fun VideoPlayer(streamUrl: String, fileName: String) {
                         if (state == Player.STATE_READY) errorMsg = null
                     }
                     override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
-                        // "Sound but no video" diagnosis: the container/DRM gave us
-                        // no playable video track (e.g. HEVC/MKV the phone can't
-                        // decode). Audio keeps playing on a black surface.
                         val hasVideo = tracks.groups.any { g ->
                             (0 until g.length).any { i ->
                                 g.getTrackFormat(i).sampleMimeType?.startsWith("video/") == true &&
@@ -569,8 +551,6 @@ private fun VideoPlayer(streamUrl: String, fileName: String) {
                 }
             },
             update = { view ->
-                // Critical: attach the (async-created) player to the surface.
-                // Without this the video surface stays black while audio plays.
                 if (view.player !== exoPlayer) {
                     view.player = exoPlayer
                 }
@@ -583,10 +563,9 @@ private fun VideoPlayer(streamUrl: String, fileName: String) {
         )
 
         if (isBuffering && errorMsg == null) {
-            CircularProgressIndicator(color = SynologyBlue, modifier = Modifier.size(48.dp))
+            CircularProgressIndicator(color = SynoBlueBright, modifier = Modifier.size(48.dp))
         }
 
-        // Codec diagnosis banner: audio plays but the phone cannot decode video.
         if (audioOnlyHint && errorMsg == null) {
             Surface(
                 shape = RoundedCornerShape(10.dp),
@@ -629,7 +608,8 @@ private fun VideoPlayer(streamUrl: String, fileName: String) {
                             exoPlayer?.prepare()
                             exoPlayer?.play()
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = SynologyBlue)
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SynologyBlue, contentColor = Color.White)
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -641,15 +621,13 @@ private fun VideoPlayer(streamUrl: String, fileName: String) {
     }
 }
 
-/**
- * Fallback preview for text / config files.
- */
 @Composable
 private fun TextFallbackPreview(file: FileItem, onEdit: (() -> Unit)?) {
+    val syno = SynoTheme.colors
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
+            .background(syno.canvas)
             .padding(20.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -657,20 +635,21 @@ private fun TextFallbackPreview(file: FileItem, onEdit: (() -> Unit)?) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(Icons.Default.Description, contentDescription = null, tint = SynologyBlue, modifier = Modifier.size(48.dp))
+            Icon(Icons.Default.Description, contentDescription = null, tint = syno.accentBright, modifier = Modifier.size(48.dp))
             Spacer(modifier = Modifier.height(14.dp))
             Text(
                 text = "Tệp văn bản / cấu hình\n\nĐường dẫn: ${file.path}\nKích thước: ${file.size} bytes\nĐịnh dạng: .${file.extension}",
                 fontFamily = FontFamily.Monospace,
                 fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = syno.textPrimary,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(20.dp))
             if (onEdit != null) {
                 Button(
                     onClick = onEdit,
-                    colors = ButtonDefaults.buttonColors(containerColor = SynologyBlue)
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SynologyBlue, contentColor = Color.White)
                 ) {
                     Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
@@ -681,11 +660,6 @@ private fun TextFallbackPreview(file: FileItem, onEdit: (() -> Unit)?) {
     }
 }
 
-/**
- * Human-readable cause chain for ExoPlayer failures. The raw
- * `PlaybackException.message` is just "Source error" / "Renderer error",
- * which hides the real problem (HTTP 403, timeout, unsupported codec...).
- */
 private fun describePlaybackError(error: PlaybackException): String {
     var cause: Throwable? = error.cause
     var depth = 0

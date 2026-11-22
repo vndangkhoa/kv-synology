@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.khoavo.kvsynology.data.local.datastore.AppPreferencesDataStore
+import com.khoavo.kvsynology.presentation.adaptive.ProvideWindowState
 import com.khoavo.kvsynology.presentation.i18n.EnStrings
 import com.khoavo.kvsynology.presentation.i18n.LocalAppStrings
 import com.khoavo.kvsynology.presentation.i18n.ViStrings
@@ -30,7 +31,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val themeMode by preferencesDataStore.themeFlow.collectAsState(initial = "system")
+            val themeMode by preferencesDataStore.themeFlow.collectAsState(initial = "dark")
             val experienceMode by preferencesDataStore.experienceModeFlow.collectAsState(initial = "beginner")
             val language by preferencesDataStore.languageFlow.collectAsState(initial = "vi")
             val showAiBubble by preferencesDataStore.showAiBubbleFlow.collectAsState(initial = true)
@@ -39,20 +40,22 @@ class MainActivity : ComponentActivity() {
 
             CompositionLocalProvider(LocalAppStrings provides currentStrings) {
                 KVSynologyTheme(themeMode = themeMode) {
-                    val bubbleX by preferencesDataStore.aiBubbleXFlow.collectAsState(initial = 0f)
-                    val bubbleY by preferencesDataStore.aiBubbleYFlow.collectAsState(initial = 0.72f)
-                    val scope = rememberCoroutineScope()
-                    AdaptiveNavigationScaffold(
-                        experienceMode = experienceMode,
-                        showAiBubble = showAiBubble,
-                        aiBubbleX = bubbleX,
-                        aiBubbleY = bubbleY,
-                        onAiBubblePositionChange = { x, y ->
-                            scope.launch {
-                                preferencesDataStore.setAiBubblePosition(x, y)
+                    ProvideWindowState {
+                        val bubbleX by preferencesDataStore.aiBubbleXFlow.collectAsState(initial = 0f)
+                        val bubbleY by preferencesDataStore.aiBubbleYFlow.collectAsState(initial = 0.72f)
+                        val scope = rememberCoroutineScope()
+                        AdaptiveNavigationScaffold(
+                            experienceMode = experienceMode,
+                            showAiBubble = showAiBubble,
+                            aiBubbleX = bubbleX,
+                            aiBubbleY = bubbleY,
+                            onAiBubblePositionChange = { x, y ->
+                                scope.launch {
+                                    preferencesDataStore.setAiBubblePosition(x, y)
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }

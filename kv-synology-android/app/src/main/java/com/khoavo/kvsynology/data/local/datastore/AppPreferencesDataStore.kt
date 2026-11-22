@@ -39,7 +39,7 @@ class AppPreferencesDataStore @Inject constructor(
     }
 
     val languageFlow: Flow<String> = context.dataStore.data.map { it[KEY_LANGUAGE] ?: "vi" }
-    val themeFlow: Flow<String> = context.dataStore.data.map { it[KEY_THEME] ?: "system" }
+    val themeFlow: Flow<String> = context.dataStore.data.map { it[KEY_THEME] ?: "dark" }
     val experienceModeFlow: Flow<String> = context.dataStore.data.map { it[KEY_EXPERIENCE_MODE] ?: "beginner" }
     val demoModeFlow: Flow<Boolean> = context.dataStore.data.map { it[KEY_DEMO_MODE] ?: false }
     val showAiBubbleFlow: Flow<Boolean> = context.dataStore.data.map { it[KEY_SHOW_AI_BUBBLE] ?: true }

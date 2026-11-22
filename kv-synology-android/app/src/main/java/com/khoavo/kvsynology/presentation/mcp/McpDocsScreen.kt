@@ -18,10 +18,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.khoavo.kvsynology.presentation.theme.SynologyBlue
-import com.khoavo.kvsynology.presentation.theme.SynologyEmerald
+import com.khoavo.kvsynology.presentation.adaptive.LocalWindowState
+import com.khoavo.kvsynology.presentation.components.*
+import com.khoavo.kvsynology.presentation.theme.*
 
 data class McpToolInfo(
     val name: String,
@@ -37,6 +39,10 @@ fun McpDocsScreen(
     onOpenDrawer: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val syno = SynoTheme.colors
+    val windowState = LocalWindowState.current
+    val hPad = windowState.contentHorizontalPaddingDp.dp
+
     var selectedCategory by remember { mutableStateOf("all") }
     var searchQuery by remember { mutableStateOf("") }
 
@@ -141,27 +147,38 @@ fun McpDocsScreen(
         )
     }
 
+    val categories = remember {
+        listOf(
+            "all" to "Tất cả",
+            "auth" to "Xác thực",
+            "system" to "Hệ thống",
+            "files" to "Tập tin",
+            "docker" to "Docker",
+            "download" to "Tải xuống",
+            "storage" to "Lưu trữ",
+            "security" to "Bảo mật",
+            "services" to "Dịch vụ"
+        )
+    }
+
     val filteredTools = remember(selectedCategory, searchQuery) {
         tools.filter { tool ->
             val matchesCategory = if (selectedCategory == "all") true else tool.category == selectedCategory
             val matchesSearch = if (searchQuery.isBlank()) true else {
                 tool.name.contains(searchQuery, ignoreCase = true) ||
-                        tool.description.contains(searchQuery, ignoreCase = true) ||
-                        tool.dsmApi.contains(searchQuery, ignoreCase = true)
+                    tool.description.contains(searchQuery, ignoreCase = true) ||
+                    tool.dsmApi.contains(searchQuery, ignoreCase = true)
             }
             matchesCategory && matchesSearch
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Tài liệu MCP Tools", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onOpenDrawer) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
-                    }
-                },
+    SynoAmbientBackground {
+        Column(modifier = Modifier.fillMaxSize()) {
+            SynoScreenTopBar(
+                title = "Tài liệu MCP Tools",
+                subtitle = "Model Context Protocol cho AI Agent",
+                onOpenDrawer = onOpenDrawer,
                 actions = {
                     IconButton(onClick = {
                         val sampleConfig = """
@@ -184,90 +201,71 @@ fun McpDocsScreen(
                         clipboard.setPrimaryClip(clip)
                         Toast.makeText(context, "Đã sao chép mẫu cấu hình MCP Server!", Toast.LENGTH_SHORT).show()
                     }) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = "Sao chép cấu hình")
+                        Icon(Icons.Default.ContentCopy, contentDescription = "Sao chép cấu hình", tint = syno.textPrimary)
                     }
                 }
             )
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Intro Card
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+
+            SynoResponsiveContentContainer(modifier = Modifier.weight(1f)) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = hPad, end = hPad, top = 8.dp, bottom = 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Code, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                            Spacer(modifier = Modifier.width(8.dp))
+                    item {
+                        SynoCard(
+                            containerColor = syno.accentDim,
+                            borderColor = syno.accentBright.copy(alpha = 0.28f)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Code, contentDescription = null, tint = syno.accentBright)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Model Context Protocol (MCP)",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = syno.textPrimary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                "Model Context Protocol (MCP)",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                "Kết nối Synology NAS của bạn với các mô hình AI thông minh (Claude Desktop, Cursor, Antigravity) thông qua giao thức MCP chuẩn mở.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = syno.textSecondary
                             )
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "Kết nối Synology NAS của bạn với các mô hình AI thông minh (Claude Desktop, Cursor, Antigravity) thông qua giao thức MCP chuẩn mở.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
+                    }
+
+                    item {
+                        SynoSearchBar(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = "Tìm kiếm công cụ MCP hoặc WebAPI..."
                         )
                     }
-                }
-            }
 
-            // Search Bar
-            item {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Tìm kiếm công cụ MCP hoặc WebAPI...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true
-                )
-            }
+                    item {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(categories) { (key, label) ->
+                                SynoFilterChip(
+                                    label = label,
+                                    selected = selectedCategory == key,
+                                    onClick = { selectedCategory = key }
+                                )
+                            }
+                        }
+                    }
 
-            // Category Chips
-            item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    val categories = listOf(
-                        "all" to "Tất cả",
-                        "auth" to "Xác thực",
-                        "system" to "Hệ thống",
-                        "files" to "Tập tin",
-                        "docker" to "Docker",
-                        "download" to "Tải xuống",
-                        "storage" to "Lưu trữ",
-                        "security" to "Bảo mật",
-                        "services" to "Dịch vụ"
-                    )
-                    items(categories) { (key, label) ->
-                        FilterChip(
-                            selected = selectedCategory == key,
-                            onClick = { selectedCategory = key },
-                            label = { Text(label) }
-                        )
+                    adaptiveGridItems(
+                        items = filteredTools,
+                        columns = windowState.cardGridColumns
+                    ) { tool ->
+                        McpToolCard(tool = tool)
                     }
                 }
-            }
-
-            // Tools list
-            items(filteredTools) { tool ->
-                McpToolCard(tool = tool)
             }
         }
     }
@@ -276,88 +274,75 @@ fun McpDocsScreen(
 @Composable
 private fun McpToolCard(tool: McpToolInfo) {
     val context = LocalContext.current
-    var expanded by remember { mutableStateOf(false) }
+    val syno = SynoTheme.colors
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = tool.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        color = SynologyBlue
-                    )
-                    Text(
-                        text = tool.dsmApi,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = SynologyEmerald.copy(alpha = 0.15f)
-                ) {
-                    Text(
-                        text = tool.category.uppercase(),
-                        color = SynologyEmerald,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
+    SynoCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                Text(
+                    text = tool.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    color = syno.accentBright,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = tool.dsmApi,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = syno.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
+            SynoStatusBadge(text = tool.category.uppercase(), color = SynologyEmerald)
+        }
 
-            Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = tool.description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = syno.textPrimary
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = syno.cardInner,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text(
-                text = tool.description,
-                style = MaterialTheme.typography.bodyMedium
+                text = "Tham số: ${tool.params}",
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 11.sp,
+                color = syno.textSecondary,
+                modifier = Modifier.padding(10.dp)
             )
+        }
 
-            Spacer(modifier = Modifier.height(10.dp))
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(10.dp)) {
-                    Text(
-                        text = "Tham số: ${tool.params}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 12.sp
-                    )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            TextButton(
+                onClick = {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("Tool Payload", tool.examplePayload)
+                    clipboard.setPrimaryClip(clip)
+                    Toast.makeText(context, "Đã sao chép mẫu payload của ${tool.name}!", Toast.LENGTH_SHORT).show()
                 }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-                horizontalArrangement = Arrangement.End
             ) {
-                TextButton(
-                    onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("Tool Payload", tool.examplePayload)
-                        clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, "Đã sao chép mẫu payload của ${tool.name}!", Toast.LENGTH_SHORT).show()
-                    }
-                ) {
-                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Sao chép Payload")
-                }
+                Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp), tint = syno.accentBright)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Sao chép Payload", color = syno.accentBright, fontSize = 12.sp)
             }
         }
     }

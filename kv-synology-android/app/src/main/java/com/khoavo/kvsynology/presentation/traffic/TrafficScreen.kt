@@ -2,6 +2,7 @@ package com.khoavo.kvsynology.presentation.traffic
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -11,20 +12,22 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.khoavo.kvsynology.domain.model.CountryTrafficSummary
 import com.khoavo.kvsynology.domain.model.NetworkConnectionItem
 import com.khoavo.kvsynology.domain.model.NetworkInterfaceInfo
+import com.khoavo.kvsynology.presentation.adaptive.LocalWindowState
 import com.khoavo.kvsynology.presentation.common.UiState
 import com.khoavo.kvsynology.presentation.common.formatSpeed
+import com.khoavo.kvsynology.presentation.components.*
 import com.khoavo.kvsynology.presentation.i18n.LocalAppStrings
-import com.khoavo.kvsynology.presentation.theme.SynologyBlue
-import com.khoavo.kvsynology.presentation.theme.SynologyEmerald
-import com.khoavo.kvsynology.presentation.theme.SynologyRose
+import com.khoavo.kvsynology.presentation.theme.*
 
 @Composable
 fun TrafficScreen(
@@ -32,6 +35,10 @@ fun TrafficScreen(
     onOpenDrawer: () -> Unit = {}
 ) {
     val strings = LocalAppStrings.current
+    val syno = SynoTheme.colors
+    val windowState = LocalWindowState.current
+    val hPad = windowState.contentHorizontalPaddingDp.dp
+
     val trafficState by viewModel.trafficState.collectAsState()
     val autoRefresh by viewModel.autoRefresh.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -46,190 +53,187 @@ fun TrafficScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text(strings.networkTrafficGeoIp, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onOpenDrawer) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
-                    }
-                },
-                actions = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+    val tabs = listOf(
+        0 to "Lưu lượng & GeoIP",
+        1 to strings.networkInterfaces
+    )
+
+    SynoAmbientBackground {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                SynoScreenTopBar(
+                    title = strings.networkTrafficGeoIp,
+                    subtitle = "Kết nối theo quốc gia & giao diện mạng",
+                    onOpenDrawer = onOpenDrawer,
+                    actions = {
                         IconButton(onClick = { viewModel.setAutoRefresh(!autoRefresh) }) {
                             Icon(
                                 if (autoRefresh) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
                                 contentDescription = if (autoRefresh) "Tắt tự động làm mới" else "Bật tự động làm mới (5s)",
-                                tint = if (autoRefresh) SynologyEmerald else MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = if (autoRefresh) SynologyEmerald else syno.textSecondary
                             )
                         }
                         IconButton(onClick = { viewModel.loadTraffic() }) {
-                            Icon(Icons.Default.Refresh, contentDescription = strings.refresh)
+                            Icon(Icons.Default.Refresh, contentDescription = strings.refresh, tint = syno.textPrimary)
                         }
                     }
-                }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            TabRow(selectedTabIndex = selectedTab) {
-                Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    text = { Text("Lưu lượng & GeoIP", fontWeight = FontWeight.SemiBold) }
                 )
-                Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    text = { Text(strings.networkInterfaces, fontWeight = FontWeight.SemiBold) }
-                )
-            }
 
-            when (val state = trafficState) {
-                is UiState.Loading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = hPad, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(tabs) { (idx, label) ->
+                        SynoFilterChip(
+                            label = label,
+                            selected = selectedTab == idx,
+                            onClick = { selectedTab = idx }
+                        )
+                    }
                 }
-                is UiState.Error -> Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-                    Text(state.message, color = MaterialTheme.colorScheme.error)
-                }
-                is UiState.Success -> {
-                    val data = state.data
-                    if (selectedTab == 0) {
-                        val filteredConns = data.connections.filter { c ->
-                            (directionFilter == "all" || c.direction == directionFilter) &&
-                                (searchQuery.isBlank() ||
-                                    c.remoteAddress.contains(searchQuery, ignoreCase = true) ||
-                                    c.processName.contains(searchQuery, ignoreCase = true))
-                        }
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            item {
-                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+
+                Box(modifier = Modifier.weight(1f)) {
+                    when (val state = trafficState) {
+                        is UiState.Loading -> SynoStateLoading()
+                        is UiState.Error -> SynoStateError(
+                            message = state.message,
+                            onRetry = { viewModel.loadTraffic() }
+                        )
+                        is UiState.Empty -> SynoStateEmpty(
+                            message = "Không có dữ liệu lưu lượng mạng",
+                            icon = Icons.Default.Public
+                        )
+                        is UiState.Success -> {
+                            val data = state.data
+                            SynoResponsiveContentContainer {
+                                if (selectedTab == 0) {
+                                    val filteredConns = data.connections.filter { c ->
+                                        (directionFilter == "all" || c.direction == directionFilter) &&
+                                            (searchQuery.isBlank() ||
+                                                c.remoteAddress.contains(searchQuery, ignoreCase = true) ||
+                                                c.processName.contains(searchQuery, ignoreCase = true))
+                                    }
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = PaddingValues(start = hPad, end = hPad, top = 8.dp, bottom = 96.dp),
+                                        verticalArrangement = Arrangement.spacedBy(14.dp)
                                     ) {
-                                        Card(
-                                            modifier = Modifier.weight(1f),
-                                            shape = RoundedCornerShape(14.dp),
-                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                                        ) {
-                                            Column(modifier = Modifier.padding(14.dp)) {
-                                                Text(strings.activeConnections, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                                                Text("${data.totalConnections}", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = SynologyBlue)
-                                                Text(
-                                                    "LAN ${data.localConnections} • NET ${data.inboundConnections}",
-                                                    fontSize = 11.sp,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    maxLines = 1
+                                        item {
+                                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                                ) {
+                                                    SynoCard(modifier = Modifier.weight(1f), contentPadding = PaddingValues(14.dp)) {
+                                                        Text(strings.activeConnections, style = MaterialTheme.typography.labelSmall, color = syno.textSecondary, maxLines = 1)
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Text("${data.totalConnections}", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = SynoBlueBright)
+                                                        Text(
+                                                            "LAN ${data.localConnections} • NET ${data.inboundConnections}",
+                                                            fontSize = 11.sp,
+                                                            color = syno.textSecondary,
+                                                            maxLines = 1
+                                                        )
+                                                    }
+                                                    SynoCard(modifier = Modifier.weight(1f), contentPadding = PaddingValues(14.dp)) {
+                                                        Text("↓ RX / ↑ TX", style = MaterialTheme.typography.labelSmall, color = syno.textSecondary, maxLines = 1)
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Text("↓ ${formatSpeed(data.currentInboundSpeed)}", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = SynoBlueBright, maxLines = 1)
+                                                        Text("↑ ${formatSpeed(data.currentOutboundSpeed)}", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = SynologyEmerald, maxLines = 1)
+                                                    }
+                                                }
+                                                if (autoRefresh) {
+                                                    Text(
+                                                        "● Tự động làm mới mỗi 5 giây",
+                                                        fontSize = 11.sp,
+                                                        color = SynologyEmerald
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        item {
+                                            SynoSearchBar(
+                                                value = searchQuery,
+                                                onValueChange = { viewModel.setSearch(it) },
+                                                placeholder = "Tìm IP / tiến trình..."
+                                            )
+                                        }
+
+                                        item {
+                                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                val dirs = listOf("all" to "Tất cả", "local" to "🏠 LAN", "inbound" to "🌐 Internet")
+                                                items(dirs) { (key, label) ->
+                                                    SynoFilterChip(
+                                                        label = label,
+                                                        selected = directionFilter == key,
+                                                        onClick = { viewModel.setDirectionFilter(key) }
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        item {
+                                            SynoSectionHeader(title = strings.trafficByCountry)
+                                        }
+
+                                        adaptiveGridItems(
+                                            items = data.topCountries,
+                                            columns = windowState.cardGridColumns
+                                        ) { country ->
+                                            CountryRow(country = country, total = data.totalConnections)
+                                        }
+
+                                        item {
+                                            SynoSectionHeader(title = "${strings.activeConnectionsList} (${filteredConns.size})")
+                                        }
+
+                                        if (filteredConns.isEmpty()) {
+                                            item {
+                                                SynoStateEmpty(
+                                                    message = "Không có kết nối nào khớp bộ lọc",
+                                                    icon = Icons.Default.SearchOff
+                                                )
+                                            }
+                                        } else {
+                                            adaptiveGridItems(
+                                                items = filteredConns,
+                                                columns = windowState.cardGridColumns
+                                            ) { conn ->
+                                                ConnectionItemRow(
+                                                    conn = conn,
+                                                    onClick = { selectedConn = conn }
                                                 )
                                             }
                                         }
-                                        Card(
-                                            modifier = Modifier.weight(1f),
-                                            shape = RoundedCornerShape(14.dp),
-                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                                        ) {
-                                            Column(modifier = Modifier.padding(14.dp)) {
-                                                Text("↓ RX / ↑ TX", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                                                Text("↓ ${formatSpeed(data.currentInboundSpeed)}", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = SynologyBlue, maxLines = 1)
-                                                Text("↑ ${formatSpeed(data.currentOutboundSpeed)}", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = SynologyEmerald, maxLines = 1)
-                                            }
+                                    }
+                                } else {
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = PaddingValues(start = hPad, end = hPad, top = 8.dp, bottom = 96.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        adaptiveGridItems(
+                                            items = data.interfaces,
+                                            columns = windowState.cardGridColumns
+                                        ) { nic ->
+                                            NetworkInterfaceCard(nic = nic)
                                         }
                                     }
-                                    if (autoRefresh) {
-                                        Text(
-                                            "● Tự động làm mới mỗi 5 giây",
-                                            fontSize = 11.sp,
-                                            color = SynologyEmerald
-                                        )
-                                    }
                                 }
-                            }
-
-                            item {
-                                OutlinedTextField(
-                                    value = searchQuery,
-                                    onValueChange = { viewModel.setSearch(it) },
-                                    placeholder = { Text("Tìm IP / tiến trình...", fontSize = 13.sp) },
-                                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                                    trailingIcon = {
-                                        if (searchQuery.isNotBlank()) {
-                                            IconButton(onClick = { viewModel.setSearch("") }) {
-                                                Icon(Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(18.dp))
-                                            }
-                                        }
-                                    },
-                                    singleLine = true,
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-
-                            item {
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    listOf("all" to "Tất cả", "local" to "🏠 LAN", "inbound" to "🌐 Internet").forEach { (key, label) ->
-                                        FilterChip(
-                                            selected = directionFilter == key,
-                                            onClick = { viewModel.setDirectionFilter(key) },
-                                            label = { Text(label, fontSize = 12.sp) }
-                                        )
-                                    }
-                                }
-                            }
-
-                            item {
-                                Text(strings.trafficByCountry, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                            }
-
-                            items(data.topCountries) { country ->
-                                CountryRow(country = country, total = data.totalConnections)
-                            }
-
-                            item {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text("${strings.activeConnectionsList} (${filteredConns.size})", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                            }
-
-                            if (filteredConns.isEmpty()) {
-                                item {
-                                    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                                        Text("Không có kết nối nào khớp bộ lọc", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
-                                    }
-                                }
-                            }
-
-                            items(filteredConns) { conn ->
-                                ConnectionItemRow(
-                                    conn = conn,
-                                    onClick = { selectedConn = conn }
-                                )
-                            }
-                        }
-                    } else {
-                        // NIC Interfaces tab
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(data.interfaces) { nic ->
-                                NetworkInterfaceCard(nic = nic)
                             }
                         }
                     }
                 }
-                else -> {}
             }
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp)
+            )
         }
     }
 
@@ -254,77 +258,81 @@ fun ConnectionItemRow(
     conn: NetworkConnectionItem,
     onClick: () -> Unit = {}
 ) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
+    val syno = SynoTheme.colors
+    SynoCard(onClick = onClick, contentPadding = PaddingValues(14.dp)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f).padding(end = 8.dp)
+            ) {
                 Text(conn.geo.flagEmoji, fontSize = 22.sp)
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
-                    Text(conn.processName, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text(
+                        conn.processName,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        color = syno.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                     Text(
                         "${conn.remoteAddress}:${conn.remotePort}",
                         fontSize = 12.sp,
                         fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = syno.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
 
-            Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = SynologyBlue.copy(alpha = 0.12f)
-            ) {
-                Text(
-                    text = conn.protocol,
-                    color = SynologyBlue,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
-            }
+            SynoStatusBadge(text = conn.protocol, color = SynoBlueBright)
         }
     }
 }
 
 @Composable
 fun CountryRow(country: CountryTrafficSummary, total: Int) {
+    val syno = SynoTheme.colors
     val pct = if (total > 0) (country.activeConnections * 100 / total) else 0
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
+    SynoCard(contentPadding = PaddingValues(14.dp)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f).padding(end = 8.dp)
+            ) {
                 Text(country.flagEmoji, fontSize = 24.sp)
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
-                    Text(country.countryName, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1)
-                    Text("${country.activeConnections} kết nối", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        country.countryName,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        color = syno.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        "${country.activeConnections} kết nối",
+                        fontSize = 11.sp,
+                        color = syno.textSecondary
+                    )
                 }
             }
             Text(
                 "$pct%",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = SynologyBlue
+                color = SynoBlueBright
             )
         }
     }
@@ -332,60 +340,48 @@ fun CountryRow(country: CountryTrafficSummary, total: Int) {
 
 @Composable
 fun NetworkInterfaceCard(nic: NetworkInterfaceInfo) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Router, contentDescription = null, tint = SynologyBlue)
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text(nic.name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                        Text(nic.ip, fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = if (nic.status == "up") SynologyEmerald.copy(alpha = 0.15f) else Color.Gray.copy(alpha = 0.15f)
-                ) {
-                    Text(
-                        text = if (nic.status == "up") "CONNECTED (${nic.speedMbps} Mbps)" else "DISCONNECTED",
-                        color = if (nic.status == "up") SynologyEmerald else Color.Gray,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
+    val syno = SynoTheme.colors
+    val isUp = nic.status == "up"
+    SynoCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                Icon(Icons.Default.Router, contentDescription = null, tint = syno.accentBright)
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(nic.name, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = syno.textPrimary)
+                    Text(nic.ip, fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = syno.textSecondary)
                 }
             }
+            SynoStatusBadge(
+                text = if (isUp) "CONNECTED (${nic.speedMbps} Mbps)" else "DISCONNECTED",
+                color = if (isUp) SynologyEmerald else syno.textSecondary
+            )
+        }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+        HorizontalDivider(color = syno.borderSubtle)
+        Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                if (nic.mac.isNotBlank()) {
-                    Text("MAC: ${nic.mac}", fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                }
-                Text("Subnet: ${nic.mask}", fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            if (nic.mac.isNotBlank()) {
+                Text("MAC: ${nic.mac}", fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = syno.textSecondary, maxLines = 1)
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("↓ RX: ${nic.rxBytes / (1024 * 1024)} MB", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = SynologyBlue)
-                Text("↑ TX: ${nic.txBytes / (1024 * 1024)} MB", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = SynologyEmerald)
-            }
+            Text("Subnet: ${nic.mask}", fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = syno.textSecondary, maxLines = 1)
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("↓ RX: ${nic.rxBytes / (1024 * 1024)} MB", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = SynoBlueBright)
+            Text("↑ TX: ${nic.txBytes / (1024 * 1024)} MB", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = SynologyEmerald)
         }
     }
 }
@@ -398,14 +394,16 @@ fun ConnectionDetailsDialog(
     onKick: () -> Unit
 ) {
     val strings = LocalAppStrings.current
-    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    val syno = SynoTheme.colors
+    val clipboard = LocalClipboardManager.current
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = syno.chromeSurface,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(conn.geo.flagEmoji, fontSize = 20.sp)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(strings.connectionDetails, fontWeight = FontWeight.Bold)
+                Text(strings.connectionDetails, fontWeight = FontWeight.Bold, color = syno.textPrimary)
             }
         },
         text = {
@@ -413,28 +411,27 @@ fun ConnectionDetailsDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Tiến trình: ${conn.processName}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                Text("Giao thức: ${conn.protocol} (${conn.state})", fontSize = 13.sp)
-                Text("Địa chỉ cục bộ: ${conn.localAddress}:${conn.localPort}", fontFamily = FontFamily.Monospace, fontSize = 12.sp)
-                Text("Địa chỉ từ xa: ${conn.remoteAddress}:${conn.remotePort}", fontFamily = FontFamily.Monospace, fontSize = 12.sp)
-                Text("Vị trí GeoIP: ${conn.geo.countryName} (${conn.geo.countryCode})", fontSize = 13.sp)
-                Text("Nhà mạng (ISP): ${conn.geo.isp}", fontSize = 13.sp)
+                Text("Tiến trình: ${conn.processName}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = syno.textPrimary)
+                Text("Giao thức: ${conn.protocol} (${conn.state})", fontSize = 13.sp, color = syno.textSecondary)
+                Text("Địa chỉ cục bộ: ${conn.localAddress}:${conn.localPort}", fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = syno.textPrimary)
+                Text("Địa chỉ từ xa: ${conn.remoteAddress}:${conn.remotePort}", fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = syno.textPrimary)
+                Text("Vị trí GeoIP: ${conn.geo.countryName} (${conn.geo.countryCode})", fontSize = 13.sp, color = syno.textSecondary)
+                Text("Nhà mạng (ISP): ${conn.geo.isp}", fontSize = 13.sp, color = syno.textSecondary)
                 TextButton(
-                    onClick = {
-                        clipboard.setText(AnnotatedString("${conn.remoteAddress}:${conn.remotePort}"))
-                    },
+                    onClick = { clipboard.setText(AnnotatedString("${conn.remoteAddress}:${conn.remotePort}")) },
                     contentPadding = PaddingValues(0.dp)
                 ) {
-                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp), tint = syno.accentBright)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Sao chép IP", fontSize = 12.sp)
+                    Text("Sao chép IP", fontSize = 12.sp, color = syno.accentBright)
                 }
             }
         },
         confirmButton = {
             Button(
                 onClick = onBlockIp,
-                colors = ButtonDefaults.buttonColors(containerColor = SynologyRose)
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = SynologyRose, contentColor = Color.White)
             ) {
                 Icon(Icons.Default.Block, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
@@ -442,7 +439,7 @@ fun ConnectionDetailsDialog(
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onKick) {
+            OutlinedButton(onClick = onKick, shape = RoundedCornerShape(24.dp)) {
                 Icon(Icons.Default.PowerSettingsNew, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(strings.kickSession)
@@ -450,4 +447,3 @@ fun ConnectionDetailsDialog(
         }
     )
 }
-
