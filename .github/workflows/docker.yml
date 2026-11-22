@@ -71,7 +71,7 @@ jobs:
             type=sha
           labels: |
             org.opencontainers.image.title=kv-synology
-            org.opencontainers.image.description=Synology DSM Web Manager (Next.js) — GPL-3.0
+            org.opencontainers.image.description=Synology DSM Web Manager (Pure Rust + Astryx UI) — GPL-3.0
             org.opencontainers.image.licenses=GPL-3.0-only
 
       - name: Build and push (multi-arch)
