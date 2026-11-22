@@ -1,4 +1,5 @@
 import { DSMSession, DSMConnectionConfig } from "./dsm/types";
+import { setSecureItem, getSecureItem } from "./native/secureStorage";
 
 const SESSION_KEY = "dsm_session_v2";
 const CREDENTIALS_KEY = "dsm_credentials_v1";
@@ -72,6 +73,11 @@ export function persistSession(
     try {
       localStorage.setItem(CREDENTIALS_KEY, JSON.stringify(creds));
     } catch {}
+
+    // Save to native Keychain if on iOS
+    if (config.password) {
+      setSecureItem(`pwd_${config.host}_${config.account}`, config.password).catch(() => {});
+    }
   } else {
     try {
       localStorage.removeItem(CREDENTIALS_KEY);

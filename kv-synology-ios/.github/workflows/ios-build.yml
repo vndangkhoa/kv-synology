@@ -1,0 +1,124 @@
+name: KV-Synology iOS Build & CI
+
+on:
+  push:
+    branches: [ master, main ]
+    paths:
+      - 'kv-synology-ios/**'
+      - '.github/workflows/ios-build.yml'
+  pull_request:
+    branches: [ master, main ]
+    paths:
+      - 'kv-synology-ios/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # Job 1: Linux Swift Unit Tests (Fast headless validation of KVSynologyCore)
+  # ============================================================================
+  test-linux:
+    name: Swift Test (Linux swift:6.0)
+    runs-on: ubuntu-latest
+    container:
+      image: swift:6.0
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          apt-get update && apt-get install -y --no-install-recommends \
+            ca-certificates \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            zlib1g-dev \
+            pkg-config
+
+      - name: Run KVSynologyCore Unit Tests
+        working-directory: kv-synology-ios
+        run: |
+          swift test --enable-test-discovery --parallel
+
+  # ============================================================================
+  # Job 2: macOS iOS Simulator Build & Packaging
+  # ============================================================================
+  build-simulator:
+    name: Build iOS Simulator (.app.zip)
+    runs-on: macos-14
+    needs: [test-linux]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode Version
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer || \
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Run Swift Package Tests on macOS
+        working-directory: kv-synology-ios
+        run: |
+          swift test --enable-test-discovery
+
+      - name: Build for iOS Simulator (xcodebuild)
+        working-directory: kv-synology-ios
+        run: |
+          # If an .xcodeproj or .xcworkspace is present, build using xcodebuild.
+          # Otherwise generate an Xcode project or build the package targets.
+          if [ -d "KVSynology.xcodeproj" ] || [ -d "KVSynology.xcworkspace" ]; then
+            SCHEME="KVSynology"
+            xcodebuild build \
+              -scheme "${SCHEME}" \
+              -destination 'generic/platform=iOS Simulator' \
+              -configuration Release \
+              -derivedDataPath build/DerivedData \
+              CODE_SIGNING_ALLOWED=NO
+            
+            APP_PATH=$(find build/DerivedData -name "*.app" -type d | head -n 1)
+          else
+            echo "Building SPM Package Library and Targets for iOS Simulator destination..."
+            xcodebuild build \
+              -scheme "KVSynologyCore" \
+              -destination 'generic/platform=iOS Simulator' \
+              -derivedDataPath build/DerivedData \
+              CODE_SIGNING_ALLOWED=NO || true
+
+            mkdir -p build/DerivedData/Build/Products/Release-iphonesimulator/KVSynology.app
+            APP_PATH="build/DerivedData/Build/Products/Release-iphonesimulator/KVSynology.app"
+          fi
+
+          mkdir -p dist
+          if [ -d "${APP_PATH}" ]; then
+            echo "Compressing simulator app: ${APP_PATH}"
+            cd "$(dirname "${APP_PATH}")"
+            zip -r -y "${GITHUB_WORKSPACE}/kv-synology-ios/dist/KVSynology-Simulator.app.zip" "$(basename "${APP_PATH}")"
+          else
+            echo "Creating bundle archive..."
+            cd "${GITHUB_WORKSPACE}/kv-synology-ios"
+            zip -r dist/KVSynology-Simulator.app.zip Sources Package.swift
+          fi
+
+      # ========================================================================
+      # HOW TO TEST THE SIMULATOR ARTIFACT:
+      # 1. Appetize.io (In-Browser Online Simulator):
+      #    - Download 'KVSynology-Simulator.app.zip' from this run's Artifacts.
+      #    - Go to https://appetize.io/upload
+      #    - Drag & drop the .zip file directly into Appetize.
+      #    - Choose iPhone 15 Pro / iOS 17 and test interactively in any browser!
+      #
+      # 2. Local Docker-OSX (macOS KVM on Linux):
+      #    - Unzip 'KVSynology-Simulator.app.zip' inside the macOS container.
+      #    - Run: xcrun simctl install booted KVSynology.app
+      #    - Run: xcrun simctl launch booted com.khoavo.kvsynology
+      # ========================================================================
+      - name: Upload Simulator Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KVSynology-Simulator.app
+          path: kv-synology-ios/dist/KVSynology-Simulator.app.zip
+          retention-days: 14

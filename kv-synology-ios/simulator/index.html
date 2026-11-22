@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KV-Synology - iOS Simulator (iPhone 16 Pro)</title>
+    <link rel="icon" href="/favicon-32x32.png">
+    <style>
+        :root {
+            --iphone-w: 430px;
+            --iphone-h: 932px;
+            --bezel-radius: 54px;
+            --screen-radius: 46px;
+            --chassis-color: #2c2b30;
+            --bezel-color: #0b0b0d;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #0f1117 radial-gradient(circle at 50% 20%, #1e2433 0%, #0d0f14 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 20px;
+            overflow-x: hidden;
+            color: #e2e8f0;
+        }
+
+        .workspace-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            max-width: 1300px;
+            width: 100%;
+        }
+
+        /* ------------------------------------------------------------- */
+        /* iPhone 16 Pro Hardware Chassis                               */
+        /* ------------------------------------------------------------- */
+        .device-wrapper {
+            position: relative;
+            perspective: 1000px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .device-chassis {
+            position: relative;
+            width: calc(var(--iphone-w) + 24px);
+            height: calc(var(--iphone-h) + 24px);
+            background: linear-gradient(135deg, #444349 0%, #262529 50%, #3a393f 100%);
+            border-radius: var(--bezel-radius);
+            padding: 12px;
+            box-shadow: 
+                0 0 0 2px rgba(255, 255, 255, 0.12),
+                0 25px 60px -10px rgba(0, 0, 0, 0.8),
+                0 50px 100px -20px rgba(0, 0, 0, 0.95),
+                inset 0 0 4px 1px rgba(255, 255, 255, 0.2);
+            transition: all 0.4s ease;
+        }
+
+        /* Physical Buttons */
+        .btn-hardware {
+            position: absolute;
+            background: #333238;
+            border-radius: 4px;
+            box-shadow: inset 1px 0 2px rgba(255,255,255,0.2), 0 2px 4px rgba(0,0,0,0.5);
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+        .btn-hardware:active {
+            transform: scale(0.96);
+        }
+        .btn-action { left: -5px; top: 125px; width: 6px; height: 32px; }
+        .btn-vol-up { left: -5px; top: 175px; width: 6px; height: 56px; }
+        .btn-vol-down { left: -5px; top: 245px; width: 6px; height: 56px; }
+        .btn-power { right: -5px; top: 195px; width: 6px; height: 80px; }
+
+        .device-screen-bezel {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: var(--bezel-color);
+            border-radius: calc(var(--bezel-radius) - 6px);
+            padding: 4px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .device-screen {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            border-radius: var(--screen-radius);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Dynamic Island */
+        .dynamic-island-container {
+            position: absolute;
+            top: 11px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .dynamic-island {
+            width: 126px;
+            height: 36px;
+            background: #000000;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            box-shadow: 0 0 1px 1px rgba(255,255,255,0.06);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .dynamic-island:hover {
+            transform: scale(1.04);
+            box-shadow: 0 0 12px rgba(10, 132, 255, 0.4);
+        }
+        .island-camera {
+            width: 11px;
+            height: 11px;
+            background: #111420;
+            border-radius: 50%;
+            box-shadow: inset 0 0 2px #0a84ff;
+        }
+        .island-sensor {
+            width: 8px;
+            height: 8px;
+            background: #18191f;
+            border-radius: 50%;
+        }
+
+        /* iOS Status Bar */
+        .ios-status-bar {
+            height: 48px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 28px 0 28px;
+            z-index: 90;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            font-size: 14.5px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            color: #ffffff;
+            pointer-events: none;
+        }
+
+        .status-time {
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+        }
+
+        .status-icons {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Battery icon */
+        .battery-cap {
+            width: 25px;
+            height: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.85);
+            border-radius: 4px;
+            padding: 1px;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        .battery-cap::after {
+            content: '';
+            position: absolute;
+            right: -4px;
+            width: 2px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 0 1px 1px 0;
+        }
+        .battery-level {
+            width: 100%;
+            height: 100%;
+            background: #30d158;
+            border-radius: 1px;
+        }
+
+        /* Embedded App Iframe */
+        .app-viewport {
+            width: 100%;
+            height: calc(100% - 48px);
+            border: none;
+            background: #000000;
+        }
+
+        /* iOS Home Bar */
+        .ios-home-indicator-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 90;
+        }
+        .ios-home-indicator {
+            width: 136px;
+            height: 4.5px;
+            background: rgba(255, 255, 255, 0.65);
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+
+        /* Sleep / Lock Screen Overlay */
+        .screen-lock-overlay {
+            position: absolute;
+            inset: 0;
+            background: #000000;
+            z-index: 150;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+        }
+        .screen-lock-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+        .lock-time {
+            font-size: 72px;
+            font-weight: 200;
+            letter-spacing: -2px;
+        }
+        .lock-date {
+            font-size: 19px;
+            font-weight: 500;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+
+        /* Volume HUD Overlay */
+        .volume-hud {
+            position: absolute;
+            left: 6px;
+            top: 200px;
+            width: 5px;
+            height: 100px;
+            background: rgba(255,255,255,0.25);
+            border-radius: 4px;
+            z-index: 140;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+        .volume-hud.visible {
+            opacity: 1;
+        }
+        .volume-hud-fill {
+            width: 100%;
+            height: 70%;
+            background: #ffffff;
+            border-radius: 4px;
+            transition: height 0.1s ease;
+        }
+
+        /* ------------------------------------------------------------- */
+        /* Inspector / Simulator Control Panel                           */
+        /* ------------------------------------------------------------- */
+        .control-panel {
+            width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .panel-card {
+            background: rgba(22, 27, 34, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            padding: 20px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .badge-live {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(48, 209, 88, 0.15);
+            color: #30d158;
+            border: 1px solid rgba(48, 209, 88, 0.3);
+            border-radius: 12px;
+            font-size: 11px;
+            padding: 2px 8px;
+            font-weight: 600;
+        }
+        .dot-pulse {
+            width: 7px;
+            height: 7px;
+            background: #30d158;
+            border-radius: 50%;
+            animation: pulse 1.6s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.5; }
+            100% { transform: scale(0.9); opacity: 1; }
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .sim-btn {
+            background: #1c2230;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #f1f5f9;
+            padding: 11px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .sim-btn:hover {
+            background: #252d40;
+            border-color: #0a84ff;
+            transform: translateY(-1px);
+        }
+        .sim-btn:active {
+            transform: scale(0.97);
+        }
+        .sim-btn.primary {
+            background: linear-gradient(135deg, #0066cc 0%, #0a84ff 100%);
+            border-color: transparent;
+            color: #ffffff;
+        }
+        .sim-btn.primary:hover {
+            box-shadow: 0 4px 14px rgba(10, 132, 255, 0.4);
+        }
+
+        .spec-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12.5px;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            color: #94a3b8;
+        }
+        .spec-val {
+            color: #f8fafc;
+            font-weight: 600;
+        }
+
+        /* Face ID Toast */
+        .toast-faceid {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(28, 28, 30, 0.95);
+            border: 1px solid rgba(255,255,255,0.15);
+            padding: 12px 20px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 13px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+        }
+        .toast-faceid.active {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Rotate Landscape */
+        .device-wrapper.landscape {
+            transform: rotate(-90deg) scale(0.85);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="workspace-container">
+        
+        <!-- ========================================================= -->
+        <!-- iPhone 16 Pro Device Frame                                -->
+        <!-- ========================================================= -->
+        <div class="device-wrapper" id="deviceWrapper">
+            
+            <!-- Hardware Buttons -->
+            <div class="btn-hardware btn-action" title="Action Button" onclick="triggerActionBtn()"></div>
+            <div class="btn-hardware btn-vol-up" title="Volume Up" onclick="adjustVolume(10)"></div>
+            <div class="btn-hardware btn-vol-down" title="Volume Down" onclick="adjustVolume(-10)"></div>
+            <div class="btn-hardware btn-power" title="Sleep / Wake" onclick="toggleScreenPower()"></div>
+
+            <div class="device-chassis">
+                <div class="device-screen-bezel">
+                    <div class="device-screen">
+                        
+                        <!-- Dynamic Island -->
+                        <div class="dynamic-island-container" onclick="expandIsland()">
+                            <div class="dynamic-island" id="dynamicIsland">
+                                <div class="island-sensor"></div>
+                                <div class="island-camera"></div>
+                            </div>
+                        </div>
+
+                        <!-- Face ID Prompt Animation -->
+                        <div class="toast-faceid" id="faceIdToast">
+                            <span>😃</span> Face ID Authenticated
+                        </div>
+
+                        <!-- Volume HUD -->
+                        <div class="volume-hud" id="volumeHud">
+                            <div class="volume-hud-fill" id="volumeFill"></div>
+                        </div>
+
+                        <!-- iOS Status Bar -->
+                        <div class="ios-status-bar">
+                            <span class="status-time" id="clock">09:41</span>
+                            <div class="status-icons">
+                                <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor">
+                                    <path d="M1 9.5h2v1H1v-1zm3.5-2.5h2v3.5h-2V7zm3.5-2.5h2v6h-2v-6zm3.5-3h2v9h-2v-9z"/>
+                                </svg>
+                                <span style="font-size: 11px; font-weight: 700;">5G</span>
+                                <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor">
+                                    <path d="M8 2.5C4.7 2.5 1.8 3.9 0 6.1l8 9.9 8-9.9C14.2 3.9 11.3 2.5 8 2.5z"/>
+                                </svg>
+                                <div class="battery-cap">
+                                    <div class="battery-level" id="batteryLevel"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- App Iframe (Ionic Mobile Client / Android Parity UI) -->
+                        <iframe 
+                            src="/app/index.html?v=v2_real" 
+                            class="app-viewport" 
+                            id="appFrame"
+                            allow="camera; microphone; geolocation"
+                        ></iframe>
+
+                        <!-- Lock Screen Overlay -->
+                        <div class="screen-lock-overlay" id="lockOverlay" onclick="toggleScreenPower()">
+                            <div class="lock-date" id="lockDate">Wednesday, September 23</div>
+                            <div class="lock-time" id="lockClock">09:41</div>
+                            <div style="margin-top: 30px; font-size: 13px; color: #64748b;">Tap to unlock</div>
+                        </div>
+
+                        <!-- iOS Home Indicator -->
+                        <div class="ios-home-indicator-container" onclick="homeSwipe()">
+                            <div class="ios-home-indicator"></div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- Simulator Controls & Telemetry HUD                        -->
+        <!-- ========================================================= -->
+        <div class="control-panel">
+            
+            <div class="panel-card">
+                <div class="panel-title">
+                    <span>🎛️ KV-Synology iOS Simulator</span>
+                    <span class="badge-live"><span class="dot-pulse"></span>LIVE</span>
+                </div>
+                
+                <div class="spec-row">
+                    <span>Device Model:</span>
+                    <span class="spec-val">iPhone 16 Pro (A18 Pro)</span>
+                </div>
+                <div class="spec-row">
+                    <span>Viewport Resolution:</span>
+                    <span class="spec-val">430 × 932 pt (@3x)</span>
+                </div>
+                <div class="spec-row">
+                    <span>iOS Target Version:</span>
+                    <span class="spec-val">iOS 17.5 / iOS 18.0</span>
+                </div>
+                <div class="spec-row">
+                    <span>Engine Target:</span>
+                    <span class="spec-val" id="engineTarget" style="color: #38bdf8;">Ionic App (/app/index.html)</span>
+                </div>
+                <div class="spec-row">
+                    <span>Linux Host KVM:</span>
+                    <span class="spec-val" style="color: #30d158;">Active (VT-x Enabled)</span>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div class="panel-title">
+                    <span>⚡ Quick Simulator Actions</span>
+                </div>
+
+                <div class="btn-grid">
+                    <button class="sim-btn primary" onclick="triggerFaceId()">
+                        <span>🔐</span> Test Face ID
+                    </button>
+                    <button class="sim-btn" onclick="toggleRotate()">
+                        <span>🔄</span> Rotate 90°
+                    </button>
+                    <button class="sim-btn" onclick="reloadApp()">
+                        <span>🔄</span> Reload App
+                    </button>
+                    <button class="sim-btn" onclick="toggleScreenPower()">
+                        <span>🔒</span> Sleep / Wake
+                    </button>
+                    <button class="sim-btn" onclick="adjustVolume(15)">
+                        <span>🔊</span> Volume +
+                    </button>
+                    <button class="sim-btn" onclick="adjustVolume(-15)">
+                        <span>🔉</span> Volume -
+                    </button>
+                </div>
+
+                <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
+                    <!-- Quick Experience Mode Switcher directly from Simulator HUD -->
+                    <div style="display: flex; gap: 8px;">
+                        <button class="sim-btn" style="flex: 1; justify-content: center; background: rgba(16, 185, 129, 0.16); border: 1px solid #10b981; color: #34d399; font-weight: 700;" onclick="setIframeExpMode('beginner')">
+                            <span>🟢</span> Cơ bản (Beginner)
+                        </button>
+                        <button class="sim-btn" style="flex: 1; justify-content: center; background: rgba(245, 158, 11, 0.16); border: 1px solid #f59e0b; color: #fbbf24; font-weight: 700;" onclick="setIframeExpMode('advance')">
+                            <span>⚡</span> Nâng cao (Advance)
+                        </button>
+                    </div>
+
+                    <button class="sim-btn" id="modeBtn" style="width: 100%; justify-content: center; background: #0066cc;" onclick="toggleAppMode()">
+                        <span>📱</span> <span id="modeLabel">Switch to Next.js Web (:8088)</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div class="panel-title">
+                    <span>📁 Export & Testing (.IPA)</span>
+                </div>
+                <div style="font-size: 12.5px; color: #94a3b8; line-height: 1.5; margin-bottom: 12px;">
+                    Active build artifact in <code style="color: #38bdf8;">kv-synology-ios/build/</code> (100% Offline Build):
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div class="spec-row" style="background: rgba(10, 132, 255, 0.1); padding: 8px; border-radius: 8px; border: 1px solid rgba(10, 132, 255, 0.2);">
+                        <span>Native iOS IPA (Offline):</span>
+                        <a href="/download/ipa" download="KVSynology-Native.ipa" style="color: #38bdf8; text-decoration: none; font-weight: 700;">KVSynology-Native.ipa (128 KB) ⬇️</a>
+                    </div>
+                    <div style="font-size: 11px; color: #64748b; font-family: monospace;">
+                        /mnt/data/Package Center/kv-synology/kv-synology-ios/build/KVSynology-Native.ipa
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // Clock Synchronization
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const timeStr = `${hours}:${minutes}`;
+            document.getElementById('clock').textContent = timeStr;
+            document.getElementById('lockClock').textContent = timeStr;
+
+            const options = { weekday: 'long', month: 'long', day: 'numeric' };
+            document.getElementById('lockDate').textContent = now.toLocaleDateString('en-US', options);
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Screen Power Toggle
+        let isScreenOn = true;
+        function toggleScreenPower() {
+            isScreenOn = !isScreenOn;
+            const overlay = document.getElementById('lockOverlay');
+            if (isScreenOn) {
+                overlay.classList.remove('active');
+            } else {
+                overlay.classList.add('active');
+            }
+        }
+
+        // Face ID Simulation
+        function triggerFaceId() {
+            const toast = document.getElementById('faceIdToast');
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 1800);
+        }
+
+        // Dynamic Island Expand
+        function expandIsland() {
+            const island = document.getElementById('dynamicIsland');
+            island.style.width = '240px';
+            island.style.height = '48px';
+            setTimeout(() => {
+                island.style.width = '126px';
+                island.style.height = '36px';
+            }, 1500);
+        }
+
+        // Volume HUD
+        let volume = 70;
+        let volTimeout;
+        function adjustVolume(delta) {
+            volume = Math.max(0, Math.min(100, volume + delta));
+            const hud = document.getElementById('volumeHud');
+            const fill = document.getElementById('volumeFill');
+            fill.style.height = volume + '%';
+            hud.classList.add('visible');
+            clearTimeout(volTimeout);
+            volTimeout = setTimeout(() => {
+                hud.classList.remove('visible');
+            }, 1500);
+        }
+
+        // Action Button
+        function triggerActionBtn() {
+            alert('iPhone 16 Pro Action Button clicked: Toggled Synology Mute / Quick Status');
+        }
+
+        // Home Indicator Swipe
+        function homeSwipe() {
+            reloadApp();
+        }
+
+        // Reload App
+        function reloadApp() {
+            const frame = document.getElementById('appFrame');
+            frame.src = frame.src;
+        }
+
+        // Rotate
+        let isLandscape = false;
+        function toggleRotate() {
+            isLandscape = !isLandscape;
+            const wrapper = document.getElementById('deviceWrapper');
+            if (isLandscape) {
+                wrapper.classList.add('landscape');
+            } else {
+                wrapper.classList.remove('landscape');
+            }
+        }
+
+        // Mode Switcher between Ionic App and Next.js Web
+        let currentMode = 'ionic';
+        function toggleAppMode() {
+            const frame = document.getElementById('appFrame');
+            const targetLabel = document.getElementById('engineTarget');
+            const modeLabel = document.getElementById('modeLabel');
+
+            if (currentMode === 'ionic') {
+                currentMode = 'web';
+                frame.src = "http://localhost:8088";
+                targetLabel.textContent = "http://localhost:8088 (Web)";
+                modeLabel.textContent = "Switch to Ionic App (Android Parity)";
+            } else {
+                currentMode = 'ionic';
+                frame.src = "/app/index.html";
+                targetLabel.textContent = "Ionic App (/app/index.html)";
+                modeLabel.textContent = "Switch to Next.js Web (:8088)";
+            }
+        }
+
+        // Experience Mode Switcher Bridge
+        function setIframeExpMode(mode) {
+            const frame = document.getElementById('appFrame');
+            if (frame && frame.contentWindow && frame.contentWindow.setExperienceMode) {
+                frame.contentWindow.setExperienceMode(mode);
+            }
+        }
+
+        // Auto Demo Mode
+        function tryDemoMode() {
+            toggleAppMode();
+        }
+    </script>
+</body>
+</html>

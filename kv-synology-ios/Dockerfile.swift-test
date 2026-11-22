@@ -1,0 +1,32 @@
+# ==============================================================================
+# KV-Synology iOS / Swift Core - Headless Linux Unit Testing Container
+# Multi-arch compatible (x86_64, aarch64) based on official Swift 6.0 image
+# ==============================================================================
+
+FROM swift:6.0 AS tester
+
+# Set working directory
+WORKDIR /workspace
+
+# Install required system libraries for cross-platform network & crypto testing
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    zlib1g-dev \
+    pkg-config \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy package definition and manifest
+COPY Package.swift ./
+
+# Copy core engine source code and unit tests
+COPY Sources/ ./Sources/
+COPY Tests/ ./Tests/
+
+# Warm up package resolution and pre-build dependencies
+RUN swift package resolve
+
+# Run tests by default with test discovery enabled
+CMD ["swift", "test", "--enable-test-discovery", "--parallel"]

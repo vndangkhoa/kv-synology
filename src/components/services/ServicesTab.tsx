@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { dsmClient } from "@/lib/dsm/client";
 import { ServiceItem, PackageItem, ServiceCategory } from "@/lib/dsm/types";
+import { hapticImpact, hapticNotification } from "@/lib/native";
 import {
   Server,
   Share2,
@@ -128,8 +129,10 @@ export const ServicesTab: React.FC = () => {
   const handleToggle = async (svc: ServiceItem) => {
     setTogglingId(svc.id);
     const next = !svc.enabled;
+    hapticImpact("medium");
     try {
       await dsmClient.toggleService(svc.id, next);
+      hapticNotification("success");
       setServices((prev) =>
         prev.map((s) =>
           s.id === svc.id
@@ -162,6 +165,7 @@ export const ServicesTab: React.FC = () => {
       );
       setTimeout(() => loadAll(), 800);
     } catch (e: any) {
+      hapticNotification("error");
       alert(e.message || "Không thể thay đổi trạng thái dịch vụ");
     } finally {
       setTogglingId(null);
@@ -170,8 +174,10 @@ export const ServicesTab: React.FC = () => {
 
   const handlePackageToggle = async (pkg: PackageItem) => {
     setTogglingId(pkg.id);
+    hapticImpact("medium");
     try {
       await dsmClient.togglePackage(pkg.id, pkg.status === "running" ? "stop" : "start");
+      hapticNotification("success");
       const pkgs = await dsmClient.getPackages();
       setPackages(pkgs);
     } finally {
