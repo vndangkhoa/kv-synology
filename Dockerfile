@@ -32,7 +32,11 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --system --gid 1001 kvgroup \
- && useradd --system --uid 1001 --gid kvgroup kvuser
+ && groupadd --system --gid 1001 --non-unique nodejs \
+ && useradd --system --uid 1001 --gid kvgroup kvuser \
+ && useradd --system --uid 1001 --non-unique --gid kvgroup nextjs \
+ && printf '#!/bin/sh\nif [ "${1:-}" = "node" ] && [ "${2:-}" = "server.js" ]; then\n  exec /app/kv-synology\nfi\nexec "$@"\n' > /usr/local/bin/docker-entrypoint.sh \
+ && chmod +x /usr/local/bin/docker-entrypoint.sh
 
 COPY --from=rust-builder /src/rust/app/target/release/kv-synology /app/kv-synology
 COPY --from=rust-builder /src/rust/mcp/target/release/kv-synology-mcp /app/kv-synology-mcp
