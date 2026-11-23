@@ -1,12 +1,14 @@
 # Dependencies
 /node_modules
-/mcp/node_modules
+legacy/**/node_modules/
 /.pnp
 .pnp.js
 
 # Production build outputs
 /.next/
 /out/
+legacy/**/.next/
+legacy/**/out/
 /build
 
 # Environment files

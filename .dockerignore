@@ -20,8 +20,8 @@ docker-compose.override.yml
 README.md
 kv-synology-android/
 kv-synology-ios/
-ios/
-mcp/
+legacy/
+docs/
 *.apk
 .next/
 *.tsbuildinfo
