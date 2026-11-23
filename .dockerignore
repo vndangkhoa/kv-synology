@@ -28,4 +28,5 @@ mcp/
 rust/**/target/
 rust/web-ui/dist/
 rust/dist-musl/
+.bla-hardened/
 

@@ -13,6 +13,7 @@
 [![Docker Image](https://img.shields.io/badge/Docker-181%20MB%20amd64-2496ED?style=flat-square&logo=docker)](https://hub.docker.com/r/vndangkhoa/kv-synology)
 [![MCP Server](https://img.shields.io/badge/MCP%20Server-43%20Rust%20Tools-8A2BE2?style=flat-square&logo=anthropic)](rust/mcp/README.md)
 [![Android APK](https://img.shields.io/badge/Android-Phone%20%2F%20Foldable%20%2F%20Tablet-3DDC84?style=flat-square&logo=android)](https://syno.vndns.net/package/kvsynology)
+[![Counter-REA](https://img.shields.io/badge/Counter--REA-BLA_v3.5_Protected-7c3aed?style=flat-square&logo=shield&logoColor=white)](https://git.khoavo.myds.me/vndangkhoa/bla)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
 
 [Features](#-key-features) • [Comparison](#-why-kv-synology) • [Architecture](#-architecture) • [Quickstart](#-quickstart-30-seconds) • [Container Manager](#-synology-container-manager-setup) • [AI MCP Server](#-model-context-protocol-mcp-server) • [License](#-license)
@@ -36,6 +37,7 @@ Furthermore, KV-Synology includes a native **Pure Rust Model Context Protocol (M
 | **Direct Browser-to-NAS Proxy** | ✅ **Zero intermediary (`/api/dsm/{*path}`)** | ❌ Direct Port Binding | ❌ Server Agent Needed | ❌ HA Server Proxy |
 | **QuickConnect Auto-Resolver** | ✅ **LAN + WAN + Relay** | ✅ Native DSM | ❌ Manual IP only | ❌ Manual IP only |
 | **AI Agent MCP Integration** | ✅ **43 Native Rust Tools** | ❌ None | ❌ None | ⚠️ Basic Entity Controls |
+| **Counter-REA Binary & WebAssembly Shield ([BLA v3.5](https://git.khoavo.myds.me/vndangkhoa/bla))** | ✅ **Webapp (WASM + SW) · Android · Selfhost/MCP** | ❌ None | ❌ None | ❌ None |
 | **Unified Service Toggles** | ✅ **SMB/NFS/SSH/FTP in 1 click**| ⚠️ Scattered in Control Panel| ❌ Not Synology Services | ⚠️ Limited |
 | **Real-time Notifications** | ✅ **Grouped + Filterable** | ✅ DSM Notification tray | ❌ Container logs only | ⚠️ HA Events |
 | **Container Management** | ✅ **Integrated** | ✅ Container Manager | ✅ Full Docker UI | ⚠️ Addon Manager |
@@ -54,6 +56,7 @@ Furthermore, KV-Synology includes a native **Pure Rust Model Context Protocol (M
 - 🔔 **Synology Notification Center**: Full `SYNO.Core.DSMNotify` integration with category filters (`system`, `storage`, `package`, `network`, `security`, `backup`), severity levels (`info`, `warning`, `error`), badge counts, and Telegram/Webhook dispatch.
 - 🐳 **Container Manager Control**: View, start, stop, and inspect running Docker containers directly.
 - 🤖 **Native Model Context Protocol (MCP)**: 43 Pure-Rust tools (`kv-synology-mcp`) via stdio + `russh` for AI assistants (Claude, Cursor, Ollama) to inspect, manage, and automate your NAS.
+- 🛡️ **BLA v3.5 Counter-REA Defense Shield**: Integrated across the **Web App** (Rust WASM `bla_shield` + surgical shared-state `sw.js` weave + WASM/JS hardening), **Android App** (`BlaShield` Kotlin/DEX attestation decoys & ProGuard rules + DEX hardening), and **Self-Hosted Server / MCP** (`kv-synology` & `kv-synology-mcp` ELF tarpit + `./bin/harden`).
 
 ---
 

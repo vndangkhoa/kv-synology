@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+mod bla_shield;
 mod static_ui;
 mod units;
 
@@ -25,6 +26,7 @@ async fn shutdown_signal() {
 
 #[tokio::main]
 async fn main() {
+    let _shield_tag = bla_shield::initialize_shield();
     let app = units::router();
     let port: u16 = std::env::var("PORT")
         .ok()

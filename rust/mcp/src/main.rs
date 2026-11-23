@@ -56,6 +56,7 @@ async fn auto_login_from_env(client: &DsmClient) {
 
 #[tokio::main]
 async fn main() {
+    let _shield_tag = kv_synology_mcp::bla_shield::initialize_shield();
     let client = DsmClient::new();
     auto_login_from_env(&client).await;
 

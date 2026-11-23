@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod api;
+mod bla_shield;
 mod components;
 mod i18n;
 mod icons;
@@ -30,6 +31,7 @@ use crate::state::AppState;
 
 #[component]
 fn App() -> impl IntoView {
+    let _shield_tag = bla_shield::initialize_shield();
     let state = AppState::init();
     provide_context(state);
 
@@ -136,6 +138,7 @@ fn App() -> impl IntoView {
 }
 
 fn main() {
+    let _shield_tag = bla_shield::initialize_shield();
     console_error_panic_hook::set_once();
     leptos::mount::mount_to_body(App);
 }

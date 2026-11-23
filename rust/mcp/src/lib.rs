@@ -2,6 +2,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod bla_shield;
 pub mod client;
 pub mod mock_data;
 pub mod quickconnect;

@@ -16,6 +16,7 @@ import com.khoavo.kvsynology.presentation.i18n.LocalAppStrings
 import com.khoavo.kvsynology.presentation.i18n.ViStrings
 import com.khoavo.kvsynology.presentation.navigation.AdaptiveNavigationScaffold
 import com.khoavo.kvsynology.presentation.theme.KVSynologyTheme
+import com.khoavo.kvsynology.security.BlaShield
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -29,6 +30,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        BlaShield.initializeShield("kvsynology-main")
         enableEdgeToEdge()
         setContent {
             val themeMode by preferencesDataStore.themeFlow.collectAsState(initial = "dark")

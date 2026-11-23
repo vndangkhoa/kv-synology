@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# Harden KV-Synology build outputs (Web App WASM/SW, Self-Hosted ELF/musl binaries & MCP,
+# and Android DEX artifacts) against AI reverse-engineering agents using BLA (bla-agents v3.5.7).
+set -euo pipefail
+
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+cd "$ROOT"
+
+OUT_DIR="${BLA_OUT_DIR:-$ROOT/.bla-hardened}"
+mkdir -p "$OUT_DIR"
+
+TMP_BLA="$(mktemp -d)"
+trap 'rm -rf "$TMP_BLA"' EXIT
+
+TGZ="$(find "$ROOT/vendor" -maxdepth 1 -name 'bla-agents-*.tgz' | sort -V | tail -n 1)"
+if [ -n "$TGZ" ] && [ -f "$TGZ" ]; then
+    tar -xzf "$TGZ" -C "$TMP_BLA"
+    (cd "$TMP_BLA/package" && npm install --omit=dev --no-audit --no-fund --silent >/dev/null 2>&1 || true)
+    BLA_CLI=(node "$TMP_BLA/package/dist/cli.js")
+else
+    BLA_CLI=(npx -y bla-agents@latest)
+fi
+
+export BLA_STATE_DIR="${BLA_STATE_DIR:-$TMP_BLA/state}"
+mkdir -p "$BLA_STATE_DIR"
+
+echo "==> [1/4] Verifying BLA 3.0 surgical source weave on public/sw.js..."
+"${BLA_CLI[@]}" verify-weave "$ROOT/public/sw.js"
+
+echo "==> [2/4] Hardening Web App artifacts (dist/sw.js & Leptos WASM)..."
+mkdir -p "$OUT_DIR/web-ui"
+if [ -f "$ROOT/rust/web-ui/dist/sw.js" ]; then
+    "${BLA_CLI[@]}" defend "$ROOT/rust/web-ui/dist/sw.js" -o "$OUT_DIR/web-ui/sw.js" --intensity bankrupt --manifest
+    "${BLA_CLI[@]}" verify "$OUT_DIR/web-ui/sw.js" "$ROOT/rust/web-ui/dist/sw.js"
+elif [ -f "$ROOT/public/sw.js" ]; then
+    "${BLA_CLI[@]}" defend "$ROOT/public/sw.js" -o "$OUT_DIR/web-ui/sw.js" --intensity bankrupt --manifest
+    "${BLA_CLI[@]}" verify "$OUT_DIR/web-ui/sw.js" "$ROOT/public/sw.js"
+fi
+
+for wasm in "$ROOT"/rust/web-ui/dist/*.wasm; do
+    [ -f "$wasm" ] || continue
+    wbase="$(basename "$wasm")"
+    DEST="$OUT_DIR/web-ui/$wbase"
+    echo "==> Hardening WebAssembly $wbase (intensity: maximum)"
+    "${BLA_CLI[@]}" defend "$wasm" -o "$DEST" --intensity maximum --manifest
+done
+
+echo "==> [3/4] Hardening Self-Hosted Server & MCP binaries..."
+for pair in \
+    "$ROOT/rust/app/target/release/kv-synology:$OUT_DIR/kv-synology" \
+    "$ROOT/rust/mcp/target/release/kv-synology-mcp:$OUT_DIR/kv-synology-mcp" \
+    "$ROOT/rust/dist-musl/x86_64/kv-synology:$OUT_DIR/musl-x86_64/kv-synology" \
+    "$ROOT/rust/dist-musl/x86_64/kv-synology-mcp:$OUT_DIR/musl-x86_64/kv-synology-mcp"
+do
+    SRC="${pair%%:*}"
+    DEST="${pair#*:}"
+    if [ ! -f "$SRC" ]; then
+        echo "Skipping $SRC (not built yet)"
+        continue
+    fi
+    mkdir -p "$(dirname "$DEST")"
+    echo "==> Hardening $SRC -> $DEST"
+    "${BLA_CLI[@]}" defend "$SRC" -o "$DEST" --intensity bankrupt --manifest --fail-under 68
+    chmod +x "$DEST"
+    "${BLA_CLI[@]}" verify "$DEST" "$SRC" --fail-under 68
+done
+
+echo "==> [4/4] Checking Android merged release DEX artifacts..."
+DEX_DIR="$ROOT/kv-synology-android/app/build/intermediates/dex/release/mergeDexRelease"
+rm -rf "$OUT_DIR/android"
+DEX_COUNT=0
+if [ -d "$DEX_DIR" ]; then
+    mkdir -p "$OUT_DIR/android"
+    for dex in "$DEX_DIR"/classes*.dex; do
+        [ -f "$dex" ] || continue
+        DEX_COUNT=$((DEX_COUNT + 1))
+        bname="$(basename "$dex")"
+        DEST="$OUT_DIR/android/$bname"
+        echo "==> Hardening Android DEX $bname -> $DEST"
+        "${BLA_CLI[@]}" defend "$dex" -o "$DEST" --intensity bankrupt --manifest
+        "${BLA_CLI[@]}" verify "$DEST" "$dex"
+    done
+fi
+if [ "$DEX_COUNT" -eq 0 ]; then
+    echo "No merged Android release DEX artifacts in $DEX_DIR (skipping DEX step; BlaShield.kt is wired in Kotlin source)"
+fi
+
+echo "BLA Counter-REA hardening complete -> $OUT_DIR"

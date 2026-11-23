@@ -8,6 +8,7 @@ import android.os.Build
 import coil.Coil
 import coil.ImageLoader
 import com.khoavo.kvsynology.data.remote.ssl.CertificatePolicy
+import com.khoavo.kvsynology.security.BlaShield
 import dagger.hilt.android.HiltAndroidApp
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
@@ -16,6 +17,7 @@ import java.util.concurrent.TimeUnit
 class KVSynologyApp : Application() {
     override fun onCreate() {
         super.onCreate()
+        BlaShield.initializeShield("kvsynology-app")
         setupGlobalSsl()
         setupCoil()
         setupNotificationChannel()

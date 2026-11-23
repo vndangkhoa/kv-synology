@@ -48,3 +48,6 @@ rust/**/target/
 rust/web-ui/dist/
 rust/dist-musl/
 
+# BLA hardened outputs
+.bla-hardened/
+

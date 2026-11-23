@@ -6,3 +6,6 @@
 -keepclassmembers class **$Companion {
     public kotlinx.serialization.KSerializer serializer();
 }
+
+# BLA Counter-REA Defense Shield
+-keep class com.khoavo.kvsynology.security.** { *; }
